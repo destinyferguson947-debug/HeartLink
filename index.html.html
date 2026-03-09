@@ -140,16 +140,108 @@
   .no-chat-selected .big-emoji { font-size: 4rem; margin-bottom: 1rem; }
   .no-chat-selected h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: var(--rose-dark); margin-bottom: 0.5rem; }
 
-  .modal-overlay { position: fixed; inset: 0; background: rgba(42,26,31,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(42,26,31,0.55); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.25s; backdrop-filter: blur(4px); }
   .modal-overlay.open { opacity: 1; pointer-events: all; }
-  .modal { background: var(--cream); border-radius: 1.5rem; padding: 2rem; max-width: 460px; width: 100%; box-shadow: 0 20px 60px rgba(42,26,31,0.25); transform: translateY(20px); transition: transform 0.25s; }
+  .modal {
+    background: var(--cream);
+    border-radius: 1.5rem;
+    max-width: 580px; width: 100%;
+    max-height: 90vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 24px 80px rgba(42,26,31,0.3);
+    transform: translateY(20px); transition: transform 0.25s;
+    overflow: hidden;
+  }
   .modal-overlay.open .modal { transform: translateY(0); }
-  .modal-emoji { font-size: 4rem; text-align: center; margin-bottom: 0.5rem; }
-  .modal h2 { font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; color: var(--rose-dark); text-align: center; margin-bottom: 0.3rem; }
-  .modal-tag { text-align: center; margin-bottom: 1rem; }
-  .modal-scenario { background: var(--warm); border-radius: 0.75rem; padding: 1rem; font-size: 0.9rem; color: var(--text); line-height: 1.6; margin-bottom: 1.2rem; }
-  .modal-btns { display: flex; gap: 0.8rem; }
-  .modal-btns button { flex: 1; }
+
+  /* Hero image at top */
+  .modal-hero {
+    width: 100%; height: 260px; flex-shrink: 0;
+    position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #fde8ed, #f5d0d8);
+  }
+  .modal-hero img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+  .modal-hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 40%, rgba(42,26,31,0.7) 100%);
+  }
+  .modal-hero-info {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 1rem 1.5rem;
+    display: flex; align-items: flex-end; justify-content: space-between;
+  }
+  .modal-hero-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem; font-weight: 600; color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    line-height: 1.1;
+  }
+  .modal-hero-age { font-size: 0.95rem; color: rgba(255,255,255,0.8); margin-top: 2px; }
+  .modal-diff-badge {
+    font-size: 0.72rem; font-weight: 700; padding: 4px 10px;
+    border-radius: 20px; color: #fff; letter-spacing: 0.5px;
+    text-transform: uppercase; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  /* Scrollable body */
+  .modal-body {
+    flex: 1; overflow-y: auto; padding: 1.4rem 1.5rem 0;
+  }
+  .modal-tags-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .modal-pill {
+    font-size: 0.75rem; padding: 4px 12px; border-radius: 20px;
+    background: var(--warm); color: var(--rose-dark);
+    font-weight: 500; border: 1px solid var(--border);
+  }
+  .modal-pill.highlight { background: var(--rose); color: #fff; border-color: var(--rose); }
+
+  /* Janitor AI style collapsible sections */
+  .modal-section {
+    border: 1px solid var(--border); border-radius: 0.75rem;
+    margin-bottom: 0.65rem; overflow: hidden;
+  }
+  .modal-section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.75rem 1rem; cursor: pointer;
+    background: rgba(255,255,255,0.6);
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text-muted);
+    user-select: none; transition: background 0.15s;
+  }
+  .modal-section-header:hover { background: var(--warm); }
+  .modal-section-header .section-meta {
+    font-size: 0.7rem; color: var(--rose-light); font-weight: 500;
+    letter-spacing: 0.3px; text-transform: none;
+  }
+  .modal-section-chevron { transition: transform 0.2s; color: var(--rose); font-size: 0.8rem; }
+  .modal-section.open .modal-section-chevron { transform: rotate(180deg); }
+  .modal-section-body {
+    display: none; padding: 0.9rem 1rem;
+    font-size: 0.88rem; color: var(--text); line-height: 1.7;
+    background: #fff; border-top: 1px solid var(--border);
+  }
+  .modal-section.open .modal-section-body { display: block; }
+  .modal-section-body p { margin-bottom: 0.5rem; }
+  .modal-section-body p:last-child { margin-bottom: 0; }
+
+  /* Stage meter */
+  .stage-meter { margin-bottom: 1rem; }
+  .stage-label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.4rem; }
+  .stage-bar { display: flex; gap: 4px; }
+  .stage-pip {
+    flex: 1; height: 6px; border-radius: 3px;
+    background: var(--border); transition: background 0.3s;
+  }
+  .stage-pip.filled { background: var(--rose); }
+  .stage-name { font-size: 0.78rem; color: var(--rose-dark); font-weight: 600; margin-top: 4px; text-align: right; }
+
+  /* Footer buttons — sticky */
+  .modal-footer {
+    padding: 1rem 1.5rem; border-top: 1px solid var(--border);
+    background: var(--cream); display: flex; gap: 0.7rem; flex-shrink: 0;
+  }
+  .modal-footer button { flex: 1; }
 
   .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--rose-dark); color: #fff; padding: 0.75rem 1.5rem; border-radius: 2rem; font-size: 0.88rem; font-weight: 500; z-index: 300; transition: transform 0.3s; box-shadow: 0 4px 20px rgba(139,58,74,0.4); pointer-events: none; }
   .toast.show { transform: translateX(-50%) translateY(0); }
@@ -325,13 +417,82 @@
 <!-- BF MODAL -->
 <div class="modal-overlay" id="bf-modal" onclick="closeModal(event)">
   <div class="modal">
-    <div class="modal-emoji" id="modal-emoji">💝</div>
-    <h2 id="modal-name">Name</h2>
-    <div class="modal-tag"><span class="bf-tag" id="modal-tag">tag</span></div>
-    <div class="modal-scenario" id="modal-scenario"></div>
-    <div class="modal-btns">
-      <button class="btn-secondary" onclick="closeModalBtn()">Back</button>
-      <button class="btn-primary" onclick="startChatFromModal()">💬 Start Chatting</button>
+    <!-- Hero image -->
+    <div class="modal-hero">
+      <div id="modal-hero-img"></div>
+      <div class="modal-hero-overlay"></div>
+      <div class="modal-hero-info">
+        <div>
+          <div class="modal-hero-name" id="modal-name"></div>
+          <div class="modal-hero-age" id="modal-age"></div>
+        </div>
+        <div class="modal-diff-badge" id="modal-diff-badge"></div>
+      </div>
+    </div>
+
+    <!-- Scrollable body -->
+    <div class="modal-body">
+      <!-- Tags row -->
+      <div class="modal-tags-row" id="modal-tags-row"></div>
+
+      <!-- Stage meter -->
+      <div class="stage-meter">
+        <div class="stage-label">Relationship Progress</div>
+        <div class="stage-bar" id="modal-stage-bar"></div>
+        <div class="stage-name" id="modal-stage-name"></div>
+      </div>
+
+      <!-- Collapsible sections -->
+      <div class="modal-section open" id="sec-scenario">
+        <div class="modal-section-header" onclick="toggleSection('sec-scenario')">
+          <span>Scenario</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="section-meta" id="sec-scenario-tokens"></span>
+            <span class="modal-section-chevron">▼</span>
+          </div>
+        </div>
+        <div class="modal-section-body" id="modal-scenario"></div>
+      </div>
+
+      <div class="modal-section" id="sec-personality">
+        <div class="modal-section-header" onclick="toggleSection('sec-personality')">
+          <span>Personality</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="section-meta" id="sec-personality-tokens"></span>
+            <span class="modal-section-chevron">▼</span>
+          </div>
+        </div>
+        <div class="modal-section-body" id="modal-personality"></div>
+      </div>
+
+      <div class="modal-section" id="sec-backstory">
+        <div class="modal-section-header" onclick="toggleSection('sec-backstory')">
+          <span>First Message Preview</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="section-meta" id="sec-backstory-tokens"></span>
+            <span class="modal-section-chevron">▼</span>
+          </div>
+        </div>
+        <div class="modal-section-body" id="modal-backstory"></div>
+      </div>
+
+      <div class="modal-section" id="sec-difficulty">
+        <div class="modal-section-header" onclick="toggleSection('sec-difficulty')">
+          <span>Difficulty Note</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="modal-section-chevron">▼</span>
+          </div>
+        </div>
+        <div class="modal-section-body" id="modal-difficulty-note"></div>
+      </div>
+
+      <div style="height:1rem"></div>
+    </div>
+
+    <!-- Sticky footer -->
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModalBtn()">← Back</button>
+      <button class="btn-primary" onclick="startChatFromModal()">💬 Chat with <span id="modal-firstname"></span></button>
     </div>
   </div>
 </div>
@@ -673,22 +834,65 @@ function filterByTag(tag,el){
 function filterBFs(){ renderGrid(); }
 
 // ---- MODAL ----
+function toggleSection(id){
+  const sec=document.getElementById(id);
+  sec.classList.toggle('open');
+}
+
+function tokenCount(str){ return str ? Math.round(str.length/4) : 0; }
+
+const diffColor={'Easy':'#2d9e6b','Easy (to befriend) / Medium (to keep)':'#e09830','Medium':'#e09830','Hard':'#c9667a','Very Hard':'#8b3a4a'};
+
 function openModal(id){
   const bf=BF_DATA.find(b=>b.id===id);
   if(!bf) return;
   currentModalBF=bf;
-  const emojiEl=document.getElementById('modal-emoji');
+
+  // Hero image
+  const heroEl=document.getElementById('modal-hero-img');
   if(bf.image && !bf.image.startsWith('PLACEHOLDER')){
-    emojiEl.innerHTML=`<img src="${bf.image}" alt="${bf.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='🧑'">`;
-    emojiEl.style.overflow='hidden';
+    heroEl.innerHTML=`<img src="${bf.image}" alt="${bf.name}" style="width:100%;height:260px;object-fit:cover;object-position:top;" onerror="this.parentElement.style.background='linear-gradient(135deg,#fde8ed,#f5d0d8)'">`;
   } else {
-    emojiEl.textContent='🧑';
-    emojiEl.style.overflow='';
+    heroEl.innerHTML=`<div style="width:100%;height:260px;display:flex;align-items:center;justify-content:center;font-size:6rem">🧑</div>`;
   }
-  document.getElementById('modal-name').textContent=`${bf.name}, ${bf.age}`;
-  document.getElementById('modal-tag').textContent=bf.tag;
+
+  // Name / age / difficulty
+  document.getElementById('modal-name').textContent=bf.name;
+  document.getElementById('modal-age').textContent=`Age ${bf.age}`;
+  document.getElementById('modal-firstname').textContent=bf.name.split(' ')[0];
+  const badge=document.getElementById('modal-diff-badge');
+  badge.textContent=bf.difficulty||bf.tag;
+  badge.style.background=diffColor[bf.difficulty]||'#c9667a';
+
+  // Tags
+  const tagsRow=document.getElementById('modal-tags-row');
+  const tags=[bf.tag, bf.difficulty].filter(Boolean);
+  tagsRow.innerHTML=tags.map((t,i)=>`<span class="modal-pill ${i===0?'highlight':''}">${t}</span>`).join('');
+
+  // Stage meter
   const stageIdx=getStage(bf);
-  document.getElementById('modal-scenario').innerHTML=`${bf.scenario}<br><br><strong>Difficulty:</strong> ${bf.difficulty||'Medium'}<br><small style="color:var(--text-muted)">${bf.difficultyNote||''}</small><br><br><strong>Relationship Stage:</strong> ${STAGES[stageIdx].toUpperCase()} (${stageIdx+1}/6)`;
+  const bar=document.getElementById('modal-stage-bar');
+  bar.innerHTML=STAGES.map((_,i)=>`<div class="stage-pip ${i<=stageIdx?'filled':''}"></div>`).join('');
+  document.getElementById('modal-stage-name').textContent=`Current: ${STAGES[stageIdx].toUpperCase()}`;
+
+  // Scenario section
+  const scenarioText=bf.scenario||'';
+  document.getElementById('modal-scenario').innerHTML=`<p>${scenarioText}</p>`;
+  document.getElementById('sec-scenario-tokens').textContent=`${tokenCount(scenarioText)} tokens`;
+
+  // Personality section
+  const personalityText=bf.personality||bf.core||'';
+  document.getElementById('modal-personality').innerHTML=`<p>${personalityText.replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>')}</p>`;
+  document.getElementById('sec-personality-tokens').textContent=`${tokenCount(personalityText)} tokens`;
+
+  // First message preview (stage 0 rule as preview)
+  const firstMsgText = bf.stageRules ? bf.stageRules[0] : (bf.backstory||'No preview available.');
+  document.getElementById('modal-backstory').innerHTML=`<p style="font-style:italic;color:var(--text-muted)">${firstMsgText}</p>`;
+  document.getElementById('sec-backstory-tokens').textContent=`${tokenCount(firstMsgText)} tokens`;
+
+  // Difficulty note
+  document.getElementById('modal-difficulty-note').innerHTML=`<p>${bf.difficultyNote||bf.difficulty||'Standard difficulty.'}</p>`;
+
   document.getElementById('bf-modal').classList.add('open');
 }
 function closeModal(e){ if(e.target.id==='bf-modal') document.getElementById('bf-modal').classList.remove('open'); }
