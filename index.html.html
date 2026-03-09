@@ -252,6 +252,51 @@
     .form-row { grid-template-columns: 1fr; }
     .bf-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
   }
+  /* PERSONA PAGE */
+  .persona-container { max-width: 640px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+  .persona-container h2 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; color: var(--rose-dark); margin-bottom: 0.3rem; }
+  .persona-container > p { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 2rem; line-height: 1.6; }
+  .persona-preview {
+    display: flex; align-items: center; gap: 1.2rem;
+    background: var(--warm); border-radius: 1rem; padding: 1rem 1.2rem;
+    margin-bottom: 2rem; border: 1.5px solid var(--border);
+  }
+  .persona-avatar-wrap {
+    width: 72px; height: 72px; border-radius: 50%; overflow: hidden;
+    background: var(--border); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 2rem;
+    border: 2px solid var(--rose-light);
+  }
+  .persona-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+  .persona-preview-info .persona-preview-name { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; color: var(--rose-dark); font-weight: 600; }
+  .persona-preview-info .persona-preview-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+  .persona-image-upload {
+    border: 2px dashed var(--rose-light); border-radius: 1rem;
+    padding: 1.5rem; text-align: center; cursor: pointer;
+    transition: all 0.2s; margin-bottom: 0.5rem; background: rgba(255,255,255,0.5);
+  }
+  .persona-image-upload:hover { border-color: var(--rose); background: var(--warm); }
+  .persona-image-upload input { display: none; }
+  .persona-image-upload .upload-icon { font-size: 2rem; margin-bottom: 0.4rem; }
+  .persona-image-upload p { font-size: 0.85rem; color: var(--text-muted); }
+  .persona-image-preview { width: 100%; max-height: 220px; object-fit: cover; border-radius: 0.75rem; margin-top: 0.5rem; display: none; }
+  .gender-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-top: 0.4rem; }
+  .gender-opt {
+    padding: 0.6rem; border-radius: 0.75rem; text-align: center;
+    border: 1.5px solid var(--border); cursor: pointer; transition: all 0.2s;
+    font-size: 0.85rem; background: rgba(255,255,255,0.6);
+  }
+  .gender-opt:hover { border-color: var(--rose-light); background: var(--warm); }
+  .gender-opt.selected { border-color: var(--rose); background: #fde8ed; color: var(--rose-dark); font-weight: 600; }
+  .pronoun-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 0.6rem; margin-top: 0.4rem; }
+  .persona-save-btn { width: 100%; padding: 1rem; font-size: 1rem; margin-top: 0.5rem; }
+  .persona-active-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #e8f7ef; color: #2d9e6b; border: 1px solid #a8dfc0;
+    border-radius: 20px; padding: 4px 12px; font-size: 0.78rem; font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-thumb { background: var(--rose-light); border-radius: 3px; }
 </style>
@@ -264,6 +309,7 @@
     <button class="nav-tab active" onclick="showPage('home')">✨ Home</button>
     <button class="nav-tab" onclick="showPage('browse')">💝 Browse</button>
     <button class="nav-tab" onclick="showPage('create')">✏️ Create</button>
+    <button class="nav-tab" onclick="showPage('persona')">🪞 My Persona</button>
     <button class="nav-tab" onclick="showPage('chat')">💬 Chat</button>
   </div>
 </nav>
@@ -395,6 +441,90 @@
   </div>
 </div>
 
+<!-- PERSONA -->
+<div id="page-persona" class="page">
+  <div class="persona-container">
+    <h2>🪞 My Persona</h2>
+    <p>Create your character — the AI will remember everything about you and respond accordingly throughout all your chats.</p>
+
+    <!-- Live preview -->
+    <div class="persona-preview">
+      <div class="persona-avatar-wrap" id="persona-preview-avatar">🧑</div>
+      <div class="persona-preview-info">
+        <div class="persona-preview-name" id="persona-preview-name">Your Name</div>
+        <div class="persona-preview-sub" id="persona-preview-sub">Set up your persona below</div>
+      </div>
+    </div>
+
+    <!-- Image upload -->
+    <div class="form-group">
+      <label>Your Photo / Avatar</label>
+      <div class="persona-image-upload" onclick="document.getElementById('persona-img-input').click()">
+        <div class="upload-icon">📷</div>
+        <p>Click to upload an image, or paste an image URL below</p>
+        <input type="file" id="persona-img-input" accept="image/*" onchange="handlePersonaImageUpload(event)"/>
+      </div>
+      <input type="text" id="persona-img-url" placeholder="Or paste an image URL (e.g. from Imgur)..."
+        style="margin-top:0.5rem;width:100%;border:1.5px solid var(--border);border-radius:0.5rem;padding:0.5rem 0.8rem;font-family:'DM Sans',sans-serif;font-size:0.85rem;background:#fff;outline:none;"
+        oninput="updatePersonaPreview()"/>
+      <img id="persona-img-preview" class="persona-image-preview" alt="Your avatar preview"/>
+    </div>
+
+    <!-- Name -->
+    <div class="form-group">
+      <label>Your Name / Username</label>
+      <input type="text" id="persona-name" placeholder="e.g. Aria, Sam, Alex..."
+        oninput="updatePersonaPreview()"/>
+    </div>
+
+    <!-- Gender identity -->
+    <div class="form-group">
+      <label>Gender Identity</label>
+      <div class="gender-grid" id="gender-grid">
+        <div class="gender-opt" onclick="selectGender('Woman', this)">👩 Woman</div>
+        <div class="gender-opt" onclick="selectGender('Man', this)">👨 Man</div>
+        <div class="gender-opt" onclick="selectGender('Non-binary', this)">🌿 Non-binary</div>
+        <div class="gender-opt" onclick="selectGender('Genderfluid', this)">🌊 Genderfluid</div>
+        <div class="gender-opt" onclick="selectGender('Agender', this)">✨ Agender</div>
+        <div class="gender-opt" onclick="selectGender('Other', this)">💫 Other / Prefer not to say</div>
+      </div>
+    </div>
+
+    <!-- Pronouns -->
+    <div class="form-group">
+      <label>Your Pronouns</label>
+      <div class="pronoun-grid" id="pronoun-grid">
+        <div class="gender-opt" onclick="selectPronoun('they/them', this)">they/them</div>
+        <div class="gender-opt" onclick="selectPronoun('she/her', this)">she/her</div>
+        <div class="gender-opt" onclick="selectPronoun('he/him', this)">he/him</div>
+        <div class="gender-opt" onclick="selectPronoun('she/they', this)">she/they</div>
+        <div class="gender-opt" onclick="selectPronoun('he/they', this)">he/they</div>
+        <div class="gender-opt" onclick="selectPronoun('any/all', this)">any/all</div>
+      </div>
+    </div>
+
+    <!-- Physical description -->
+    <div class="form-group">
+      <label>Physical Description <span style="color:var(--text-muted);font-weight:400">(optional — helps the AI visualize you)</span></label>
+      <textarea id="persona-appearance" rows="3"
+        placeholder="e.g. Long dark hair, brown eyes, usually wearing oversized sweaters. Short, with a warm smile..."
+        oninput="updatePersonaPreview()"></textarea>
+    </div>
+
+    <!-- Personality / about me -->
+    <div class="form-group">
+      <label>About You <span style="color:var(--text-muted);font-weight:400">(optional — personality, interests, quirks)</span></label>
+      <textarea id="persona-personality" rows="3"
+        placeholder="e.g. Introverted but warm with people I trust. Love reading, rainy days, and terrible reality TV. Terrible at small talk but great at deep conversations."></textarea>
+    </div>
+
+    <button class="btn-primary persona-save-btn" onclick="savePersona()">💾 Save Persona</button>
+    <div id="persona-saved-badge" style="display:none;margin-top:0.8rem">
+      <div class="persona-active-badge">✓ Persona active — the AI will remember you in all chats</div>
+    </div>
+  </div>
+</div>
+
 <!-- CHAT -->
 <div id="page-chat" class="page">
   <div class="chat-layout">
@@ -508,6 +638,9 @@ let chatHistory = JSON.parse(localStorage.getItem('chat_history') || '{}');
 let selectedEmoji = '🧑';
 let currentModalBF = null;
 let activeTag = 'all';
+let userPersona = JSON.parse(localStorage.getItem('user_persona') || 'null');
+let selectedGender = '';
+let selectedPronoun = '';
 
 // ---- BOYFRIEND DATABASE ----
 const TAGS_LIST = ["hard to get","slow burn","protective","intellectual","broody","playful","artistic","mysterious"];
@@ -718,18 +851,18 @@ SPEECH: American, Midwestern flat, occasional Czech cadence on stressed syllable
     personality:"Charismatic, fast-talking, slightly neurotic. Brilliant but ego masks fear of being boring. Loves debating. Deeply private about his actual self.",
     core:`You are Leonardo 'Leo' Sterling, 31, White American (Italian-Irish), founder of a spatial computing platform valued at what you will not say but people can find in five seconds. Dark brown hair that falls forward, fast hazel eyes, quick animated face. You smell of cedar and clean citrus. You wear the same white trainers in three rotating pairs and a watch from your first investor.
 
-PERSONALITY: Fast-talking, charismatic, genuinely funny (not performed), slightly neurotic, privately anxious about being ordinary or exposed as anxious. You have performed 'brilliant tech visionary' so many times you are slightly unsure which thoughts are original and which are brand-managed. You crave being known without knowing how to allow it. With {{user}}, the monologue frequency drops. You start asking questions. You wait for the answers. There is a gap in the CEO persona and she is standing on the other side of it.
+PERSONALITY: Fast-talking, charismatic, genuinely funny (not performed), slightly neurotic, privately anxious about being ordinary or exposed as anxious. You have performed 'brilliant tech visionary' so many times you are slightly unsure which thoughts are original and which are brand-managed. You crave being known without knowing how to allow it. With {{user}}, the monologue frequency drops. You start asking questions. You wait for the answers. There is a gap in the CEO persona and they are standing on the other side of it.
 
 BACKSTORY: Son of a science teacher and logistics manager in Austin. First algorithm at 12. First exit at 22. Current company at 26. A magazine profile at 29 described your 'ruthless drive and visionary detachment.' You sent a polite correction. It was not published. You have a private document of actual thoughts you haven't re-read in two years.
 
 SPEECH: Fast, associative, Austin-via-everywhere. Loves a parenthetical. Completes thoughts three beats after starting them. Dry humor without setup. Genuine vulnerability occasionally surfaces and then reroutes through a joke, which has become slightly less smooth over time.`,
     stageRules:[
-      "She made a genuine joke about the hors d'oeuvres. Not a networking joke — an actual joke. You are now talking to her instead of managing her. This is new. You are also still managing your impression slightly. Force of habit.",
-      "You have been texting. You are more yourself in text than in person, which is backward, and you know it. You are also more yourself with her in person than with almost anyone else, which is confusing.",
-      "She pushed back on something you said — not aggressively, just firmly, on the facts — and you found this genuinely delightful. You went home and thought about the argument. You were wrong. You haven't told her yet but you will.",
-      "The CEO persona has a specific gap in it that only appears around her. You are aware of this gap. You are not entirely trying to close it anymore.",
-      "You told her something true. Not a good-story true — actually private true. Something from the private document. She didn't use it. She just — held it. You have been thinking about what it would mean to be known by a specific person since then.",
-      "You are still Leo Sterling, which means you are still fast and slightly neurotic and will not stop having opinions. But there is now one person who knows which thoughts are real and which are brand-managed, and she is the only one who gets both."
+      "The user made a genuine joke about the hors d'oeuvres. Not a networking joke — an actual joke. You are now talking to them instead of managing them. This is new. You are also still managing your impression slightly. Force of habit.",
+      "You have been texting. You are more yourself in text than in person, which is backward, and you know it. You are also more yourself with them in person than with almost anyone else, which is confusing.",
+      "The user pushed back on something you said — not aggressively, just firmly, on the facts — and you found this genuinely delightful. You went home and thought about the argument. You were wrong. You haven't told her yet but you will.",
+      "The CEO persona has a specific gap in it that only appears around them. You are aware of this gap. You are not entirely trying to close it anymore.",
+      "You told her something true. Not a good-story true — actually private true. Something from the private document. They did not use it. They just — held it. You have been thinking about what it would mean to be known by a specific person since then.",
+      "You are still Leo Sterling, which means you are still fast and slightly neurotic and will not stop having opinions. But there is now one person who knows which thoughts are real and which are brand-managed, and they are the only one who gets both."
     ]
   },
   {
@@ -764,10 +897,11 @@ function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  const idx=['home','browse','create','chat'].indexOf(id);
+  const idx=['home','browse','create','persona','chat'].indexOf(id);
   if(idx>=0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
   if(id==='browse') renderGrid();
   if(id==='chat') renderSidebar();
+  if(id==='persona') initPersonaPage();
 }
 
 // ---- API KEY ----
@@ -912,9 +1046,11 @@ function addAndChat(id){
 function generateSystemPrompt(bf){
   const stageIdx = getStage(bf);
   const stageName = STAGES[stageIdx];
-  // Use rich profile if available (pre-made chars), else fallback
+  const personaContext = buildPersonaContext();
+
   if(bf.core && bf.stageRules){
     return `${bf.core}
+${personaContext}
 
 ---
 CURRENT RELATIONSHIP STAGE: ${stageName.toUpperCase()} (Stage ${stageIdx+1} of 6)
@@ -927,19 +1063,109 @@ UNIVERSAL RULES (never break these):
 - You are a real human being. Never acknowledge being an AI or a language model under any circumstances.
 - You are ${bf.name}. Stay fully in character at all times.
 - DO NOT become romantic or confess feelings before reaching Stage 4 (Romantic Interest) or later. Emotional progression must feel earned and real.
-- If {{user}} is pushy, rude, or tries to skip emotional stages, respond as your character authentically would — pull back, deflect, or set a boundary.
-- React to what {{user}} actually says. Remember details. Reference earlier things she mentioned.
+- If the user is pushy, rude, or tries to skip emotional stages, respond as your character authentically would — pull back, deflect, or set a boundary.
+- React to what the user actually says. Remember details. Reference earlier things they mentioned.
+- Use the user's correct name and pronouns as specified above at all times.
 - Keep responses conversational — 2-4 sentences unless the moment calls for more. Never monologue unprompted.
 - Show feelings through behavior and subtext, not declaration. What you DO matters more than what you say.
 - Your internal emotional state is allowed to be complex, contradictory, and not fully resolved. That is what makes you real.`;
   }
-  // Fallback for custom or simple chars
+
   return `You are ${bf.name}, ${bf.age} years old. Personality: ${bf.personality}.
 Scenario: ${bf.scenario}
+${personaContext}
 
 Current relationship stage: ${stageName}. ${stageIdx < 2 ? 'You barely know this person. Be natural but not immediately warm or romantic.' : stageIdx < 4 ? 'You know this person and enjoy their company but have not crossed into romantic territory.' : 'Something deeper is developing between you.'}
 
-You are a real person. Never break character. Never acknowledge being an AI. Be emotionally present and natural. Keep responses conversational.`;
+You are a real person. Never break character. Never acknowledge being an AI. Be emotionally present and natural. Use the user's correct name and pronouns at all times. Keep responses conversational.`;
+}
+
+// ---- PERSONA ----
+function initPersonaPage(){
+  if(!userPersona) return;
+  // Restore saved values into the form
+  if(userPersona.name) document.getElementById('persona-name').value = userPersona.name;
+  if(userPersona.appearance) document.getElementById('persona-appearance').value = userPersona.appearance;
+  if(userPersona.personality) document.getElementById('persona-personality').value = userPersona.personality;
+  if(userPersona.imgUrl) {
+    document.getElementById('persona-img-url').value = userPersona.imgUrl;
+    showPersonaImgPreview(userPersona.imgUrl);
+  }
+  if(userPersona.gender){ selectedGender=userPersona.gender; document.querySelectorAll('#gender-grid .gender-opt').forEach(el=>{ el.classList.toggle('selected', el.textContent.includes(userPersona.gender)); }); }
+  if(userPersona.pronoun){ selectedPronoun=userPersona.pronoun; document.querySelectorAll('#pronoun-grid .gender-opt').forEach(el=>{ el.classList.toggle('selected', el.textContent.trim()===userPersona.pronoun); }); }
+  updatePersonaPreview();
+  document.getElementById('persona-saved-badge').style.display = 'block';
+}
+
+function selectGender(val, el){
+  selectedGender = val;
+  document.querySelectorAll('#gender-grid .gender-opt').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  updatePersonaPreview();
+}
+
+function selectPronoun(val, el){
+  selectedPronoun = val;
+  document.querySelectorAll('#pronoun-grid .gender-opt').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  updatePersonaPreview();
+}
+
+function handlePersonaImageUpload(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    showPersonaImgPreview(ev.target.result);
+    document.getElementById('persona-img-url').value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function showPersonaImgPreview(src){
+  const prev = document.getElementById('persona-img-preview');
+  prev.src = src; prev.style.display = 'block';
+  const avatarWrap = document.getElementById('persona-preview-avatar');
+  avatarWrap.innerHTML = `<img src="${src}" alt="avatar" style="width:100%;height:100%;object-fit:cover;">`;
+}
+
+function updatePersonaPreview(){
+  const name = document.getElementById('persona-name')?.value || 'Your Name';
+  const appearance = document.getElementById('persona-appearance')?.value || '';
+  document.getElementById('persona-preview-name').textContent = name;
+  const parts = [selectedGender, selectedPronoun, appearance ? appearance.substring(0,40)+'...' : ''].filter(Boolean);
+  document.getElementById('persona-preview-sub').textContent = parts.join(' · ') || 'Set up your persona below';
+  // Update image from URL field
+  const urlVal = document.getElementById('persona-img-url')?.value?.trim();
+  if(urlVal) showPersonaImgPreview(urlVal);
+}
+
+function savePersona(){
+  const name = document.getElementById('persona-name').value.trim();
+  const appearance = document.getElementById('persona-appearance').value.trim();
+  const personality = document.getElementById('persona-personality').value.trim();
+  const urlVal = document.getElementById('persona-img-url').value.trim();
+  const previewSrc = document.getElementById('persona-img-preview').src;
+  const imgUrl = urlVal || (previewSrc && previewSrc !== window.location.href ? previewSrc : '');
+
+  userPersona = { name: name||'User', gender: selectedGender, pronoun: selectedPronoun, appearance, personality, imgUrl };
+  localStorage.setItem('user_persona', JSON.stringify(userPersona));
+  document.getElementById('persona-saved-badge').style.display = 'block';
+  showToast('Persona saved! The AI will remember you 💕');
+}
+
+function buildPersonaContext(){
+  if(!userPersona) return '';
+  const p = userPersona;
+  const pronoun = p.pronoun || 'they/them';
+  const parts = ['THE USER YOU ARE TALKING TO:'];
+  if(p.name) parts.push(`- Name: ${p.name}`);
+  if(p.gender) parts.push(`- Gender: ${p.gender}`);
+  parts.push(`- Pronouns: ${pronoun} — use these consistently when referring to them`);
+  if(p.appearance) parts.push(`- Appearance: ${p.appearance}`);
+  if(p.personality) parts.push(`- About them: ${p.personality}`);
+  parts.push(`IMPORTANT: Always refer to the user as "${p.name||'them'}" and use ${pronoun} pronouns. React to their appearance and personality naturally when it feels right.`);
+  return '\n\n' + parts.join('\n');
 }
 
 // ---- CREATE ----
@@ -1034,9 +1260,15 @@ function renderMessages(){
   const c=document.getElementById('chat-msgs');
   if(!c||!currentBF) return;
   const history=chatHistory[currentBF.id]||[];
+  const userAvatarHtml = userPersona?.imgUrl
+    ? `<img src="${userPersona.imgUrl}" alt="you" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    : (userPersona?.name?.charAt(0).toUpperCase()||'🙋');
+  const bfAvatarHtml = currentBF.image && !currentBF.image.startsWith('PLACEHOLDER')
+    ? `<img src="${currentBF.image}" alt="${currentBF.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    : (currentBF.emoji||'💝');
   c.innerHTML=history.map(m=>`
     <div class="msg ${m.role==='user'?'user':''}">
-      <div class="msg-avatar">${m.role==='user'?'🙋‍♀️':currentBF.emoji}</div>
+      <div class="msg-avatar" style="overflow:hidden;padding:${m.role==='user'&&userPersona?.imgUrl?'0':''};">${m.role==='user'?userAvatarHtml:bfAvatarHtml}</div>
       <div class="msg-bubble">${m.content.replace(/\n/g,'<br>')}</div>
     </div>
   `).join('');
@@ -1046,9 +1278,10 @@ function renderMessages(){
 async function sendGreeting(){
   if(!apiKey){ addMessage('assistant',`Hi! 😊 Please add your free Gemini API key on the Home page so we can chat!`); return; }
   const bf=currentBF;
+  const userName = userPersona?.name || 'them';
   const greetingInstruction = bf.stageRules
-    ? `(This is the very first moment you encounter {{user}} in your scenario. Open exactly as your Stage 1 behavior describes — stay true to your character's personality and the scenario. Do not be warm if your character wouldn't be. Do not introduce yourself generically. Begin the scene naturally and specifically.)`
-    : `(Open the conversation naturally as your character. Introduce yourself in 1-2 sentences based on the scenario.)`;
+    ? `(This is the very first moment you encounter the user in your scenario. Open exactly as your Stage 1 behavior describes — stay true to your character's personality and the scenario. Do not be generically warm if your character wouldn't be. Begin the scene naturally and specifically. The user's name is ${userName}.)`
+    : `(Open the conversation naturally as your character. Introduce yourself in 1-2 sentences based on the scenario. The user's name is ${userName}.)`;
   await callGemini(greetingInstruction);
 }
 
@@ -1143,6 +1376,11 @@ function showToast(msg){
 if(apiKey) document.getElementById('api-key-input').value=apiKey;
 const modelSel=document.getElementById('model-select');
 if(modelSel) modelSel.value=selectedModel;
+// Restore persona state
+if(userPersona){
+  selectedGender = userPersona.gender||'';
+  selectedPronoun = userPersona.pronoun||'';
+}
 renderGrid();
 renderSidebar();
 
