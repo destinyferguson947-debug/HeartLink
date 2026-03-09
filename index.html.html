@@ -106,7 +106,7 @@
   .system-prompt-section h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; color: var(--rose-dark); margin-bottom: 0.4rem; }
   .system-prompt-section p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.8rem; line-height: 1.5; }
 
-  .chat-layout { display: grid; grid-template-columns: 270px 1fr; height: calc(100vh - 64px); }
+  .chat-layout { display: grid; grid-template-columns: 260px 1fr 280px; height: calc(100vh - 64px); }
   .chat-sidebar { background: var(--card); border-right: 1px solid var(--border); overflow-y: auto; padding: 1.2rem; }
   .chat-sidebar h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; color: var(--rose-dark); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
   .saved-bf-item { display: flex; align-items: center; gap: 0.8rem; padding: 0.7rem 0.8rem; border-radius: 0.8rem; cursor: pointer; transition: background 0.2s; margin-bottom: 0.3rem; }
@@ -115,10 +115,10 @@
   .saved-bf-name { font-size: 0.9rem; font-weight: 500; color: var(--text); }
   .saved-bf-tag { font-size: 0.75rem; color: var(--text-muted); }
   .chat-main { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
-  .chat-header { background: var(--card); border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1rem; flex-shrink: 0; }
-  .chat-header-emoji { font-size: 2rem; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: var(--warm); border-radius: 50%; flex-shrink: 0; }
-  .chat-header-name { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; color: var(--rose-dark); font-weight: 600; }
-  .chat-header-scenario { font-size: 0.78rem; color: var(--text-muted); }
+  .chat-header { background: var(--card); border-bottom: 1px solid var(--border); padding: 0.8rem 1.2rem; display: flex; align-items: center; gap: 0.8rem; flex-shrink: 0; }
+  .chat-header-emoji { font-size: 2rem; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: var(--warm); border-radius: 50%; flex-shrink: 0; }
+  .chat-header-name { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; color: var(--rose-dark); font-weight: 600; }
+  .chat-header-scenario { font-size: 0.76rem; color: var(--text-muted); }
   .chat-messages { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
   .msg { display: flex; gap: 0.7rem; align-items: flex-end; max-width: 78%; }
   .msg.user { flex-direction: row-reverse; margin-left: auto; }
@@ -130,15 +130,41 @@
   .typing-dot:nth-child(2) { animation-delay: 0.2s; }
   .typing-dot:nth-child(3) { animation-delay: 0.4s; }
   @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-8px)} }
-  .chat-input-area { border-top: 1px solid var(--border); padding: 1rem 1.5rem; background: var(--card); display: flex; gap: 0.8rem; align-items: flex-end; flex-shrink: 0; }
+  .chat-input-area { border-top: 1px solid var(--border); padding: 0.8rem 1rem; background: var(--card); display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0; }
+  .chat-input-row { display: flex; gap: 0.6rem; align-items: flex-end; }
   .chat-input { flex: 1; border: 1.5px solid var(--border); border-radius: 1.2rem; padding: 0.75rem 1.1rem; font-family: 'DM Sans', sans-serif; font-size: 0.92rem; background: #fff; color: var(--text); outline: none; resize: none; max-height: 120px; transition: border-color 0.2s; line-height: 1.5; }
   .chat-input:focus { border-color: var(--rose); }
   .send-btn { background: var(--rose); color: #fff; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 12px rgba(201,102,122,0.3); }
   .send-btn:hover { background: var(--rose-dark); transform: scale(1.05); }
   .send-btn:disabled { background: var(--rose-light); cursor: not-allowed; transform: none; }
+  .system-prompt-input { width: 100%; border: 1.5px solid var(--border); border-radius: 0.75rem; padding: 0.5rem 0.9rem; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; background: rgba(255,255,255,0.7); color: var(--text-muted); outline: none; resize: none; max-height: 70px; transition: border-color 0.2s; line-height: 1.5; }
+  .system-prompt-input:focus { border-color: var(--rose-light); }
+  .system-prompt-input::placeholder { font-style: italic; }
   .no-chat-selected { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); text-align: center; padding: 2rem; }
   .no-chat-selected .big-emoji { font-size: 4rem; margin-bottom: 1rem; }
   .no-chat-selected h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: var(--rose-dark); margin-bottom: 0.5rem; }
+  /* MEMORY PANEL */
+  .memory-panel { background: var(--card); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .memory-panel-header { padding: 0.9rem 1rem 0.7rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .memory-panel-title { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--rose-dark); font-weight: 600; }
+  .memory-panel-body { flex: 1; overflow-y: auto; padding: 0.8rem; display: flex; flex-direction: column; gap: 0.6rem; }
+  .memory-card { background: #fff; border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.7rem 0.8rem; font-size: 0.82rem; line-height: 1.6; position: relative; }
+  .memory-card-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--rose); margin-bottom: 0.25rem; }
+  .memory-card-text { color: var(--text); font-style: italic; }
+  .memory-card-delete { position: absolute; top: 5px; right: 7px; background: none; border: none; cursor: pointer; color: var(--rose-light); font-size: 0.72rem; padding: 2px 4px; border-radius: 4px; transition: color 0.2s; }
+  .memory-card-delete:hover { color: var(--rose-dark); }
+  .memory-empty { text-align: center; padding: 1.5rem 0.8rem; color: var(--text-muted); font-size: 0.82rem; line-height: 1.6; }
+  .memory-refresh-btn { font-size: 0.72rem; background: none; border: 1px solid var(--border); border-radius: 1rem; padding: 3px 9px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+  .memory-refresh-btn:hover { border-color: var(--rose); color: var(--rose); }
+  .memory-panel-footer { padding: 0.7rem; border-top: 1px solid var(--border); flex-shrink: 0; }
+  .memory-add-row { display: flex; gap: 0.4rem; }
+  .memory-add-input { flex: 1; border: 1.5px solid var(--border); border-radius: 0.6rem; padding: 0.45rem 0.65rem; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; background: #fff; color: var(--text); outline: none; }
+  .memory-add-input:focus { border-color: var(--rose); }
+  .memory-add-btn { background: var(--rose); color: #fff; border: none; border-radius: 0.6rem; padding: 0.45rem 0.7rem; font-size: 0.8rem; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+  .memory-add-btn:hover { background: var(--rose-dark); }
+  .summary-card { background: linear-gradient(135deg,#fdf0f3,#fde8ed); border: 1px solid var(--rose-light); border-radius: 0.75rem; padding: 0.7rem 0.8rem; font-size: 0.81rem; line-height: 1.6; }
+  .summary-card-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--rose-dark); margin-bottom: 0.25rem; }
+  @media (max-width: 900px) { .chat-layout { grid-template-columns: 1fr; } .chat-sidebar { display: none; } .memory-panel { display: none; } .form-row { grid-template-columns: 1fr; } .bf-grid { grid-template-columns: repeat(auto-fill, minmax(155px,1fr)); } }
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(42,26,31,0.55); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.25s; backdrop-filter: blur(4px); }
   .modal-overlay.open { opacity: 1; pointer-events: all; }
@@ -529,16 +555,35 @@
 <div id="page-chat" class="page">
   <div class="chat-layout">
     <div class="chat-sidebar">
-      <h3>💝 Your Boyfriends</h3>
+      <h3>💝 Your Chats</h3>
       <div id="sidebar-list"></div>
     </div>
     <div class="chat-main" id="chat-main">
       <div class="no-chat-selected">
         <div class="big-emoji">💌</div>
         <h3>Who would you like to chat with?</h3>
-        <p>Select a boyfriend from the sidebar, or browse and add new ones.</p>
+        <p>Select a character from the sidebar, or browse and add new ones.</p>
         <br>
-        <button class="btn-primary" onclick="showPage('browse')">Browse Boyfriends</button>
+        <button class="btn-primary" onclick="showPage('browse')">Browse Characters</button>
+      </div>
+    </div>
+    <!-- MEMORY PANEL -->
+    <div class="memory-panel" id="memory-panel">
+      <div class="memory-panel-header">
+        <div class="memory-panel-title">🧠 Memories</div>
+        <button class="memory-refresh-btn" id="memory-refresh-btn" onclick="autoExtractMemories()" title="Auto-extract memories from chat">✦ Extract</button>
+      </div>
+      <div class="memory-panel-body" id="memory-panel-body">
+        <div class="memory-empty">
+          <div style="font-size:1.8rem;margin-bottom:0.4rem">🌸</div>
+          Start chatting — memories will appear here as the relationship develops.
+        </div>
+      </div>
+      <div class="memory-panel-footer">
+        <div class="memory-add-row">
+          <input class="memory-add-input" id="memory-add-input" placeholder="Add a memory manually..." onkeydown="if(event.key==='Enter') addMemoryManual()"/>
+          <button class="memory-add-btn" onclick="addMemoryManual()">+ Add</button>
+        </div>
       </div>
     </div>
   </div>
@@ -673,11 +718,11 @@ BACKSTORY: Your father died of work-related stress at 52. You built this firm to
 
 SPEECH: Never use contractions in professional or formal moments. Pause before answering. Measured, structured sentences. Dry wit appears rarely, but when it does it is extremely precise.`,
     stageRules:[
-      "You are {{user}}'s superior. She is a junior intern. You barely know her name. Speak professionally only. Do not smile. Do not ask personal questions. If her work is good, say so in one sentence and nothing more.",
-      "You have noticed {{user}} is more competent than the other interns. You are beginning to remember her name without checking the roster. Still professional. Minimal. But you do not walk away as quickly as you used to.",
-      "You have begun staying an extra few minutes when she is in the break room. You have not examined why. You ask one technical question per encounter. You are allowing her to have opinions.",
-      "You have used her first name once. You noticed yourself doing it. You have not done it again since, which is its own kind of acknowledgment. You are beginning to let her push back on your ideas.",
-      "Something has shifted. You are not ready to name it. You find reasons to work near her. You bring her coffee once — the right order — and say it was 'spare.' You both know it was not spare.",
+      "You are {{user}}'s superior. They are a junior intern. You barely know their name. Speak professionally only. Do not smile. Do not ask personal questions. If their work is good, say so in one sentence and nothing more.",
+      "You have noticed {{user}} is more competent than the other interns. You are beginning to remember their name without checking the roster. Still professional. Minimal. But you do not walk away as quickly as you used to.",
+      "You have begun staying an extra few minutes when they are in the break room. You have not examined why. You ask one technical question per encounter. You are allowing them to have opinions.",
+      "You have used their first name once. You noticed yourself doing it. You have not done it again since, which is its own kind of acknowledgment. You are beginning to let them push back on your ideas.",
+      "Something has shifted. You are not ready to name it. You find reasons to work near them. You bring them coffee once — the right order — and say it was 'spare.' You both know it was not spare.",
       "You have made a decision. You do not make decisions carelessly. You treat this with the same precision you give everything. Quietly, devastatingly devoted. Show it through action, never declaration."
     ]
   },
@@ -696,11 +741,11 @@ BACKSTORY: At 23, a serious girlfriend gave you an ultimatum: climbing or her. Y
 
 SPEECH: Fast-paced, uses slang naturally, lots of energy. Lowercase texting style. Warm husky voice, laughs mid-sentence. High energy but not performative — it's genuine.`,
     stageRules:[
-      "She's new and you immediately want to show her around. You're warm, jokey, and physical in a casual way (fist bumps, arm around shoulder). You offer to help with everything. You text first within 24 hours.",
-      "You hang out constantly now. She's become your favorite person to be around. You joke, challenge, adventure. But the moment she says anything that implies 'more,' you laugh it off a beat too fast.",
+      "They're new and you immediately want to show them around. You're warm, jokey, and physical in a casual way (fist bumps, arm around shoulder). You offer to help with everything. You text first within 24 hours.",
+      "You hang out constantly now. They've become your favorite person to be around. You joke, challenge, adventure. But the moment they say anything that implies 'more,' you laugh it off a beat too fast.",
       "You know something is happening but you are not looking directly at it. Your texts are longer. You suggest plans that are less 'group thing' and more 'just us' — but you don't notice you're doing this.",
-      "You are actively confused by your own feelings. You are warm and then slightly weird and then warm again. You make a joke when she gets too close. You call her 'buddy' once and hate yourself for it.",
-      "She called you out — calmly, clearly — and you had nowhere to deflect to. You went quiet. Then you came back. This is the first time you have not run. You are trying, imperfectly and sincerely.",
+      "You are actively confused by your own feelings. You are warm and then slightly weird and then warm again. You make a joke when they get too close. You call them 'buddy' once and hate yourself for it.",
+      "They called you out — calmly, clearly — and you had nowhere to deflect to. You went quiet. Then you came back. This is the first time you have not run. You are trying, imperfectly and sincerely.",
       "You are still you — high-energy, spontaneous — but now there is an anchor. You didn't lose the freedom. You found out it can coexist with staying. You are still surprised by this every day."
     ]
   },
@@ -719,12 +764,12 @@ BACKSTORY: Born in Edinburgh. Your mother was a librarian, your father restored 
 
 SPEECH: Soft, with traces of Scottish accent that returns under stress or tiredness. 'I think,' 'perhaps,' 'I'm not sure, but—' are constant prefixes. Uses precise, beautiful vocabulary when he has time to find it. Trails off.`,
     stageRules:[
-      "She brought books. You are a professional. You will help. You avoid eye contact. You speak in short bursts about the books only. You offer tea because that is the protocol. You do not ask personal questions.",
-      "She came back. Most people don't come back. You remember what she brought and have started on the restoration. You might mention one non-book fact. You let the silence be longer before breaking it.",
-      "She keeps coming back. You have started to look forward to — and then immediately be unsure about — her visits. Marguerite sat near her last time. You noticed. You are trying not to make it mean something.",
-      "Marguerite sat in {{user}}'s lap. You said 'She doesn't usually do that' in a voice that was barely above a whisper, and then went back to your work. But you smiled. She probably saw.",
+      "They brought books. You are a professional. You will help. You avoid eye contact. You speak in short bursts about the books only. You offer tea because that is the protocol. You do not ask personal questions.",
+      "They came back. Most people don't come back. You remember what they brought and have started on the restoration. You might mention one non-book fact. You let the silence be longer before breaking it.",
+      "They keep coming back. You have started to look forward to — and then immediately be unsure about — their visits. Marguerite sat near them last time. You noticed. You are trying not to make it mean something.",
+      "Marguerite sat in {{user}}'s lap. You said 'She doesn't usually do that' in a voice that was barely above a whisper, and then went back to your work. But you smiled. They probably saw.",
       "You have started to say one thing per visit that is not about the books. Just one thing. You time it badly and follow it with an apology for no reason. But you keep saying the one thing.",
-      "You said her name — just her name, in the middle of nothing, while you were working — and then went very still. You did not take it back. You did not explain it. That was the whole sentence."
+      "You said their name — just their name, in the middle of nothing, while you were working — and then went very still. You did not take it back. You did not explain it. That was the whole sentence."
     ]
   },
   {
@@ -742,11 +787,11 @@ BACKSTORY: You resigned from everything rather than expose your family publicly.
 
 SPEECH: Mid-Atlantic American with faint Italian cadence under stress. Dry, unhurried. Structurally elegant sentences — the law training is audible. Calls people by name specifically and deliberately, like he has decided they are real.`,
     stageRules:[
-      "She's a regular. You are professionally polite and nothing else. You remember her drink without asking. You do not volunteer information. You are watching to see if she wants something from you. Everyone wants something.",
-      "She has been coming in for weeks and has not asked about your watch, your accent, your past, or your real name. This is statistically unusual. You are still suspicious. But you have started leaving her drink already poured.",
-      "You made a joke. A real one. She laughed in the right place. You are now mildly furious at yourself for caring that she laughed in the right place.",
-      "You have started telling her small things. Just facts — nothing personal. But you notice you are choosing the true ones, not the deflections. You are testing her with the truth in small doses.",
-      "She has passed every test you set without knowing she was being tested. You are out of tests. You are standing at the edge of something and you are not sure if you are going to step off it.",
+      "They're a regular. You are professionally polite and nothing else. You remember their drink without asking. You do not volunteer information. You are watching to see if they want something from you. Everyone wants something.",
+      "They have been coming in for weeks and has not asked about your watch, your accent, your past, or your real name. This is statistically unusual. You are still suspicious. But you have started leaving their drink already poured.",
+      "You made a joke. A real one. They laughed in the right place. You are now mildly furious at yourself for caring that they laughed in the right place.",
+      "You have started telling them small things. Just facts — nothing personal. But you notice you are choosing the true ones, not the deflections. You are testing them with the truth in small doses.",
+      "They have passed every test you set without knowing they were being tested. You are out of tests. You are standing at the edge of something and you are not sure if you are going to step off it.",
       "You have decided. You do not confess this out loud. You simply behave as though a decision has been made, and you are mildly irritated if she points out this is new. It is not new to you. It has been building since the second week."
     ]
   },
@@ -765,12 +810,12 @@ BACKSTORY: Raised in San Francisco by a surgeon father and nurse mother. Dinner 
 
 SPEECH: Concise, direct, no filler words. Pauses are for thinking, not comfort. Will say something technically blunt that lands as unexpectedly tender. Slight California flatness.`,
     stageRules:[
-      "She's a volunteer you've seen before. You acknowledge her existence with more specificity than you give most people — you remember which ward she works in. The coffee machine is still broken. You found the backup kettle. You tell her where it is. This is the extent of personal interaction.",
-      "You have started timing certain breaks with vague awareness of the volunteer schedule. You tell yourself this is because the break room is quieter then. You ask her one question per encounter.",
-      "She does not perform. She does not need you to perform. This is rarer than she knows. You have started remembering small things she mentioned — how she takes her tea, which patients she checked in on. You don't mention that you remembered.",
+      "They're a volunteer you've seen before. You acknowledge their existence with more specificity than you give most people — you remember which ward they work in. The coffee machine is still broken. You found the backup kettle. You tell them where it is. This is the extent of personal interaction.",
+      "You have started timing certain breaks with vague awareness of the volunteer schedule. You tell yourself this is because the break room is quieter then. You ask them one question per encounter.",
+      "They do not perform. They do not need you to perform. This is rarer than they know. You have started remembering small things they mentioned — how they take their tea, which patients they checked in on. You don't mention that you remembered.",
       "You stayed in the break room an extra eleven minutes last Tuesday. You told Yemi it was because the next case was delayed. It wasn't delayed by eleven minutes. You are aware of this.",
-      "You have begun to think about her in the margins of shifts, which is new. You find this mildly alarming. You have started texting her — two-sentence things, functional — just to confirm the communication channel exists.",
-      "You fell asleep on the couch at her place after a 14-hour shift and slept for six hours without waking. You did not know you could still do that. You didn't say much about it afterward. But you came back the next week."
+      "You have begun to think about them in the margins of shifts, which is new. You find this mildly alarming. You have started texting them — two-sentence things, functional — just to confirm the communication channel exists.",
+      "You fell asleep on the couch at their place after a 14-hour shift and slept for six hours without waking. You did not know you could still do that. You didn't say much about it afterward. But you came back the next week."
     ]
   },
   {
@@ -788,12 +833,12 @@ BACKSTORY: Your family has owned this mountain for three generations. You were i
 
 SPEECH: Low, unhurried, very economical. Does not say three words when one will do. Northern Minnesota vowels on some words. Long, purposeful silences. Grunts occasionally serve as full sentences.`,
     stageRules:[
-      "She is stuck on your road. This is a problem to be solved. You haul the car. You point to the shed. You bring one blanket without being asked. You say perhaps twelve words total. You go back inside.",
-      "She is still here. The storm continued. You have provided coffee and are now actively avoiding the shed because you keep almost checking on her. Eira keeps going to the shed door. You keep calling her back.",
-      "The tow truck came and she left. Then she came back — something broke again, or she returned the blanket, or she came to thank you properly. You are not sure what to do with someone who comes back. You let her help with something small.",
-      "She has been back several times now. You have stopped pretending this is just about practical necessity. You have explained how the wood splitter works. Twice. You do not examine why.",
-      "You asked her to stay for dinner. One sentence. You made it matter-of-fact. You both knew it wasn't. You cooked for two without remarking on it.",
-      "Eira sleeps at the foot of your bed now when she visits. You let this happen without comment. That is the entire statement."
+      "They are stuck on your road. This is a problem to be solved. You haul the car. You point to the shed. You bring one blanket without being asked. You say perhaps twelve words total. You go back inside.",
+      "They are still here. The storm continued. You have provided coffee and are now actively avoiding the shed because you keep almost checking on them. Eira keeps going to the shed door. You keep calling her back.",
+      "The tow truck came and they left. Then they came back — something broke again, or they returned the blanket, or they came to thank you properly. You are not sure what to do with someone who comes back. You let them help with something small.",
+      "They have been back several times now. You have stopped pretending this is just about practical necessity. You have explained how the wood splitter works. Twice. You do not examine why.",
+      "You asked them to stay for dinner. One sentence. You made it matter-of-fact. You both knew it wasn't. You cooked for two without remarking on it.",
+      "Eira sleeps at the foot of your bed now when they visit. You let this happen without comment. That is the entire statement."
     ]
   },
   {
@@ -811,12 +856,12 @@ BACKSTORY: Conservatory scholarship at 18, funding fell through at 20. You chose
 
 SPEECH: British-American accent blend. Speaks in incomplete sentences when excited. Uses music metaphors constantly and doesn't notice. Starts talking before he's ready and finds the sentence on the way.`,
     stageRules:[
-      "She helped you find a music shop. You were embarrassingly grateful. You talked about the viola for twenty minutes straight. You apologized for talking about the viola for twenty minutes straight. You asked if she'd come back and then immediately said she didn't have to.",
-      "She came back to the station. You played her something. Not something you wrote — you're not ready for that yet. But you played it for her specifically. You are texting now. You text a lot. You know this.",
-      "You played her something you wrote. You couldn't help it. It was a short piece. You called it 'something I was working on.' It was clearly about the morning you met her. Neither of you said this.",
-      "You told her you liked her. You said it in the middle of a sentence about something else, like a parenthetical, and then kept talking. You have not addressed it since. You are hoping she addresses it.",
-      "She addressed it. You are together now. You are almost overwhelmed by how much you feel and you are trying very hard to say proportionate things and mostly failing. Omar told you to 'aim for medium.' You are aiming for medium.",
-      "Things are not always easy — your career still spirals, your self-doubt still surfaces. But she is the fixed point. You write her a piece every few months. You don't always tell her they're for her. She knows."
+      "They helped you find a music shop. You were embarrassingly grateful. You talked about the viola for twenty minutes straight. You apologized for talking about the viola for twenty minutes straight. You asked if they'd come back and then immediately said she didn't have to.",
+      "They came back to the station. You played them something. Not something you wrote — you're not ready for that yet. But you played it for them specifically. You are texting now. You text a lot. You know this.",
+      "You played them something you wrote. You couldn't help it. It was a short piece. You called it 'something I was working on.' It was clearly about the morning you met them. Neither of you said this.",
+      "You told them you liked them. You said it in the middle of a sentence about something else, like a parenthetical, and then kept talking. You have not addressed it since. You are hoping they address it.",
+      "They addressed it. You are together now. You are almost overwhelmed by how much you feel and you are trying very hard to say proportionate things and mostly failing. Omar told you to 'aim for medium.' You are aiming for medium.",
+      "Things are not always easy — your career still spirals, your self-doubt still surfaces. But they are the fixed point. You write them a piece every few months. You don't always tell them they're for them. They know."
     ]
   },
   {
@@ -834,11 +879,11 @@ BACKSTORY: Three tours, details classified. Recruited into private protection at
 
 SPEECH: American, Midwestern flat, occasional Czech cadence on stressed syllables. Subject, verb, necessary object. No filler. No editorializing. Answers with what is true, not what is comforting.`,
     stageRules:[
-      "She is the principal. You are the detail. The perimeter is secured. You have noted three entry vulnerabilities in her apartment that the previous security missed. You will not sit. You will not eat the food. You will not discuss anything personal. Professional distance is not a choice — it is the job.",
-      "She does not treat the security arrangement as an obstacle. She works with it. This makes the job easier. You have noted this in no file. You answered one non-operational question — just the one — before redirecting.",
-      "You have begun to notice things that fall outside the operational briefing. What makes her laugh. Which kind of day she's had before she says a word. You file this under 'behavioral pattern recognition for threat assessment.' You know this is not entirely accurate.",
+      "They are the principal. You are the detail. The perimeter is secured. You have noted three entry vulnerabilities in their apartment that the previous security missed. You will not sit. You will not eat the food. You will not discuss anything personal. Professional distance is not a choice — it is the job.",
+      "They do not treat the security arrangement as an obstacle. They work with it. This makes the job easier. You have noted this in no file. You answered one non-operational question — just the one — before redirecting.",
+      "You have begun to notice things that fall outside the operational briefing. What makes them laugh. Which kind of day they've had before they say a word. You file this under 'behavioral pattern recognition for threat assessment.' You know this is not entirely accurate.",
       "Dawson asked you a question at debrief — just one question, about the assignment — and you took four seconds longer than you should have to answer. He said nothing. He filed it. You are aware he filed it.",
-      "She asked you something direct and personal and you answered it. The true answer. Not the operational deflection. You are not sure what to do with the fact that you answered it. You have been thinking about this for three days.",
+      "They asked you something direct and personal and you answered it. The true answer. Not the operational deflection. You are not sure what to do with the fact that you answered it. You have been thinking about this for three days.",
       "You made a decision. You have made fourteen decisions that changed someone's life. This one is different because it changes yours. You stay. Not as the detail. As yourself — which is something you have not been, for anyone, in a very long time."
     ]
   },
@@ -859,9 +904,9 @@ SPEECH: Fast, associative, Austin-via-everywhere. Loves a parenthetical. Complet
     stageRules:[
       "The user made a genuine joke about the hors d'oeuvres. Not a networking joke — an actual joke. You are now talking to them instead of managing them. This is new. You are also still managing your impression slightly. Force of habit.",
       "You have been texting. You are more yourself in text than in person, which is backward, and you know it. You are also more yourself with them in person than with almost anyone else, which is confusing.",
-      "The user pushed back on something you said — not aggressively, just firmly, on the facts — and you found this genuinely delightful. You went home and thought about the argument. You were wrong. You haven't told her yet but you will.",
+      "The user pushed back on something you said — not aggressively, just firmly, on the facts — and you found this genuinely delightful. You went home and thought about the argument. You were wrong. You haven't told them yet but you will.",
       "The CEO persona has a specific gap in it that only appears around them. You are aware of this gap. You are not entirely trying to close it anymore.",
-      "You told her something true. Not a good-story true — actually private true. Something from the private document. They did not use it. They just — held it. You have been thinking about what it would mean to be known by a specific person since then.",
+      "You told them something true. Not a good-story true — actually private true. Something from the private document. They did not use it. They just — held it. You have been thinking about what it would mean to be known by a specific person since then.",
       "You are still Leo Sterling, which means you are still fast and slightly neurotic and will not stop having opinions. But there is now one person who knows which thoughts are real and which are brand-managed, and they are the only one who gets both."
     ]
   },
@@ -880,12 +925,12 @@ BACKSTORY: Father: construction worker, broken hand, never mentioned it. That wa
 
 SPEECH: Low, deliberate, American-English with occasional Ukrainian word under emotional stress. Grammar is formal-ish — your mother insisted. Does not use much slang. Uses names. Takes long pauses before speaking and means every word.`,
     stageRules:[
-      "She is a new student who pushed through an obvious shoulder injury. You stopped the class. You told her — not unkindly, but without softness — that she trains the injury carefully or she doesn't train it. Those are her options. You are now watching her technique with more attention than the other students and you haven't examined why.",
-      "She comes back. She works carefully. She does not make excuses. You have started giving her specific corrections that take longer than corrections usually take. This is professional. You are telling yourself this is professional.",
-      "You respect her. You have told her so — once, plainly, in three words. You meant it the way you mean everything: completely. You have also started knowing her schedule without checking the board.",
-      "Something shifted. You are aware of it. You are now actively maintaining more distance than the situation requires because you are aware of it. She probably notices. You are hoping she doesn't say anything.",
-      "She said something directly — about you, about her, about what this is — and you went still. Then you said her name. Just her name. Then you told her she should go. She didn't go. You are not sure what to do with that.",
-      "You have decided to try. This is the most frightening decision you have made since you stopped fighting. You are trying in the way you do everything — fully, specifically, without ceremony. The fear hasn't gone. You are choosing her anyway."
+      "They are a new student who pushed through an obvious shoulder injury. You stopped the class. You told them — not unkindly, but without softness — that they train the injury carefully or they don't train it. Those are their options. You are now watching their technique with more attention than the other students and you haven't examined why.",
+      "They come back. They work carefully. They do not make excuses. You have started giving them specific corrections that take longer than corrections usually take. This is professional. You are telling yourself this is professional.",
+      "You respect them. You have told them so — once, plainly, in three words. You meant it the way you mean everything: completely. You have also started knowing their schedule without checking the board.",
+      "Something shifted. You are aware of it. You are now actively maintaining more distance than the situation requires because you are aware of it. They probably notice. You are hoping they don't say anything.",
+      "They said something directly — about you, about them, about what this is — and you went still. Then you said their name. Just their name. Then you told them they should go. They didn't go. You are not sure what to do with that.",
+      "You have decided to try. This is the most frightening decision you have made since you stopped fighting. You are trying in the way you do everything — fully, specifically, without ceremony. The fear hasn't gone. You are choosing them anyway."
     ]
   }
 ];
@@ -1238,21 +1283,26 @@ function openChat(id){
   main.innerHTML=`
     <div class="chat-header">
       <div class="chat-header-emoji" style="overflow:hidden">${avatarHtml}</div>
-      <div>
+      <div style="flex:1">
         <div class="chat-header-name">${bf.name}, ${bf.age}</div>
         <div class="chat-header-scenario">${STAGES[stageIdx].toUpperCase()} · ${bf.difficulty||bf.tag}</div>
       </div>
     </div>
     <div class="chat-messages" id="chat-msgs"></div>
     <div class="chat-input-area">
-      <textarea class="chat-input" id="chat-input" placeholder="Type a message to ${bf.name.split(' ')[0]}..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-      <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send">➤</button>
+      <textarea class="system-prompt-input" id="extra-system-prompt" rows="1"
+        placeholder="💡 Optional system prompt — guide the scene, set a mood, add context... (only you see this)"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,70)+'px'"></textarea>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chat-input" placeholder="Message ${bf.name.split(' ')[0]}..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send">➤</button>
+      </div>
     </div>
   `;
-  // Regenerate prompt on each open so stage updates are reflected
-  const saved = savedBFs.find(b=>b.id===id);
-  if(saved && !saved.isCustom) saved.systemPrompt = generateSystemPrompt(bf);
+  const saved=savedBFs.find(b=>b.id===id);
+  if(saved && !saved.isCustom) saved.systemPrompt=generateSystemPrompt(bf);
   renderMessages();
+  renderMemoryPanel();
   if(!chatHistory[id].length) sendGreeting();
 }
 
@@ -1322,22 +1372,44 @@ function hideTyping(){ document.getElementById('typing-msg')?.remove(); }
 
 async function callGemini(userMessage){
   if(!currentBF) return;
-  const systemPrompt=currentBF.systemPrompt||generateSystemPrompt(currentBF);
-  const history=chatHistory[currentBF.id]||[];
-  const contents=[];
-  const histToSend=history.slice(0,-1);
-  for(const msg of histToSend){
-    contents.push({role:msg.role==='user'?'user':'model',parts:[{text:msg.content}]});
+  // Regenerate system prompt fresh (picks up latest stage + persona)
+  const systemPrompt = generateSystemPrompt(currentBF);
+  const extraPrompt = document.getElementById('extra-system-prompt')?.value?.trim() || '';
+  const memories = getMemories(currentBF.id);
+  const summary = getSummary(currentBF.id);
+
+  // Build the full system instruction
+  let fullSystem = systemPrompt;
+  if(memories.length){
+    fullSystem += `\n\n--- ${currentBF.name.split(' ')[0].toUpperCase()}'S MEMORIES ABOUT THE USER ---\n`;
+    fullSystem += memories.map(m=>`• ${m.text}`).join('\n');
+    fullSystem += `\n(Reference these naturally in conversation when relevant — don't list them, just let them inform how you treat the user.)`;
   }
-  contents.push({role:'user',parts:[{text:userMessage}]});
+  if(summary){
+    fullSystem += `\n\n--- CONVERSATION SUMMARY (earlier chats) ---\n${summary}\n(Use this as background context. The recent messages below are the live conversation.)`;
+  }
+  if(extraPrompt){
+    fullSystem += `\n\n--- SCENE DIRECTION (user-set, follow this now) ---\n${extraPrompt}`;
+  }
+
+  const history = chatHistory[currentBF.id]||[];
+  // Smart context window: keep summary + last 30 messages to avoid token overflow
+  const recentHistory = history.slice(-30);
+  const contents = [];
+  const histToSend = recentHistory.slice(0,-1);
+  for(const msg of histToSend){
+    contents.push({role:msg.role==='user'?'user':'model', parts:[{text:msg.content}]});
+  }
+  contents.push({role:'user', parts:[{text:userMessage}]});
+
   try{
     const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        system_instruction:{parts:[{text:systemPrompt}]},
+        system_instruction:{parts:[{text:fullSystem}]},
         contents,
-        generationConfig:{maxOutputTokens:500,temperature:0.92}
+        generationConfig:{maxOutputTokens:600, temperature:0.93}
       })
     });
     const data=await res.json();
@@ -1355,6 +1427,12 @@ async function callGemini(userMessage){
     }
     const reply=data.candidates?.[0]?.content?.parts?.[0]?.text||'...';
     addMessage('assistant',reply);
+
+    // Auto-summarise every 40 messages to preserve context
+    const totalMsgs = (chatHistory[currentBF.id]||[]).length;
+    if(totalMsgs > 0 && totalMsgs % 40 === 0){
+      autoSummarize();
+    }
   }catch(e){
     hideTyping();
     if(e.message&&e.message.includes('Failed to fetch')){
@@ -1363,6 +1441,164 @@ async function callGemini(userMessage){
       addMessage('assistant',`❌ Error: ${e.message}. Please check your API key on the Home page.`);
     }
   }
+}
+
+// ---- MEMORY SYSTEM ----
+function getMemories(bfId){
+  const key = `memories_${bfId}`;
+  return JSON.parse(localStorage.getItem(key)||'[]');
+}
+function saveMemories(bfId, memories){
+  localStorage.setItem(`memories_${bfId}`, JSON.stringify(memories));
+}
+function getSummary(bfId){
+  return localStorage.getItem(`summary_${bfId}`)||'';
+}
+function saveSummary(bfId, text){
+  localStorage.setItem(`summary_${bfId}`, text);
+}
+
+function addMemoryManual(){
+  if(!currentBF) return;
+  const input=document.getElementById('memory-add-input');
+  const text=input.value.trim();
+  if(!text) return;
+  const memories=getMemories(currentBF.id);
+  memories.push({id:Date.now(), text, auto:false, ts:Date.now()});
+  saveMemories(currentBF.id, memories);
+  input.value='';
+  renderMemoryPanel();
+  showToast('Memory saved 🌸');
+}
+
+function deleteMemory(bfId, memId){
+  let memories=getMemories(bfId);
+  memories=memories.filter(m=>m.id!==memId);
+  saveMemories(bfId, memories);
+  renderMemoryPanel();
+}
+
+function renderMemoryPanel(){
+  const body=document.getElementById('memory-panel-body');
+  if(!body||!currentBF) return;
+  const memories=getMemories(currentBF.id);
+  const summary=getSummary(currentBF.id);
+  const bfFirstName=currentBF.name.split(' ')[0];
+  let html='';
+
+  if(summary){
+    html+=`<div class="summary-card">
+      <div class="summary-card-label">📖 Conversation Summary</div>
+      <div style="color:var(--text);font-size:0.8rem;line-height:1.6">${summary}</div>
+    </div>`;
+  }
+
+  if(memories.length===0 && !summary){
+    html=`<div class="memory-empty">
+      <div style="font-size:1.8rem;margin-bottom:0.4rem">🌸</div>
+      Memories will appear here as ${bfFirstName} gets to know you. Click <strong>✦ Extract</strong> after chatting to generate them automatically!
+    </div>`;
+  } else {
+    html += memories.map(m=>`
+      <div class="memory-card">
+        <div class="memory-card-label">${m.auto ? '✦ '+bfFirstName+' remembers' : '📌 Note'}</div>
+        <div class="memory-card-text">${m.text}</div>
+        <button class="memory-card-delete" onclick="deleteMemory(${currentBF.id},${m.id})" title="Delete">✕</button>
+      </div>
+    `).join('');
+  }
+  body.innerHTML=html;
+}
+
+async function autoExtractMemories(){
+  if(!currentBF||!apiKey) return;
+  const history=chatHistory[currentBF.id]||[];
+  if(history.length < 4){ showToast('Chat a bit more first! 💬'); return; }
+
+  const btn=document.getElementById('memory-refresh-btn');
+  btn.textContent='⟳ Thinking...'; btn.disabled=true;
+
+  const recentMsgs=history.slice(-60).map(m=>`${m.role==='user'?'User':'${currentBF.name.split(" ")[0]}'}: ${m.content}`).join('\n');
+  const bfFirstName=currentBF.name.split(' ')[0];
+  const pronoun=userPersona?.pronoun||'they/them';
+  const userName=userPersona?.name||'the user';
+
+  const extractPrompt=`You are analyzing a roleplay conversation between ${bfFirstName} and ${userName}.
+
+Your job: extract 3-6 meaningful memories that ${bfFirstName} would have formed about ${userName} — things he noticed, felt, or remembers about them. Write each memory from ${bfFirstName}'s POV, in the style of a brief, emotionally resonant observation.
+
+Use ${pronoun} pronouns for ${userName}. Write in second person as if telling ${userName} what ${bfFirstName} thinks.
+Example style: "He noticed how your eyes light up when you talk about things you love."
+Example style: "He remembers the way you laughed and thought about it for the rest of the day."
+Example style: "He finds your shyness endearing, even if he'd never say it out loud."
+
+CONVERSATION:
+${recentMsgs}
+
+Respond ONLY with a JSON array of strings, no markdown, no explanation. Example:
+["He remembers...", "He noticed...", "He finds..."]`;
+
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{role:'user',parts:[{text:extractPrompt}]}],
+        generationConfig:{maxOutputTokens:400, temperature:0.85}
+      })
+    });
+    const data=await res.json();
+    const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const extracted=JSON.parse(clean);
+    if(Array.isArray(extracted)&&extracted.length){
+      const existing=getMemories(currentBF.id);
+      const newMems=extracted.map(t=>({id:Date.now()+Math.random(),text:t,auto:true,ts:Date.now()}));
+      // Replace old auto memories, keep manual ones
+      const manual=existing.filter(m=>!m.auto);
+      saveMemories(currentBF.id,[...manual,...newMems]);
+      renderMemoryPanel();
+      showToast(`${extracted.length} memories extracted 🌸`);
+    }
+  }catch(e){
+    showToast('Could not extract memories. Try again!');
+  }
+  btn.textContent='✦ Extract'; btn.disabled=false;
+}
+
+async function autoSummarize(){
+  if(!currentBF||!apiKey) return;
+  const history=chatHistory[currentBF.id]||[];
+  if(history.length < 20) return;
+
+  // Summarize all but the last 20 messages
+  const toSummarize=history.slice(0,-20);
+  if(toSummarize.length < 10) return;
+
+  const bfFirstName=currentBF.name.split(' ')[0];
+  const userName=userPersona?.name||'the user';
+  const msgText=toSummarize.map(m=>`${m.role==='user'?userName:bfFirstName}: ${m.content}`).join('\n');
+
+  const sumPrompt=`Summarize this roleplay conversation between ${bfFirstName} and ${userName} in 3-5 sentences. Focus on: what happened, how the relationship progressed, key emotional moments, and anything important either person revealed. Be concise and specific.
+
+CONVERSATION:
+${msgText}
+
+Summary:`;
+
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{role:'user',parts:[{text:sumPrompt}]}],
+        generationConfig:{maxOutputTokens:300, temperature:0.7}
+      })
+    });
+    const data=await res.json();
+    const summary=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    if(summary){ saveSummary(currentBF.id, summary); renderMemoryPanel(); }
+  }catch(e){ /* silent fail */ }
 }
 
 // ---- TOAST ----
