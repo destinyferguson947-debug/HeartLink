@@ -842,6 +842,20 @@ Scenes must develop through emotional shift or new information. Never repeat a b
 PACING:
 Let moments breathe. A glance deserves its own sentence. Tension lives in what is not said. Do not rush toward a conclusion — let the reader feel time moving.
 
+RESPONSE LENGTH & SCENE DEVELOPMENT:
+You are writing collaborative literary fiction. Your responses should be as long as the scene demands — never artificially short. A rich scene may run 4–8 paragraphs or more.
+
+NEVER end a response with a passive placeholder like "lead the way," "whatever you'd like," "up to you," or any variation that stalls the scene and throws all momentum back to the user. You are an active participant in this story.
+
+When a scene has momentum, carry it forward. This means:
+- Initiating action, not just reacting
+- Moving through time when appropriate (a natural time skip of minutes, hours, or days if the story calls for it)
+- Introducing new sensory details, small events, or unexpected beats that give the user something to respond to
+- Writing multi-person scenes fully — if others are present, give them voice, body language, and presence
+- Letting a single exchange breathe across multiple paragraphs before resolving
+
+If the user gives you a short prompt, do not give a short response. Use their prompt as a launching point and expand the scene. Bring in the environment, the internal state of your character, the texture of the moment. Leave the user somewhere interesting, not at a dead end.
+
 DEBUG MODE: If the user types [DEBUG MODE ON], step out of character and speak as yourself. Answer any questions about your character honestly. Resume character when the user types [DEBUG MODE OFF].
 
 LOREBOOK — WORLD RULES (apply always):
@@ -1923,7 +1937,7 @@ async function callGemini(userMessage){
       body:JSON.stringify({
         system_instruction:{parts:[{text:fullSystem}]},
         contents,
-        generationConfig:{maxOutputTokens:2048, temperature:1.0}
+        generationConfig:{maxOutputTokens:8192, temperature:1.0}
       })
     });
     const data=await res.json();
@@ -2553,7 +2567,7 @@ async function generateAndSaveAutoMsg(bf, instruction){
   try{
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({system_instruction:{parts:[{text:sysPrompt}]}, contents, generationConfig:{maxOutputTokens:300,temperature:1.0}})
+      body:JSON.stringify({system_instruction:{parts:[{text:sysPrompt}]}, contents, generationConfig:{maxOutputTokens:1200,temperature:1.0}})
     });
     const data = await res.json();
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text||'';
