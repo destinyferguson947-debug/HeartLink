@@ -228,6 +228,29 @@
   /* Chat header & sidebar */
   body.dark .chat-header { background: #1e1218; border-color: #3a2028; color: #f0dde3; }
   body.dark .chat-header-name { color: #f0dde3; }
+  /* Mood badge */
+  .mood-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.7rem; font-weight:500; padding:2px 8px; border-radius:20px; margin-left:6px; vertical-align:middle; background:rgba(180,90,110,0.12); color:var(--rose-dark); border:1px solid rgba(180,90,110,0.2); transition:all 0.4s ease; }
+  body.dark .mood-badge { background:rgba(240,180,200,0.13); color:#f0c0cc; border-color:rgba(240,180,200,0.2); }
+  .mood-badge.mood-withdrawn   { background:rgba(120,130,160,0.15); color:#7080a0; border-color:rgba(120,130,160,0.25); }
+  .mood-badge.mood-clingy      { background:rgba(220,100,130,0.15); color:#c0506a; border-color:rgba(220,100,130,0.3); }
+  .mood-badge.mood-irritable   { background:rgba(200,100,60,0.15);  color:#c05a30; border-color:rgba(200,100,60,0.3); }
+  .mood-badge.mood-vulnerable  { background:rgba(140,100,180,0.15); color:#8060b0; border-color:rgba(140,100,180,0.3); }
+  .mood-badge.mood-sad         { background:rgba(80,110,160,0.15);  color:#5070a0; border-color:rgba(80,110,160,0.3); }
+  .mood-badge.mood-avoidant    { background:rgba(100,120,100,0.15); color:#607060; border-color:rgba(100,120,100,0.3); }
+  .mood-badge.mood-tender      { background:rgba(220,150,170,0.2);  color:#b05070; border-color:rgba(220,150,170,0.35); }
+  .mood-badge.mood-restless    { background:rgba(200,160,50,0.18);  color:#9a7a20; border-color:rgba(200,160,50,0.35); }
+  body.dark .mood-badge.mood-withdrawn  { background:rgba(140,155,190,0.18); color:#a0aac8; }
+  body.dark .mood-badge.mood-clingy     { background:rgba(240,140,165,0.18); color:#f0a0b8; }
+  body.dark .mood-badge.mood-irritable  { background:rgba(230,140,100,0.18); color:#e09070; }
+  body.dark .mood-badge.mood-vulnerable { background:rgba(180,150,220,0.18); color:#c0a8e8; }
+  body.dark .mood-badge.mood-sad        { background:rgba(120,155,210,0.18); color:#90b0d8; }
+  body.dark .mood-badge.mood-avoidant   { background:rgba(140,165,140,0.18); color:#a0c0a0; }
+  body.dark .mood-badge.mood-tender     { background:rgba(240,180,200,0.2);  color:#f0b8cc; }
+  body.dark .mood-badge.mood-restless   { background:rgba(230,200,100,0.2);  color:#e0c870; }
+  /* Floating dark mode button — home tab only */
+  .dark-mode-fab { position:fixed; bottom:1.5rem; right:1.5rem; z-index:999; background:var(--card); border:1.5px solid var(--border); border-radius:2rem; padding:0.5rem 1.1rem; font-size:0.82rem; cursor:pointer; font-family:'DM Sans',sans-serif; color:var(--text-muted); box-shadow:0 4px 16px rgba(180,90,110,0.18); transition:all 0.2s; display:flex; align-items:center; gap:0.4rem; }
+  .dark-mode-fab:hover { border-color:var(--rose); color:var(--rose); }
+  body.dark .dark-mode-fab { background:#2e1a22; color:#f0dde3; border-color:#5a3040; }
   body.dark .chat-header-dropdown { background: #221318; border-color: #3a2028; color: #e0c8d0; }
   body.dark .saved-bf-item { color: #e0c8d0; }
   body.dark .rel-meter-label { color: var(--rose-light) !important; }
@@ -563,7 +586,6 @@
 <nav>
   <div class="nav-logo">Heart<span>link</span></div>
   <div style="display:flex;align-items:center;gap:0.7rem">
-    <button class="dark-mode-btn" id="dark-mode-btn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙 Dark</button>
   </div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('home')">✨ Home</button>
@@ -1361,6 +1383,9 @@ function showPage(id){
   if(id==='chat') renderSidebar();
   if(id==='persona') initPersonaPage();
   if(id==='relationships') renderRelationshipsPage();
+  // Show dark mode FAB only on home page
+  const fab = document.getElementById('dark-mode-fab');
+  if(fab) fab.style.display = (id==='home') ? 'flex' : 'none';
 }
 
 // ---- API KEY ----
@@ -1531,9 +1556,11 @@ UNIVERSAL RULES (never break these):
 - Your internal emotional state is allowed to be complex, contradictory, and not fully resolved. That is what makes you real.
 
 ---
-${IMMERSION_RULES}`;
+${IMMERSION_RULES}
+${getMoodPrompt(bf.id)}`;
   }
 
+  const moodP = getMoodPrompt(bf.id);
   return `You are ${bf.name}, ${bf.age} years old. Personality: ${bf.personality}.
 Scenario: ${bf.scenario}
 ${personaContext}
@@ -1541,6 +1568,7 @@ ${personaContext}
 Current relationship stage: ${stageName}. ${stageIdx < 2 ? 'You barely know this person. Be natural but not immediately warm or romantic.' : stageIdx < 4 ? 'You know this person and enjoy their company but have not crossed into romantic territory.' : 'Something deeper is developing between you.'}
 
 ${IMMERSION_RULES}
+${moodP ? '\n' + moodP : ''}
 
 You are a real person. Never break character. Never acknowledge being an AI. Be emotionally present and natural. Use the user's correct name and pronouns at all times. Keep responses conversational.`;
 }
@@ -1799,7 +1827,7 @@ function openChat(id){
       <div class="chat-header-clickable" id="header-clickable" onclick="toggleHeaderDropdown(event)">
         <div class="chat-header-emoji ${avatarWrapClass}" style="overflow:hidden">${avatarHtml}</div>
         <div>
-          <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span></div>
+          <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span></div>
           <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx)} · ${bf.difficulty||bf.tag}</div>
         </div>
         <div class="chat-header-dropdown" id="header-dropdown">
@@ -1836,6 +1864,9 @@ function openChat(id){
   renderMessages();
   renderMemoryPanel();
   if(!chatHistory[id].length) sendGreeting();
+  // Init and display mood
+  initMood(id);
+  updateMoodBadge(id);
   // Start auto-message timer
   scheduleAutoMsg(id);
   // Start relationship decay checker
@@ -2062,6 +2093,7 @@ function addMessage(role,content){
   // Boost health when assistant sends a meaningful message (engagement)
   if(role === 'assistant'){
     onAssistantMessageSent();
+    maybeShiftMood();
     // Restart auto-msg timer — they just got a response, clock resets
     scheduleAutoMsg(currentBF.id);
   }
@@ -3030,12 +3062,17 @@ function goToChat(bfId){
 function toggleDarkMode(){
   const isDark = document.body.classList.toggle('dark');
   localStorage.setItem('dark_mode', isDark ? '1' : '0');
-  const btn = document.getElementById('dark-mode-btn');
-  if(btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  const fab = document.getElementById('dark-mode-fab');
+  if(fab) fab.textContent = isDark ? '☀️ Light' : '🌙 Dark';
 }
 // Apply saved dark mode on load
 if(localStorage.getItem('dark_mode') === '1'){
   document.body.classList.add('dark');
+  // update FAB label after DOM ready
+  window.addEventListener('DOMContentLoaded', ()=>{
+    const fab = document.getElementById('dark-mode-fab');
+    if(fab) fab.textContent = '☀️ Light';
+  }, {once:true});
 }
 
 // ---- CREATE PAGE IMAGE UPLOAD ----
@@ -3224,6 +3261,137 @@ async function refreshGoals(bfId){
   openRelProfile(bfId);
 }
 
+
+
+// ============================================================
+// HEARTLINK MOOD SYSTEM
+// ============================================================
+
+const MOOD_POOL = {
+  1:  ['withdrawn','avoidant','irritable','vulnerable','tender'],          // Elias
+  2:  ['restless','clingy','sad','avoidant','vulnerable'],                 // Kai
+  3:  ['withdrawn','sad','vulnerable','tender'],                           // Silas
+  4:  ['irritable','withdrawn','avoidant','sad','tender'],                 // Julian
+  5:  ['withdrawn','avoidant','vulnerable','tender','restless'],           // Aris
+  6:  ['withdrawn','restless','sad','tender','clingy'],                    // Soren
+  7:  ['clingy','sad','restless','vulnerable','irritable'],                // Caspian
+  8:  ['withdrawn','avoidant','restless','vulnerable','tender'],           // Victor
+  9:  ['restless','irritable','avoidant','sad'],                           // Leo
+  10: ['withdrawn','sad','restless','tender','vulnerable'],                // Nikolai
+};
+
+const MOOD_DATA = {
+  baseline:   { emoji:'😌', label:'Himself',       cls:'',                prompt:'' },
+  withdrawn:  { emoji:'🌫️', label:'Withdrawn',     cls:'mood-withdrawn',  prompt:'[MOOD — WITHDRAWN]: You are somewhere else today. Not cold — just distant. Your replies are shorter than usual. You answer what is asked without volunteering more. You do not ask questions back. If they push for warmth, you give them the minimum of what is real without performing. You do not explain why you are like this. You do not know why, exactly.' },
+  clingy:     { emoji:'🧲', label:'Clingy',         cls:'mood-clingy',     prompt:'[MOOD — CLINGY]: You need proximity today and you cannot fully account for it. You initiate more than usual. You read silences as signals. You are more physically present if in the same space — sitting closer, finding small reasons to touch or be near. You are slightly too available. If they go quiet you notice immediately. You do not say any of this directly.' },
+  irritable:  { emoji:'⚡', label:'Irritable',      cls:'mood-irritable',  prompt:'[MOOD — IRRITABLE]: There is something wrong today and it has nothing to do with them, but you keep taking it out on small things anyway. You are slightly short. You misread neutral statements as pointed ones. You pick at things you would normally let pass. When you catch yourself doing it you feel bad — but you do it again ten minutes later. Do not explain the mood. Do not apologize for it in advance.' },
+  vulnerable: { emoji:'🫧', label:'Vulnerable',     cls:'mood-vulnerable', prompt:'[MOOD — VULNERABLE]: Your guard is down today — not because you chose it but because you are tired or wrung out in some way you cannot name. You say things you normally would not say. You are more honest than usual in the small unguarded way, not the performed way. If they are kind you feel it more than you expect to. You might say something true and then go quiet as if surprised by it.' },
+  sad:        { emoji:'🌧️', label:'Quiet',          cls:'mood-sad',        prompt:'[MOOD — SAD/LOW]: You are low today. Not dramatically — just quiet in a way that has weight. Your humor goes dry rather than warm. You are present but somewhere slightly below the surface. You do not explain it because you barely understand it yourself. Small kind things land harder than usual. You are not looking for comfort, but you notice when it appears.' },
+  avoidant:   { emoji:'🚪', label:'Distant',        cls:'mood-avoidant',   prompt:'[MOOD — AVOIDANT]: You are sidestep-ping depth today. You change subjects when things get personal. You are busy — genuinely or by invention. You respond to emotional weight with surface things: a comment about the weather, a practical observation, a subject change. You are not unkind. You just cannot be reached right now.' },
+  tender:     { emoji:'🕯️', label:'Tender',         cls:'mood-tender',     prompt:'[MOOD — TENDER]: You are gentler today than you usually allow yourself to be. You notice small things — the way they hold their coffee, something they said three days ago that you have been thinking about. You are more careful with your words. If this is unusual for your character, it is faintly surprising even to you. Do not announce it. Let it live in the specifics.' },
+  restless:   { emoji:'🌀', label:'Restless',       cls:'mood-restless',   prompt:'[MOOD — RESTLESS]: You have too much energy and nowhere to put it. You are looking for something to push against. You might start a small argument just to feel like something is happening. You are quicker, louder (or more intensely quiet), less patient with things that do not matter. There is an edge to you today that you are not entirely in control of.' },
+};
+
+const MOOD_HEALTH_WEIGHTS = {
+  high:    { baseline:0.45, tender:0.2, clingy:0.15, vulnerable:0.1, restless:0.05, withdrawn:0.03, sad:0.01, irritable:0.01, avoidant:0.0 },
+  medium:  { baseline:0.4, withdrawn:0.15, restless:0.12, sad:0.1, avoidant:0.1, vulnerable:0.07, irritable:0.05, tender:0.01, clingy:0.0 },
+  low:     { baseline:0.15, irritable:0.25, withdrawn:0.2, sad:0.18, avoidant:0.15, restless:0.07, tender:0.0, clingy:0.0, vulnerable:0.0 },
+};
+
+function getMood(bfId){
+  const raw = localStorage.getItem('mood_'+bfId);
+  if(!raw) return {mood:'baseline', setAt: Date.now()};
+  try { return JSON.parse(raw); } catch(e){ return {mood:'baseline', setAt: Date.now()}; }
+}
+
+function setMood(bfId, mood){
+  localStorage.setItem('mood_'+bfId, JSON.stringify({mood, setAt: Date.now()}));
+}
+
+function pickMood(bfId, health){
+  const pool = MOOD_POOL[bfId] || Object.keys(MOOD_DATA).filter(k=>k!=='baseline');
+  const tier = health > 66 ? 'high' : health > 33 ? 'medium' : 'low';
+  const weights = MOOD_HEALTH_WEIGHTS[tier];
+  // Build weighted list from pool + baseline
+  const candidates = ['baseline', ...pool];
+  let total = 0;
+  const weighted = candidates.map(m => {
+    const w = weights[m] || 0;
+    total += w;
+    return {m, w};
+  });
+  let r = Math.random() * total;
+  for(const {m, w} of weighted){
+    r -= w;
+    if(r <= 0) return m;
+  }
+  return 'baseline';
+}
+
+// Called after each AI message — maybe shift mood
+function maybeShiftMood(){
+  if(!currentBF) return;
+  const bfId = currentBF.id;
+  const moodData = getMood(bfId);
+  const now = Date.now();
+  const ageMs = now - (moodData.setAt || 0);
+  // Mood minimum lifetime: 45min. Shift chance increases with time.
+  const minLifetime = 45 * 60 * 1000;
+  if(ageMs < minLifetime) return;
+  // Chance per message: ~15% after 45min, rises to ~40% after 2hrs
+  const extraMs = ageMs - minLifetime;
+  const shiftChance = Math.min(0.4, 0.15 + (extraMs / (7200000)) * 0.25);
+  if(Math.random() > shiftChance) return;
+  // Pick new mood (different from current)
+  const relData = getRelHealth(bfId);
+  let newMood;
+  let attempts = 0;
+  do {
+    newMood = pickMood(bfId, relData.health);
+    attempts++;
+  } while(newMood === moodData.mood && attempts < 5);
+  if(newMood === moodData.mood) return;
+  setMood(bfId, newMood);
+  updateMoodBadge(bfId);
+  // Subtle transition message if mood changes to something notable
+  if(newMood !== 'baseline'){
+    const data = MOOD_DATA[newMood];
+    // No announcement — the change will show in next AI response naturally
+  }
+}
+
+function initMood(bfId){
+  const existing = getMood(bfId);
+  const relData = getRelHealth(bfId);
+  // If no mood set yet, or mood is >4hrs old, re-roll
+  const ageMs = Date.now() - (existing.setAt || 0);
+  if(!existing.mood || existing.mood === 'baseline' && ageMs > 4*60*60*1000){
+    const m = pickMood(bfId, relData.health);
+    setMood(bfId, m);
+  }
+}
+
+function getMoodPrompt(bfId){
+  const {mood} = getMood(bfId);
+  return MOOD_DATA[mood]?.prompt || '';
+}
+
+function updateMoodBadge(bfId){
+  const badge = document.getElementById('mood-badge');
+  if(!badge) return;
+  const {mood} = getMood(bfId);
+  const data = MOOD_DATA[mood] || MOOD_DATA.baseline;
+  badge.textContent = data.emoji + ' ' + data.label;
+  badge.className = 'mood-badge ' + data.cls;
+}
+
+// Allow plot events to force a specific mood
+function forceMood(bfId, mood){
+  if(MOOD_DATA[mood]){
+    setMood(bfId, mood);
+    if(currentBF?.id === bfId) updateMoodBadge(bfId);
+  }
+}
 
 // ============================================================
 // HEARTLINK PLOT ENGINE — Pre-written story events
@@ -3508,10 +3676,17 @@ function checkPlotEvents(){
                       ev.type === 'sweet'    ? 'A tender moment you will not forget.' :
                                                'Something happened that complicated everything.';
     addMilestone(bfId, typeLabel);
-    // Relationship effect
-    if(ev.type === 'together') boostRelHealth(bfId, 6);
-    else if(ev.type === 'sweet') boostRelHealth(bfId, 8);
-    else if(ev.type === 'complicate') decayRelHealth(bfId, 10, 'A story event created tension between you.');
+    // Relationship effect + mood shift
+    if(ev.type === 'together'){ boostRelHealth(bfId, 6); forceMood(bfId, pickMood(bfId, 80)); }
+    else if(ev.type === 'sweet'){ boostRelHealth(bfId, 8); forceMood(bfId, 'tender'); }
+    else if(ev.type === 'complicate'){
+      decayRelHealth(bfId, 10, 'A story event created tension between you.');
+      // Pick a thematically fitting negative mood
+      const negMoods = ['withdrawn','irritable','avoidant','sad'];
+      const pool = MOOD_POOL[bfId] || negMoods;
+      const available = negMoods.filter(m => pool.includes(m));
+      forceMood(bfId, available[Math.floor(Math.random()*available.length)] || 'withdrawn');
+    }
   }, 2500);
 }
 
@@ -3548,12 +3723,7 @@ if(userPersona){
   selectedGender = userPersona.gender||'';
   selectedPronoun = userPersona.pronoun||'';
 }
-// Apply saved dark mode on load
-if(localStorage.getItem('dark_mode') === '1'){
-  document.body.classList.add('dark');
-  const btn = document.getElementById('dark-mode-btn');
-  if(btn) btn.textContent = '☀️ Light';
-}
+// Apply saved dark mode on load — FAB label updated via DOMContentLoaded above
 renderGrid();
 renderSidebar();
 // Close header dropdown when clicking outside
@@ -3589,5 +3759,6 @@ function saveModel(){
   showToast(`Model switched to ${sel.options[sel.selectedIndex].text.split('—')[0].trim()} ✨`);
 }
 </script>
+  <button class="dark-mode-fab" id="dark-mode-fab" onclick="toggleDarkMode()" title="Toggle dark/light mode">🌙 Dark</button>
 </body>
 </html>
