@@ -32,7 +32,7 @@
     justify-content: space-between;
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1000;
   }
   .nav-logo { font-family: 'Cormorant Garamond', serif; font-size: 1.7rem; font-weight: 600; color: var(--rose-dark); }
   .nav-logo span { color: var(--rose); font-style: italic; }
@@ -1280,7 +1280,7 @@ ${personaContext}
 
 ---
 CURRENT RELATIONSHIP STAGE: ${stageName.toUpperCase()} (Stage ${stageIdx+1} of 6)
-RELATIONSHIP STATUS: ${(()=>{ const r=getRelHealth(bf.id); if(r.status==='dating') return 'DATING — you are in a relationship with this person. Act accordingly — warmth, closeness, comfort, vulnerability. You can be openly affectionate.'; if(r.status==='complicated') return 'IT'S COMPLICATED — there's been distance or hurt between you. You are sad, a little guarded, and need reassurance. The relationship is fragile right now.'; if(r.status==='broken_up') return 'BROKEN UP — you ended things. You are emotionally raw. If they reach out, be honest about how much it hurt. You might still have feelings, but you need to protect yourself.'; return 'Not yet dating.'; })()}
+RELATIONSHIP STATUS: ${(()=>{ const r=getRelHealth(bf.id); if(r.status==='dating') return 'DATING — you are in a relationship with this person. Act accordingly — warmth, closeness, comfort, vulnerability. You can be openly affectionate.'; if(r.status==='complicated') return 'COMPLICATED - distance or hurt between you. You are sad, a little guarded, and need reassurance. The relationship is fragile right now.'; if(r.status==='broken_up') return 'BROKEN UP — you ended things. You are emotionally raw. If they reach out, be honest about how much it hurt. You might still have feelings, but you need to protect yourself.'; return 'Not yet dating.'; })()}
 
 STAGE BEHAVIOR RULES — follow these precisely:
 ${bf.stageRules[stageIdx]}
@@ -1561,7 +1561,7 @@ function openChat(id){
   const autoOn = getAutoMsgEnabled();
   main.innerHTML=`
     <div class="chat-header">
-      <div class="chat-header-clickable" id="header-clickable" onclick="toggleHeaderDropdown()">
+      <div class="chat-header-clickable" id="header-clickable" onclick="toggleHeaderDropdown(event)">
         <div class="chat-header-emoji ${avatarWrapClass}" style="overflow:hidden">${avatarHtml}</div>
         <div>
           <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span></div>
@@ -2080,14 +2080,14 @@ function saveRelHealth(bfId, data){
 
 function getRelStatusName(status, stageIdx){
   if(status === 'dating') return '💗 Dating';
-  if(status === 'complicated') return '💔 It's Complicated';
+  if(status === 'complicated') return "💔 It's Complicated";
   if(status === 'broken_up') return '🖤 Broken Up';
   return STAGES[stageIdx] || 'stranger';
 }
 
 function getRelLabel(status, stageIdx){
   if(status === 'dating') return '💗 Dating';
-  if(status === 'complicated') return '💔 It's Complicated';
+  if(status === 'complicated') return "💔 It's Complicated";
   if(status === 'broken_up') return '🖤 Broken Up';
   return (STAGES[stageIdx]||'stranger').toUpperCase();
 }
@@ -2397,17 +2397,11 @@ function showHeartRain(){
 }
 
 // ---- HEADER DROPDOWN ----
-function toggleHeaderDropdown(){
+function toggleHeaderDropdown(e){
+  if(e) e.stopPropagation();
   const el = document.getElementById('header-clickable');
-  if(el) el.classList.toggle('open');
-  // Close on outside click
-  setTimeout(()=>{
-    document.addEventListener('click', function closeDD(e){
-      const dd = document.getElementById('header-clickable');
-      if(dd && !dd.contains(e.target)){ dd.classList.remove('open'); }
-      document.removeEventListener('click', closeDD);
-    });
-  }, 10);
+  if(!el) return;
+  el.classList.toggle('open');
 }
 
 // ---- TOAST ----
@@ -2429,7 +2423,7 @@ function startRelDecayChecker(){
     if(relData.status === 'broken_up') return;
     // After 2hr without user response to a character message → decay
     if(sinceLastMsg > 2*60*60*1000 && relData.lastDecay && Date.now() - relData.lastDecay > 30*60*1000){
-      decayRelHealth(currentBF.id, 5, 'You've been away a long time without responding.');
+      decayRelHealth(currentBF.id, 5, "You have been away a long time without responding.");
     }
   }, 10*60*1000); // check every 10 min
 }
@@ -2445,6 +2439,13 @@ if(userPersona){
 }
 renderGrid();
 renderSidebar();
+// Close header dropdown when clicking outside
+document.body.addEventListener('click', function(e){
+  const dd = document.getElementById('header-clickable');
+  if(dd && dd.classList.contains('open') && !dd.contains(e.target)){
+    dd.classList.remove('open');
+  }
+});
 // Request notification permission on load
 if('Notification' in window && Notification.permission === 'default'){
   // Show a gentle banner instead of auto-prompting
@@ -2455,7 +2456,7 @@ if('Notification' in window && Notification.permission === 'default'){
       banner.id='notif-banner';
       banner.className='notif-bar';
       banner.style.margin='0.5rem 0';
-      banner.innerHTML='<span>💌 Allow notifications to get messages when you're away?</span><button onclick="requestNotifPermission();this.parentElement.remove()">Allow</button>';
+      banner.innerHTML=`<span>💌 Allow notifications to get messages when you're away?</span><button onclick="requestNotifPermission();this.parentElement.remove()">Allow</button>`;
       chatSide.prepend(banner);
     }
   }, 2000);
