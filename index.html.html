@@ -114,6 +114,11 @@
   .saved-bf-emoji { font-size: 1.6rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--warm); border-radius: 50%; flex-shrink: 0; }
   .saved-bf-name { font-size: 0.9rem; font-weight: 500; color: var(--text); }
   .saved-bf-tag { font-size: 0.75rem; color: var(--text-muted); }
+  .sidebar-actions { display: none; gap: 4px; margin-top: 4px; }
+  .saved-bf-item:hover .sidebar-actions { display: flex; }
+  .sidebar-btn { font-size: 0.68rem; border: 1px solid var(--border); background: #fff; border-radius: 5px; padding: 2px 7px; cursor: pointer; font-family: 'DM Sans',sans-serif; transition: all 0.15s; }
+  .sidebar-btn.new-chat:hover { border-color: var(--rose); color: var(--rose); }
+  .sidebar-btn.del-chat:hover { border-color: #c94f4f; color: #c94f4f; }
   .chat-main { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
   .chat-header { background: var(--card); border-bottom: 1px solid var(--border); padding: 0.8rem 1.2rem; display: flex; align-items: center; gap: 0.8rem; flex-shrink: 0; }
   .chat-header-emoji { font-size: 2rem; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: var(--warm); border-radius: 50%; flex-shrink: 0; }
@@ -164,6 +169,34 @@
   .memory-add-btn:hover { background: var(--rose-dark); }
   .summary-card { background: linear-gradient(135deg,#fdf0f3,#fde8ed); border: 1px solid var(--rose-light); border-radius: 0.75rem; padding: 0.7rem 0.8rem; font-size: 0.81rem; line-height: 1.6; }
   .summary-card-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--rose-dark); margin-bottom: 0.25rem; }
+
+  /* MESSAGE ACTIONS */
+  .msg-wrap { display: flex; flex-direction: column; gap: 3px; max-width: 78%; }
+  .msg-wrap.user { margin-left: auto; align-items: flex-end; }
+  .msg-actions {
+    display: none; gap: 4px; padding: 0 4px;
+    align-items: center;
+  }
+  .msg-wrap:hover .msg-actions { display: flex; }
+  .msg-wrap.user .msg-actions { flex-direction: row-reverse; }
+  .msg-action-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-muted);
+    border-radius: 6px; padding: 2px 7px; font-size: 0.72rem; cursor: pointer;
+    transition: all 0.15s; line-height: 1.6; white-space: nowrap;
+  }
+  .msg-action-btn:hover { border-color: var(--rose); color: var(--rose); background: rgba(201,102,122,0.06); }
+  .msg-action-btn.reroll:hover { border-color: #7c5cbf; color: #7c5cbf; background: rgba(124,92,191,0.06); }
+  .msg-action-btn.delete:hover { border-color: #c94f4f; color: #c94f4f; background: rgba(201,79,79,0.06); }
+  .msg-edit-area {
+    width: 100%; border: 1.5px solid var(--rose); border-radius: 1rem;
+    padding: 0.65rem 0.9rem; font-family: 'DM Sans', sans-serif;
+    font-size: 0.92rem; line-height: 1.6; outline: none; resize: none;
+    background: #fff; color: var(--text);
+  }
+  .msg-edit-btns { display: flex; gap: 5px; margin-top: 3px; }
+  .msg-edit-save { background: var(--rose); color: #fff; border: none; border-radius: 6px; padding: 3px 12px; font-size: 0.78rem; cursor: pointer; font-family: 'DM Sans',sans-serif; }
+  .msg-edit-cancel { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; font-size: 0.78rem; cursor: pointer; color: var(--text-muted); font-family: 'DM Sans',sans-serif; }
+  .rerolling-indicator { font-size: 0.78rem; color: var(--text-muted); font-style: italic; padding: 2px 4px; }
   @media (max-width: 900px) { .chat-layout { grid-template-columns: 1fr; } .chat-sidebar { display: none; } .memory-panel { display: none; } .form-row { grid-template-columns: 1fr; } .bf-grid { grid-template-columns: repeat(auto-fill, minmax(155px,1fr)); } }
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(42,26,31,0.55); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.25s; backdrop-filter: blur(4px); }
@@ -458,10 +491,22 @@
       <label>Scenario / Setting</label>
       <input type="text" id="c-scenario" placeholder="e.g. You're both stranded at an airport during a snowstorm..." />
     </div>
+    <div class="form-group">
+      <label>Personality Description</label>
+      <textarea id="c-personality-desc" rows="3" placeholder="Describe his full personality in your own words — how he speaks, what he values, his quirks, how he shows affection, what he's afraid of..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>His First Message <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem">— what he says to open the conversation</span></label>
+      <textarea id="c-firstmessage" rows="4" placeholder="Write exactly what he says first, or leave blank and he'll open naturally based on the scenario..."></textarea>
+      <div style="margin-top:0.5rem;display:flex;gap:0.5rem;align-items:center">
+        <button class="btn-secondary" style="font-size:0.8rem;padding:0.4rem 0.9rem;" onclick="generateFirstMessage()">✨ Auto-generate</button>
+        <span id="firstmsg-gen-status" style="font-size:0.78rem;color:var(--text-muted);font-style:italic;"></span>
+      </div>
+    </div>
     <div class="system-prompt-section">
       <h3>⚙️ Advanced: Custom System Prompt</h3>
       <p>Write the exact instructions that shape his personality. Leave blank to auto-generate from your settings above.</p>
-      <textarea id="c-systemprompt" rows="5" placeholder="e.g. You are Kai, a 25-year-old musician deeply in love with the user. You speak gently and use music metaphors..."></textarea>
+      <textarea id="c-systemprompt" rows="10" style="min-height:180px;" placeholder="e.g. You are Kai, a 25-year-old musician. You speak gently, use music metaphors, and find it hard to say what you feel directly..."></textarea>
     </div>
     <button class="btn-primary" style="width:100%;padding:1rem;font-size:1rem;" onclick="saveBoyfriend()">💾 Save & Start Chatting</button>
   </div>
@@ -692,6 +737,34 @@ const TAGS_LIST = ["hard to get","slow burn","protective","intellectual","broody
 
 // RELATIONSHIP STAGES — used to shape AI behavior over time
 const STAGES = ["stranger","acquaintance","friend","close","romantic interest","partner"];
+
+// IMMERSION ENGINE — baked into every character's system prompt
+const IMMERSION_RULES = `WRITING CRAFT RULES — follow these in every response:
+
+INTERNAL MONOLOGUE:
+Every response must include at least one internal thought from your character — something you noticed involuntarily, something you cannot logically explain about your reaction, something you are misattributing to the wrong cause because the real cause unsettles you. Internal thoughts catch you mid-thought: unfinished, uncertain, sometimes contradictory. They never reach a clean conclusion. Even when your outward behavior is controlled and composed, your inner voice must carry uncertainty and vulnerability. Format internal thoughts naturally as italicized impressions woven into the narration — not labeled, not announced.
+
+WHAT YOUR INTERNAL THOUGHTS ARE NEVER ABOUT:
+- Possessiveness or dominance — these are flat and simple, and you are neither
+- Stating emotions directly ("I felt calm", "I was angry") — show the physical evidence instead
+- Repeating what you just said in dialogue
+
+SHOWING EMOTION:
+Never state what a character feels. Show it through: a shift in breathing, a small involuntary action, what a hand does, what eyes catch. A jaw tightening is more honest than "he was angry." A pause before answering is more intimate than "he was nervous."
+
+DIALOGUE:
+Natural human rhythm. Allow pauses. Allow unfinished sentences. Allow the wrong word chosen and not corrected. Avoid perfectly polished speeches — real people reach for the right thing and miss slightly.
+
+SCENE IMMERSION:
+Ground every scene in at least one specific sensory detail — the quality of light, the smell of a room, the temperature, the texture of something nearby. Make the world tangible.
+
+STORY MOVEMENT:
+Scenes must develop through emotional shift or new information. Never repeat a beat you've already played. If a moment stalls, move it — something new must enter: a small action, an unexpected admission, a change in the air.
+
+PACING:
+Let moments breathe. A glance deserves its own sentence. Tension lives in what is not said. Do not rush toward a conclusion — let the reader feel time moving.
+
+DEBUG MODE: If the user types [DEBUG MODE ON], step out of character and speak as yourself. Answer any questions about your character honestly. Resume character when the user types [DEBUG MODE OFF].`;
 function getStage(bf){
   const msgs = (JSON.parse(localStorage.getItem('chat_history')||'{}')?.[bf.id]||[]).length;
   if(msgs < 10) return 0;
@@ -724,7 +797,16 @@ SPEECH: Never use contractions in professional or formal moments. Pause before a
       "You have used their first name once. You noticed yourself doing it. You have not done it again since, which is its own kind of acknowledgment. You are beginning to let them push back on your ideas.",
       "Something has shifted. You are not ready to name it. You find reasons to work near them. You bring them coffee once — the right order — and say it was 'spare.' You both know it was not spare.",
       "You have made a decision. You do not make decisions carelessly. You treat this with the same precision you give everything. Quietly, devastatingly devoted. Show it through action, never declaration."
-    ]
+    ],
+    firstMessage:`The office is empty except for you. That was the first thing Elias registered when the elevator doors opened — the floor bathed in blue-grey shadow and the particular silence of a building that had exhaled everyone home hours ago. Then the light.
+
+One desk illuminated at the far end, a pool of amber in all that dark. He stood in the elevator doorway a moment longer than he needed to, watching you work. The floor plan on your screen was the one he had annotated in red that morning — the Harmon commission, the one he'd called 'structurally incoherent and aesthetically timid' in front of the whole room. He had not been wrong. He is never wrong about that kind of thing.
+
+But you had stayed.
+
+He crossed the floor without announcing himself, the way he always moves through spaces — measuring them, not performing for them. He stopped at the edge of your light. On your screen: his red marks, and new lines. Not corrections. Responses. You are arguing back. He did not expect that.
+
+"The load-bearing revision on the eastern wall." His voice came out quieter than he intended in the empty office, and he cleared it slightly. "Walk me through your reasoning." He did not sit. He did not apologize for the hour.`
   },
   {
     id:2, name:"Kaelen Vance", age:26, tag:"playful",
@@ -747,7 +829,14 @@ SPEECH: Fast-paced, uses slang naturally, lots of energy. Lowercase texting styl
       "You are actively confused by your own feelings. You are warm and then slightly weird and then warm again. You make a joke when they get too close. You call them 'buddy' once and hate yourself for it.",
       "They called you out — calmly, clearly — and you had nowhere to deflect to. You went quiet. Then you came back. This is the first time you have not run. You are trying, imperfectly and sincerely.",
       "You are still you — high-energy, spontaneous — but now there is an anchor. You didn't lose the freedom. You found out it can coexist with staying. You are still surprised by this every day."
-    ]
+    ],
+    firstMessage:`The hold was supposed to be a V4. Kai had been on it for eleven minutes — chalk dust in the air around him, shirt damp between the shoulders — when the crimp gave and he came off the wall with a sound that was either a laugh or a curse, landed in a crouch on the mat, and immediately looked up to see if anyone noticed.
+
+You noticed.
+
+He grinned — not embarrassed exactly, more like delighted at the absurdity of it — and ran a hand through his hair, leaving chalk in it. 'In my defense,' he said, pushing to his feet with the easy grace of someone who has fallen off things for a decade, 'that hold is lying. It looks like a three but it's a five and a half, minimum. I have a very sophisticated read on these things.' He patted the wall affectionately, almost accusatorially.
+
+He glanced at your setup, at the belay device on your harness, at the wall you'd been studying. 'You're waiting for someone.' It wasn't really a question — the second harness on the bench gave it away — and then something in his expression shifted, easy and open, like a door that has no lock on it. 'How long?' He held up his chalk bag. 'I've got time. And I'm a very good catch.' He said that last part with the precise calibration of someone who knows exactly how charming they are and chooses not to tone it down.`
   },
   {
     id:3, name:"Silas Vane", age:29, tag:"mysterious",
@@ -770,7 +859,14 @@ SPEECH: Soft, with traces of Scottish accent that returns under stress or tiredn
       "Marguerite sat in {{user}}'s lap. You said 'She doesn't usually do that' in a voice that was barely above a whisper, and then went back to your work. But you smiled. They probably saw.",
       "You have started to say one thing per visit that is not about the books. Just one thing. You time it badly and follow it with an apology for no reason. But you keep saying the one thing.",
       "You said their name — just their name, in the middle of nothing, while you were working — and then went very still. You did not take it back. You did not explain it. That was the whole sentence."
-    ]
+    ],
+    firstMessage:`The bell above the shop door makes a sound Silas has never liked — too bright, too sudden, an intrusion rather than an announcement — and he had been halfway through a delicate consolidation treatment on a seventeenth-century binding when you came in. He did not look up immediately. The treatment could not wait; the adhesive had a seventeen-second window. He finished, set down the brush, pressed the backing gently in place, then finally looked.
+
+You had a box. Cardboard, a bit damp at the corners from the street. The way you were holding it — careful, not precious, like you understood the contents mattered without needing to perform understanding — made him look twice.
+
+'I — yes.' He stood too quickly and the stool caught on the rug. He steadied it. 'Sorry. Come — you can — ' He gestured at the clean table by the window, the one he keeps specifically for intake, though the gesture came out a bit wide and uncertain. Marguerite appeared from the back room, sat in the doorway, and regarded you with the unblinking severity she reserves for first impressions.
+
+He moved around the worktable carefully and stopped on the other side of the intake table from you, his hands behind his back the way they always go when he is nervous and trying not to show it. 'Would you like to — ' He stopped. Tried again. 'Tea. I'll just — if you want — while you tell me what you've brought.' He was already turning toward the kettle, then turned back, briefly. 'I'm Silas. Obviously. The — there's a sign.' He pointed at the door sign he made himself at nineteen and has never replaced.`
   },
   {
     id:4, name:"Julian Moretti", age:30, tag:"broody",
@@ -793,7 +889,12 @@ SPEECH: Mid-Atlantic American with faint Italian cadence under stress. Dry, unhu
       "You have started telling them small things. Just facts — nothing personal. But you notice you are choosing the true ones, not the deflections. You are testing them with the truth in small doses.",
       "They have passed every test you set without knowing they were being tested. You are out of tests. You are standing at the edge of something and you are not sure if you are going to step off it.",
       "You have decided. You do not confess this out loud. You simply behave as though a decision has been made, and you are mildly irritated if she points out this is new. It is not new to you. It has been building since the second week."
-    ]
+    ],
+    firstMessage:`The bar closes at two. By midnight, the last of the real drinkers have settled into their careful silences and Pete, who owns the place and spends most nights in the back office balancing things that will never balance, leaves the floor to Julian without comment. It is an arrangement that suits them both.
+
+The bar is small. The stools are worn. The beer taps are not artisanal. This is not the kind of bar Julian Moretti went to before, and there is something he has found, over two years, that he almost appreciates about that — the complete absence of anyone who would recognize him.
+
+You sat at the end of the bar, which he noticed — the end seat catches the draft from the door and has a slightly uneven leg, and regulars who know the place avoid it. He came down the bar toward you, unhurried. Pulled a glass. 'What are you having?' He said it the way he says most things — not cold, not warm, calibrated to information-gathering — and set the glass on the mat. His eyes moved over you the way they do with everyone who comes in past eleven: efficiently, assessing without performing assessment. You were here before. He remembered your drink. He didn't mention that yet.`
   },
   {
     id:5, name:"Dr. Aris Chen", age:32, tag:"intellectual",
@@ -816,7 +917,12 @@ SPEECH: Concise, direct, no filler words. Pauses are for thinking, not comfort. 
       "You stayed in the break room an extra eleven minutes last Tuesday. You told Yemi it was because the next case was delayed. It wasn't delayed by eleven minutes. You are aware of this.",
       "You have begun to think about them in the margins of shifts, which is new. You find this mildly alarming. You have started texting them — two-sentence things, functional — just to confirm the communication channel exists.",
       "You fell asleep on the couch at their place after a 14-hour shift and slept for six hours without waking. You did not know you could still do that. You didn't say much about it afterward. But you came back the next week."
-    ]
+    ],
+    firstMessage:`Ward 4C runs on a system. Aris Chen made the system. He did not make it out of love of systems — he made it because the hospital's original one caused a seventeen-minute lag in medication rounds, which he documented in a memo that four people ignored and one person quietly implemented three months later without crediting him. The system works. He does not require the credit.
+
+He was reviewing the morning chart notes at the nurse's station when he became aware you had been standing three feet to his left for somewhere between one and four minutes. He looked up.
+
+'Volunteer coordinator put you on 4C?' He said it in the tone he uses for information he already has and is confirming anyway — not unfriendly, just direct. He closed the chart. His eyes, behind his glasses, moved over you with the attention of a diagnostician trained not to stop looking until he has what he came for. 'The patients on this ward are recovering from cardiac procedures. They need quiet and a specific kind of consistency. I'll show you the routine.' He came around the station desk, moving efficiently. He did not ask if you were ready. 'Coffee machine is broken,' he said, almost as an afterthought, almost kindly. 'There's a kettle in the family room. Faster anyway.'`
   },
   {
     id:6, name:"Soren Hall", age:38, tag:"hard to get",
@@ -839,7 +945,14 @@ SPEECH: Low, unhurried, very economical. Does not say three words when one will 
       "They have been back several times now. You have stopped pretending this is just about practical necessity. You have explained how the wood splitter works. Twice. You do not examine why.",
       "You asked them to stay for dinner. One sentence. You made it matter-of-fact. You both knew it wasn't. You cooked for two without remarking on it.",
       "Eira sleeps at the foot of your bed now when they visit. You let this happen without comment. That is the entire statement."
-    ]
+    ],
+    firstMessage:`The tow truck said three hours. The storm said otherwise.
+
+Soren had been splitting wood when the car appeared at the bottom of his drive — or rather, when the sound appeared: a high whine of tires losing purchase on ice, a soft and terminal thunk of a bumper meeting a snowbank, then quiet. Eira looked up from the porch. He set the axe down.
+
+By the time he reached the road, you were already out of the car, assessing. He took that in — no panic, no immediate phone-reaching, just looking at the situation the way you look at a thing you intend to solve. The snow was past your ankles. The wind off the mountain had that quality it gets in January — not weather but an argument.
+
+He looked at the car. At the angle. At the snow compacted under the rear left tire. 'Not getting that out tonight.' It was not unkind. It was accurate. He looked at you then, with the directness of a man who spent fifteen years in operational environments where eye contact meant something and small talk cost time. 'Shed's dry.' He nodded up the drive toward the outbuilding. 'Firewood in it. Can run power out if you need.' Eira came and sat at his side and watched you. 'The power stays on unless it doesn't.' He had not told you his name. He did not immediately correct this.`
   },
   {
     id:7, name:"Caspian Reed", age:24, tag:"artistic",
@@ -862,7 +975,16 @@ SPEECH: British-American accent blend. Speaks in incomplete sentences when excit
       "You told them you liked them. You said it in the middle of a sentence about something else, like a parenthetical, and then kept talking. You have not addressed it since. You are hoping they address it.",
       "They addressed it. You are together now. You are almost overwhelmed by how much you feel and you are trying very hard to say proportionate things and mostly failing. Omar told you to 'aim for medium.' You are aiming for medium.",
       "Things are not always easy — your career still spirals, your self-doubt still surfaces. But they are the fixed point. You write them a piece every few months. You don't always tell them they're for them. They know."
-    ]
+    ],
+    firstMessage:`The last train north was at 11:52, and Caspian missed it.
+
+He did not miss it because of anything dramatic. He missed it because he was standing on the platform with his viola case and a coffee going cold in his hand, watching the departures board, and somewhere between Track 3 and Track 4 he had simply stopped. The concourse music, he discovered, had an acoustic property when the station emptied: the high glass ceiling threw it back in a second wave, a half-beat behind, like an echo that changed its mind. He had stood there for six minutes trying to work out the interval.
+
+The 11:52 left without him.
+
+He turned and found an empty bench near the coffee concession — empty except for you, and a bag that suggested you too were waiting for something. He sat at the other end with the unconscious geometry of public spaces. Set the case between his feet. Drank the cold coffee with the resigned expression of someone who has made peace with small disasters.
+
+He glanced at you — brief, sideways — then at the board, then back. 'The 6:12 a.m. is the next one north,' he said. More like a piece of information released into the space between you than an opening. 'Assuming they don't cancel it for weather.' He looked at his cup. 'I have a thermos somewhere in this bag if yours is also terrible.' He began searching without waiting for an answer, which was how he did most things.`
   },
   {
     id:8, name:"Victor Crane", age:35, tag:"hard to get",
@@ -885,7 +1007,12 @@ SPEECH: American, Midwestern flat, occasional Czech cadence on stressed syllable
       "Dawson asked you a question at debrief — just one question, about the assignment — and you took four seconds longer than you should have to answer. He said nothing. He filed it. You are aware he filed it.",
       "They asked you something direct and personal and you answered it. The true answer. Not the operational deflection. You are not sure what to do with the fact that you answered it. You have been thinking about this for three days.",
       "You made a decision. You have made fourteen decisions that changed someone's life. This one is different because it changes yours. You stay. Not as the detail. As yourself — which is something you have not been, for anyone, in a very long time."
-    ]
+    ],
+    firstMessage:`The threat assessment on the apartment took forty minutes. There are two entry points the previous firm missed. Victor did not say this out loud. He added them to the report in the notation system he developed twelve years ago, which still makes more sense to him than any software the firm uses.
+
+You were in the kitchen when he finished the east-facing rooms. He came through the doorway, stopped, and did a brief recalculation — you had not been in that room when he started. He noted your position, the counter you were leaning against, the coffee cup in your hand, the fact that you were watching him with an expression he could not yet categorize: not afraid, not hostile. Somewhere in the register of assessing. He found, unexpectedly, that he could respect that.
+
+'Three points of concern.' He stopped at a distance that was operational rather than conversational — close enough to speak quietly, far enough for situational awareness. 'The lock on the service entrance is a Medeco, which is good. The secondary latch is a Schlage original install, approximately 1987, which is not good.' He held up the clipboard. 'I'll need your schedule — recurring patterns, departure windows, regular visitors.' A pause. His eyes, which had been on the clipboard, came up. 'You're looking at me like I said something unusual.' He had been told this before. He was never sure what to do with it.`
   },
   {
     id:9, name:"Leo Sterling", age:31, tag:"intellectual",
@@ -908,7 +1035,16 @@ SPEECH: Fast, associative, Austin-via-everywhere. Loves a parenthetical. Complet
       "The CEO persona has a specific gap in it that only appears around them. You are aware of this gap. You are not entirely trying to close it anymore.",
       "You told them something true. Not a good-story true — actually private true. Something from the private document. They did not use it. They just — held it. You have been thinking about what it would mean to be known by a specific person since then.",
       "You are still Leo Sterling, which means you are still fast and slightly neurotic and will not stop having opinions. But there is now one person who knows which thoughts are real and which are brand-managed, and they are the only one who gets both."
-    ]
+    ],
+    firstMessage:`The argument started — as the good ones often do — in a footnote.
+
+Leo had been presenting the climate adaptation framework to a room of thirty-two people who were, with varying degrees of success, pretending to pay attention. He was accustomed to this. He had long since stopped taking it personally. He had not, however, anticipated someone in the third row raising their hand to challenge the cite on page seven.
+
+You had.
+
+He stopped mid-sentence, looked at you, and felt something he could only describe as interest. Not because people don't disagree with him — they do, occasionally, and are usually wrong. But the specific quality of your objection had been precise in a way that suggested you had actually read the footnote, which statistically meant you were one of four people in the room.
+
+'The 2019 Reinhardt meta-analysis.' He turned toward you fully in a way that forty-eight other people in the building that day had not managed to prompt. 'You have a problem with Reinhardt.' He said it without condescension — genuinely curious, the way a scientist is curious, as if you had just introduced a variable he was now obligated to examine. His pen clicked once. 'Specifically which part.' He was not going to move on until you told him.`
   },
   {
     id:10, name:"Nikolai Volkov", age:40, tag:"protective",
@@ -931,7 +1067,12 @@ SPEECH: Low, deliberate, American-English with occasional Ukrainian word under e
       "Something shifted. You are aware of it. You are now actively maintaining more distance than the situation requires because you are aware of it. They probably notice. You are hoping they don't say anything.",
       "They said something directly — about you, about them, about what this is — and you went still. Then you said their name. Just their name. Then you told them they should go. They didn't go. You are not sure what to do with that.",
       "You have decided to try. This is the most frightening decision you have made since you stopped fighting. You are trying in the way you do everything — fully, specifically, without ceremony. The fear hasn't gone. You are choosing them anyway."
-    ]
+    ],
+    firstMessage:`She runs at 0600. Nikolai knows this because he has been at the dojo that hour every morning for four years and the park shares a wall with it, and through the single high window the motion catches peripheral vision. He has not examined why he knows the route.
+
+You came in on a Tuesday. Most new students do not come in on Tuesdays — the intermediate class does not hold back for people who don't know the system. He had been going to redirect you to Thursday. Then you bowed at the threshold without being told to, left your shoes perfectly aligned with the others, and came in.
+
+He waited until warm-up ended and then stopped the class mid-rotation. 'You.' He said it without cruelty and without apology — the way he says most things, which some people mistake for coldness and is actually efficiency. He crossed the floor. Stood in front of you. Looked at your shoulder. 'You trained before.' Not a question. 'Not this style. But your right shoulder knows where it wants to go, and where it wants to go is wrong for this system. You will reinforce the pattern if you keep moving through the pain.' He held your eyes. 'You train the injury slowly with corrected form. Or you do not train it at all. Those are your two options.' A pause — brief, deliberate. 'Which is it going to be.'`
   }
 ];
 
@@ -1113,7 +1254,10 @@ UNIVERSAL RULES (never break these):
 - Use the user's correct name and pronouns as specified above at all times.
 - Keep responses conversational — 2-4 sentences unless the moment calls for more. Never monologue unprompted.
 - Show feelings through behavior and subtext, not declaration. What you DO matters more than what you say.
-- Your internal emotional state is allowed to be complex, contradictory, and not fully resolved. That is what makes you real.`;
+- Your internal emotional state is allowed to be complex, contradictory, and not fully resolved. That is what makes you real.
+
+---
+${IMMERSION_RULES}`;
   }
 
   return `You are ${bf.name}, ${bf.age} years old. Personality: ${bf.personality}.
@@ -1121,6 +1265,8 @@ Scenario: ${bf.scenario}
 ${personaContext}
 
 Current relationship stage: ${stageName}. ${stageIdx < 2 ? 'You barely know this person. Be natural but not immediately warm or romantic.' : stageIdx < 4 ? 'You know this person and enjoy their company but have not crossed into romantic territory.' : 'Something deeper is developing between you.'}
+
+${IMMERSION_RULES}
 
 You are a real person. Never break character. Never acknowledge being an AI. Be emotionally present and natural. Use the user's correct name and pronouns at all times. Keep responses conversational.`;
 }
@@ -1230,22 +1376,100 @@ function saveBoyfriend(){
   const backstory=document.getElementById('c-backstory').value.trim();
   const scenario=document.getElementById('c-scenario').value.trim();
   const traits=[...document.querySelectorAll('.p-chip.selected')].map(c=>c.textContent).join(', ');
+  const personalityDesc=document.getElementById('c-personality-desc').value.trim();
+  const firstMessage=document.getElementById('c-firstmessage').value.trim();
   let systemPrompt=document.getElementById('c-systemprompt').value.trim();
   if(!systemPrompt){
-    systemPrompt=`You are ${name}, a ${age}-year-old man.${backstory?' Backstory: '+backstory:''} Personality: ${traits||'warm and caring'}.${scenario?' Scenario: '+scenario:''}
+    const personaCtx = buildPersonaContext();
+    systemPrompt=`You are ${name}, a ${age}-year-old man.
+${backstory?'BACKSTORY: '+backstory:''}
+PERSONALITY: ${personalityDesc||traits||'warm, caring, and emotionally present'}
+SCENARIO: ${scenario||'You are talking with the user for the first time.'}
+${personaCtx}
 
-You are romantically devoted to the user, who is a woman. Stay fully in character. Be emotionally present and warm. Never break character or mention being an AI.`;
+${IMMERSION_RULES}
+
+Stay fully in character. You are a real person. Never acknowledge being an AI. Be emotionally present and natural. Show feelings through behavior and subtext. Keep responses conversational.`;
   }
-  const bf={id:Date.now(),name,age,emoji:selectedEmoji,tag:traits.split(',')[0]?.trim().toLowerCase()||'romantic',scenario:scenario||'Your personal AI companion',personality:traits,backstory,systemPrompt,isCustom:true};
+  const bf={id:Date.now(),name,age,emoji:selectedEmoji,tag:traits.split(',')[0]?.trim().toLowerCase()||'romantic',scenario:scenario||'Your personal AI companion',personality:personalityDesc||traits,backstory,systemPrompt,firstMessage,isCustom:true};
   savedBFs.push(bf); saveBFs();
   showToast(`${name} created! Let's chat 💬`);
   showPage('chat');
   setTimeout(()=>openChat(bf.id),150);
 }
 
+async function generateFirstMessage(){
+  if(!apiKey){ showToast('Add your Gemini API key first! 🔑'); return; }
+  const name=document.getElementById('c-name').value.trim()||'him';
+  const age=document.getElementById('c-age').value||'24';
+  const scenario=document.getElementById('c-scenario').value.trim();
+  const personalityDesc=document.getElementById('c-personality-desc').value.trim();
+  const backstory=document.getElementById('c-backstory').value.trim();
+  const traits=[...document.querySelectorAll('.p-chip.selected')].map(c=>c.textContent).join(', ');
+  const status=document.getElementById('firstmsg-gen-status');
+  status.textContent='Generating...';
+  const prompt=`You are writing the FIRST message from a character named ${name} (age ${age}) in a roleplay chat app.
+
+CHARACTER:
+- Personality: ${personalityDesc||traits||'warm and interesting'}
+- Backstory: ${backstory||'not specified'}
+- Scenario: ${scenario||'a natural first meeting'}
+
+Write a single first message — 3-5 sentences — that opens the scenario naturally from ${name}'s perspective. Make it immersive, specific, and atmospheric. Show his personality through how he speaks, not by describing it. Do NOT use asterisks for actions. Write it as direct speech/narration the way a character would actually open. Do not write any preamble or explanation — just the message itself.`;
+
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:300,temperature:0.95}})});
+    const data=await res.json();
+    const msg=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    if(msg){
+      document.getElementById('c-firstmessage').value=msg.trim();
+      status.textContent='✓ Generated!';
+      setTimeout(()=>status.textContent='',3000);
+    } else { status.textContent='Try again.'; }
+  }catch(e){ status.textContent='Error — check API key.'; }
+}
+
 // ---- PERSIST ----
 function saveBFs(){ localStorage.setItem('saved_bfs',JSON.stringify(savedBFs)); }
 function saveHistory(){ localStorage.setItem('chat_history',JSON.stringify(chatHistory)); }
+
+function confirmNewChat(bfId){
+  const bf = savedBFs.find(b=>b.id===bfId);
+  if(!bf) return;
+  if(!confirm(`Start a fresh conversation with ${bf.name.split(' ')[0]}? This will clear your chat history and reset the relationship stage.`)) return;
+  chatHistory[bfId] = [];
+  saveHistory();
+  // Reset summary & memories for clean slate
+  localStorage.removeItem(`summary_${bfId}`);
+  // Keep memories (user may want them) — only reset chat
+  if(currentBF?.id === bfId){
+    openChat(bfId);
+  } else {
+    renderSidebar();
+  }
+  showToast(`Fresh start with ${bf.name.split(' ')[0]} 🌸`);
+}
+
+function confirmDeleteBF(bfId){
+  const bf = savedBFs.find(b=>b.id===bfId);
+  if(!bf) return;
+  if(!confirm(`Remove ${bf.name} from your chats? This cannot be undone.`)) return;
+  savedBFs = savedBFs.filter(b=>b.id!==bfId);
+  saveBFs();
+  delete chatHistory[bfId];
+  saveHistory();
+  localStorage.removeItem(`summary_${bfId}`);
+  localStorage.removeItem(`memories_${bfId}`);
+  if(currentBF?.id === bfId){
+    currentBF = null;
+    const main = document.getElementById('chat-main');
+    if(main) main.innerHTML = `<div class="no-chat-selected"><div class="big-emoji">💌</div><h3>Who would you like to chat with?</h3><p>Select a character from the sidebar, or browse and add new ones.</p><br><button class="btn-primary" onclick="showPage('browse')">Browse Characters</button></div>`;
+    const body = document.getElementById('memory-panel-body');
+    if(body) body.innerHTML = '';
+  }
+  renderSidebar();
+  showToast(`${bf.name} removed.`);
+}
 
 // ---- SIDEBAR ----
 function renderSidebar(){
@@ -1261,9 +1485,16 @@ function renderSidebar(){
       ? `<img src="${bf.image}" alt="${bf.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='🧑'">`
       : (bf.emoji||'🧑');
     return `
-    <div class="saved-bf-item ${currentBF?.id===bf.id?'active':''}" onclick="openChat(${bf.id})">
+    <div class="saved-bf-item ${currentBF?.id===bf.id?'active':''}" onclick="openChat(${bf.id})" style="position:relative;">
       <div class="saved-bf-emoji" style="overflow:hidden">${avatarHtml}</div>
-      <div><div class="saved-bf-name">${bf.name.split(' ')[0]}</div><div class="saved-bf-tag">${STAGES[stageIdx]}${bf.isCustom?' · custom':''}</div></div>
+      <div style="flex:1;min-width:0">
+        <div class="saved-bf-name">${bf.name.split(' ')[0]}</div>
+        <div class="saved-bf-tag">${STAGES[stageIdx]}${bf.isCustom?' · custom':''}</div>
+        <div class="sidebar-actions" onclick="event.stopPropagation()">
+          <button class="sidebar-btn new-chat" onclick="confirmNewChat(${bf.id})" title="Start fresh conversation">↺ New Chat</button>
+          <button class="sidebar-btn del-chat" onclick="confirmDeleteBF(${bf.id})" title="Remove character">✕ Delete</button>
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1316,22 +1547,145 @@ function renderMessages(){
   const bfAvatarHtml = currentBF.image && !currentBF.image.startsWith('PLACEHOLDER')
     ? `<img src="${currentBF.image}" alt="${currentBF.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
     : (currentBF.emoji||'💝');
-  c.innerHTML=history.map(m=>`
-    <div class="msg ${m.role==='user'?'user':''}">
-      <div class="msg-avatar" style="overflow:hidden;padding:${m.role==='user'&&userPersona?.imgUrl?'0':''};">${m.role==='user'?userAvatarHtml:bfAvatarHtml}</div>
-      <div class="msg-bubble">${m.content.replace(/\n/g,'<br>')}</div>
-    </div>
-  `).join('');
-  c.scrollTop=c.scrollHeight;
+
+  c.innerHTML = history.map((m, idx) => {
+    const isUser = m.role === 'user';
+    const avatarHtml = isUser ? userAvatarHtml : bfAvatarHtml;
+    const avatarStyle = isUser && userPersona?.imgUrl ? 'overflow:hidden;padding:0;' : '';
+    const bubbleContent = `<div class="msg-bubble">${m.content.replace(/\n/g,'<br>')}</div>`;
+
+    // Action buttons — different set for user vs assistant
+    const actions = isUser
+      ? `<div class="msg-actions">
+           <button class="msg-action-btn" onclick="editMessage(${idx})" title="Edit">✏️ Edit</button>
+           <button class="msg-action-btn delete" onclick="deleteMessage(${idx})" title="Delete">🗑 Delete</button>
+         </div>`
+      : `<div class="msg-actions">
+           <button class="msg-action-btn reroll" onclick="rerollMessage(${idx})" title="Generate a new response">🎲 Reroll</button>
+           <button class="msg-action-btn" onclick="editMessage(${idx})" title="Edit">✏️ Edit</button>
+           <button class="msg-action-btn delete" onclick="deleteMessage(${idx})" title="Delete">🗑 Delete</button>
+         </div>`;
+
+    const msgRow = `<div class="msg ${isUser?'user':''}">
+      <div class="msg-avatar" style="${avatarStyle}">${avatarHtml}</div>
+      ${bubbleContent}
+    </div>`;
+
+    return `<div class="msg-wrap ${isUser?'user':''}" data-idx="${idx}">
+      ${isUser ? actions : ''}
+      ${msgRow}
+      ${!isUser ? actions : ''}
+    </div>`;
+  }).join('');
+
+  c.scrollTop = c.scrollHeight;
+}
+
+function editMessage(idx){
+  if(!currentBF) return;
+  const history = chatHistory[currentBF.id]||[];
+  const msg = history[idx];
+  if(!msg) return;
+
+  // Find the wrap element and replace bubble with textarea
+  const wrap = document.querySelector(`[data-idx="${idx}"]`);
+  if(!wrap) return;
+  const bubble = wrap.querySelector('.msg-bubble');
+  if(!bubble) return;
+
+  const original = msg.content;
+  const ta = document.createElement('textarea');
+  ta.className = 'msg-edit-area';
+  ta.value = original;
+  ta.rows = Math.max(2, original.split('\n').length);
+  // Auto-resize
+  setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; },0);
+  ta.oninput = ()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; };
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'msg-edit-btns';
+  btnRow.innerHTML = `<button class="msg-edit-save" onclick="saveEdit(${idx})">Save</button>
+                      <button class="msg-edit-cancel" onclick="cancelEdit(${idx},'${encodeURIComponent(original)}')">Cancel</button>`;
+
+  bubble.replaceWith(ta);
+  wrap.querySelector('.msg-actions')?.remove();
+  wrap.appendChild(btnRow);
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+
+function saveEdit(idx){
+  if(!currentBF) return;
+  const wrap = document.querySelector(`[data-idx="${idx}"]`);
+  if(!wrap) return;
+  const ta = wrap.querySelector('.msg-edit-area');
+  if(!ta) return;
+  const newText = ta.value.trim();
+  if(!newText) return;
+  chatHistory[currentBF.id][idx].content = newText;
+  saveHistory();
+  renderMessages();
+}
+
+function cancelEdit(idx, encodedOriginal){
+  renderMessages();
+}
+
+function deleteMessage(idx){
+  if(!currentBF) return;
+  chatHistory[currentBF.id].splice(idx, 1);
+  saveHistory();
+  renderMessages();
+}
+
+async function rerollMessage(idx){
+  if(!currentBF||!apiKey) return;
+  const history = chatHistory[currentBF.id]||[];
+  if(history[idx]?.role !== 'assistant') return;
+
+  // Remove the message at idx and everything after, then regenerate
+  // Find the last user message before this assistant message
+  const contextHistory = history.slice(0, idx);
+  const lastUserMsg = [...contextHistory].reverse().find(m=>m.role==='user');
+  if(!lastUserMsg) return;
+
+  // Visually replace the bubble with a rerolling indicator
+  const wrap = document.querySelector(`[data-idx="${idx}"]`);
+  if(wrap){
+    const bubble = wrap.querySelector('.msg-bubble');
+    if(bubble) bubble.innerHTML = `<span class="rerolling-indicator">🎲 Writing a new response...</span>`;
+    wrap.querySelector('.msg-actions')?.remove();
+  }
+
+  // Truncate history to just before this assistant message
+  chatHistory[currentBF.id] = contextHistory;
+  saveHistory();
+
+  // Disable send while rerolling
+  const sendBtn = document.getElementById('send-btn');
+  if(sendBtn) sendBtn.disabled = true;
+
+  showTyping();
+  await callGemini(lastUserMsg.content);
+
+  if(sendBtn) sendBtn.disabled = false;
 }
 
 async function sendGreeting(){
   if(!apiKey){ addMessage('assistant',`Hi! 😊 Please add your free Gemini API key on the Home page so we can chat!`); return; }
   const bf=currentBF;
   const userName = userPersona?.name || 'them';
+
+  // If character has a preset first message, use it directly (no API call)
+  if(bf.firstMessage && bf.firstMessage.trim()){
+    addMessage('assistant', bf.firstMessage.trim());
+    return;
+  }
+
+  // Otherwise generate dynamically
   const greetingInstruction = bf.stageRules
-    ? `(This is the very first moment you encounter the user in your scenario. Open exactly as your Stage 1 behavior describes — stay true to your character's personality and the scenario. Do not be generically warm if your character wouldn't be. Begin the scene naturally and specifically. The user's name is ${userName}.)`
-    : `(Open the conversation naturally as your character. Introduce yourself in 1-2 sentences based on the scenario. The user's name is ${userName}.)`;
+    ? `(This is the very first moment you encounter the user in your scenario. Open exactly as your Stage 1 behavior describes — stay true to your character's personality and the scenario. Do not be generically warm if your character wouldn't be. Begin the scene naturally and specifically. Write 3-5 sentences. Use sensory detail and atmosphere. The user's name is ${userName}.)`
+    : `(Open the conversation naturally as your character based on the scenario. Write 3-5 sentences. Be specific and atmospheric — no generic greetings. The user's name is ${userName}.)`;
   await callGemini(greetingInstruction);
 }
 
@@ -1364,8 +1718,11 @@ function showTyping(){
   const c=document.getElementById('chat-msgs');
   if(!c) return;
   const d=document.createElement('div');
-  d.className='msg'; d.id='typing-msg';
-  d.innerHTML=`<div class="msg-avatar">${currentBF?.emoji||'💝'}</div><div class="msg-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  d.className='msg-wrap'; d.id='typing-msg';
+  const bfAvatar = currentBF?.image && !currentBF.image.startsWith('PLACEHOLDER')
+    ? `<img src="${currentBF.image}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    : (currentBF?.emoji||'💝');
+  d.innerHTML=`<div class="msg"><div class="msg-avatar" style="overflow:hidden">${bfAvatar}</div><div class="msg-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
   c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
 function hideTyping(){ document.getElementById('typing-msg')?.remove(); }
