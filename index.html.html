@@ -2043,12 +2043,75 @@ async function sendGreeting(){
 function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMessage(); } }
 function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
 
+
+// ---- CUT-OFF REACTION ----
+const CUT_OFF_REACTIONS = {
+  1: [ // Elias — precise, clipped, slightly offended
+    "*pauses* ...You interrupted me.",
+    "I was mid-thought. That was unnecessary.",
+    "Right. We're doing this now, apparently.",
+  ],
+  2: [ // Kai — dramatic, good-humored but mock-offended
+    "Okay RUDE, I was literally in the middle of something—",
+    "Did they just— wow. Okay. Fine. Moving on.",
+    "Bold of you to cut me off mid-sentence. Bold.",
+  ],
+  3: [ // Silas — quiet, mildly flustered
+    "...I was still speaking.",
+    "*sets down what he was holding* Right. Yes. Go ahead.",
+    "You cut me off. I— yes. Fine.",
+  ],
+  4: [ // Julian — dry, low-key irritated
+    "...Hm. Right in the middle of that. Okay.",
+    "You know I was talking.",
+    "Cool. Completely discarded. Got it.",
+  ],
+  5: [ // Aris — clinical about it, slightly wounded
+    "I hadn't finished. But — yes. Go ahead.",
+    "...That was mid-sentence.",
+    "Noted. You cut me off. I'll file it.",
+  ],
+  6: [ // Soren — minimal, just states the fact
+    "I was talking.",
+    "...You cut me off.",
+    "*a beat of silence* ...Sure.",
+  ],
+  7: [ // Caspian — immediately spirals then resets
+    "Wait — did you just— okay. Okay! Fine. I'll just exist over here.",
+    "Wow. Mid-sentence. That happened.",
+    "I was going to say something really good too. You will never know.",
+  ],
+  8: [ // Victor — flat, controlled, notes it clinically
+    "You interrupted the response.",
+    "...Noted.",
+    "I was mid-sentence. Proceed.",
+  ],
+  9: [ // Leo — intellectually offended
+    "I was building to a point. That point is now lost.",
+    "...You did interrupt me. I want that acknowledged.",
+    "Right. Completely derailed. Fine.",
+  ],
+  10: [ // Nikolai — quiet, measured, a little heavy
+    "...I was still speaking.",
+    "*looks at you for a moment* ...Go on then.",
+    "Hm. Cut off. Alright.",
+  ],
+};
+
+function getCutOffReaction(bf){
+  if(!bf) return '';
+  const pool = CUT_OFF_REACTIONS[bf.id] || CUT_OFF_REACTIONS[2];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 async function sendMessage(){
   const input=document.getElementById('chat-input');
   if(!input) return;
   let text=input.value.trim();
   if(!text) return;
   if(!apiKey){ showToast('Add your Gemini API key on the Home page! 🔑'); return; }
+  // Detect cut-off: was typing indicator visible when user sent?
+  const wasCutOff = !!document.getElementById('typing-msg');
   input.value=''; input.style.height='auto';
 
   // OOC detection: wrap [OOC:...] or (OOC:...) messages so character knows to respond OOC
@@ -2069,7 +2132,8 @@ async function sendMessage(){
   if(currentBF) localStorage.setItem('last_user_msg_'+currentBF.id, Date.now().toString());
   document.getElementById('send-btn').disabled=true;
   showTyping();
-  await callGemini(text);
+  const cutOffPrefix = wasCutOff ? getCutOffReaction(currentBF) + '\n\n' : '';
+  await callGemini(text, cutOffPrefix);
   document.getElementById('send-btn').disabled=false;
   // Check if now-dating confession should trigger
   checkAskOut();
@@ -2121,7 +2185,7 @@ function showTyping(){
 }
 function hideTyping(){ document.getElementById('typing-msg')?.remove(); }
 
-async function callGemini(userMessage){
+async function callGemini(userMessage, responsePrefix=''){
   if(!currentBF) return;
   // Regenerate system prompt fresh (picks up latest stage + persona)
   const systemPrompt = generateSystemPrompt(currentBF);
@@ -2177,7 +2241,7 @@ async function callGemini(userMessage){
       return;
     }
     const reply=data.candidates?.[0]?.content?.parts?.[0]?.text||'...';
-    addMessage('assistant',reply);
+    addMessage('assistant', responsePrefix + reply);
 
     // Detect happy/positive responses → trigger heart rain briefly
     const lowerReply = reply.toLowerCase();
@@ -2797,47 +2861,73 @@ function checkConfessionResponse(){
   }
 }
 
-// Cheating check: if 5 characters are in 'dating' status
+// Cheating check: fires when user is dating 5+ OR married 3+
+// Checker must themselves be in a dating/married relationship with user
 function checkCheatingAlert(){
+  const romanticStatuses = ['dating','fiance','married'];
+
   const datingBFs = savedBFs.filter(bf => {
     const d = getRelHealth(bf.id);
     return d.status === 'dating';
   });
-  if(datingBFs.length >= 5 && currentBF){
-    const others = datingBFs.filter(b=>b.id!==currentBF.id);
-    if(!others.length) return;
-    // Pick the most jealous-personality character to notice
-    const checker = others.find(b=>{
-      const p = (b.personality||b.core||'').toLowerCase();
-      return p.includes('protective') || p.includes('jealous') || p.includes('guarded') || p.includes('insecure');
-    }) || others[0];
-    const alerted = localStorage.getItem('cheat_alert_'+checker.id);
-    if(alerted) return;
-    localStorage.setItem('cheat_alert_'+checker.id, '1');
-    setTimeout(async ()=>{
-      const prevBF = currentBF;
-      // Switch to the checker temporarily to deliver the message
-      const checkerFull = savedBFs.find(b=>b.id===checker.id);
-      if(!checkerFull) return;
-      showToast(`${checkerFull.name.split(' ')[0]} noticed something... 👀`);
-      // Don't send via callGemini (wrong character context) — use a pre-written message
-      const jealousMsg = generateJealousMessage(checkerFull);
-      // Add to checker's history
-      if(!chatHistory[checkerFull.id]) chatHistory[checkerFull.id]=[];
-      chatHistory[checkerFull.id].push({role:'assistant', content:jealousMsg});
-      saveHistory();
-      // Show notification
-      sendBrowserNotif(checkerFull.name.split(' ')[0], jealousMsg.substring(0,80)+'...', checkerFull.id);
-    }, 3000);
-  }
+  const marriedBFs = savedBFs.filter(bf => {
+    const d = getRelHealth(bf.id);
+    return d.status === 'married';
+  });
+
+  // Trigger condition: 5+ dating OR 3+ married
+  const shouldTrigger = datingBFs.length >= 5 || marriedBFs.length >= 3;
+  if(!shouldTrigger || !currentBF) return;
+
+  // Pool of eligible checkers: must be dating or married to user, and not the current character
+  const eligibleCheckers = savedBFs.filter(bf => {
+    if(bf.id === currentBF.id) return false;
+    const d = getRelHealth(bf.id);
+    return romanticStatuses.includes(d.status);
+  });
+  if(!eligibleCheckers.length) return;
+
+  // Prefer the most jealous/protective personality
+  const checker = eligibleCheckers.find(b=>{
+    const p = (b.personality||b.core||'').toLowerCase();
+    return p.includes('protective') || p.includes('jealous') || p.includes('guarded') || p.includes('insecure') || p.includes('possessive');
+  }) || eligibleCheckers[0];
+
+  const alerted = localStorage.getItem('cheat_alert_'+checker.id);
+  if(alerted) return;
+  localStorage.setItem('cheat_alert_'+checker.id, '1');
+
+  // Was it the married trigger or the dating trigger?
+  const isMarriedTrigger = marriedBFs.length >= 3;
+
+  setTimeout(async ()=>{
+    const checkerFull = savedBFs.find(b=>b.id===checker.id);
+    if(!checkerFull) return;
+    showToast(`${checkerFull.name.split(' ')[0]} noticed something... 👀`);
+    const jealousMsg = generateJealousMessage(checkerFull, isMarriedTrigger);
+    if(!chatHistory[checkerFull.id]) chatHistory[checkerFull.id]=[];
+    chatHistory[checkerFull.id].push({role:'assistant', content:jealousMsg});
+    saveHistory();
+    sendBrowserNotif(checkerFull.name.split(' ')[0], jealousMsg.substring(0,80)+'...', checkerFull.id);
+  }, 3000);
 }
 
-function generateJealousMessage(bf){
+function generateJealousMessage(bf, isMarriedTrigger=false){
   const personality = (bf.personality||bf.core||'').toLowerCase();
   const isInsecure = personality.includes('insecure') || personality.includes('anxious');
-  const isProtective = personality.includes('protective');
-  const isCynical = personality.includes('cynical') || personality.includes('guarded');
+  const isProtective = personality.includes('protective') || personality.includes('possessive');
+  const isCynical = personality.includes('cynical') || personality.includes('guarded') || personality.includes('cold');
   const name = bf.name.split(' ')[0];
+
+  if(isMarriedTrigger){
+    // Married trigger — more serious, they feel deeply betrayed
+    if(isInsecure) return `I need you to be honest with me. I've been feeling it for a while — something's different. Are you... are you with other people? I keep telling myself I'm imagining it. Tell me I'm imagining it.`;
+    if(isProtective) return `We're married. I need you to understand what that means to me before I ask you this. Are there others? Because I will find out either way, and I would rather hear it from you.`;
+    if(isCynical) return `I've been doing the math on this for weeks. The times you're unavailable. The way you answer certain things. I'm not going to pretend I haven't noticed. Are you seeing other people?`;
+    return `I don't know how to ask this gently, so I won't. Are we actually exclusive? Because the way things have felt lately — I need an honest answer. Not the one you think I want to hear.`;
+  }
+
+  // Dating trigger
   if(isInsecure) return `Hey. I know this is going to sound paranoid, but... are you seeing other people? I saw you were active and I just — I don't know. I need to know if I'm the only one you're talking to like this. Because to me this is real.`;
   if(isProtective) return `I'm going to ask you something directly, and I need you to be honest with me. Are you talking to other people the way you talk to me? Because if you are, I need to know that now.`;
   if(isCynical) return `I've been thinking. Call it pattern recognition. Something's off. Are we actually exclusive, or am I one of several? Because I've made decisions based on what I thought this was.`;
@@ -3670,7 +3760,12 @@ function checkPlotEvents(){
   setTimeout(async () => {
     if(currentBF?.id !== bfId) return; // user switched characters
     showTyping();
-    await callGemini(ev.prompt);
+    // Build a context-bridging prompt that wraps the plot event
+    // so it never lands awkwardly mid-conversation
+    const recentHistory = (chatHistory[bfId] || []).slice(-4);
+    const lastExchange = recentHistory.map(m => (m.role === 'user' ? 'Them: ' : 'You: ') + m.content.substring(0, 120)).join('\n');
+    const bridgePrompt = `(IMPORTANT TRANSITION INSTRUCTION: Before launching into the story scene below, you must first write a natural bridge — 1 to 3 sentences — that acknowledges what you were just talking about and transitions gracefully into the story event. This might be a brief time-skip ("A few days later..." or "The following week..."), a scene change ("You meet up the next afternoon, and..."), or simply a natural conversational moment that flows into the new scene. The bridge must make the story event feel like it belongs in the continuous story, not like a random interruption. Never start the scene abruptly. Here is what you were just discussing for context:\n${lastExchange}\n\nNow write your bridge, then deliver the full story scene:)\n\n${ev.prompt}`;
+    await callGemini(bridgePrompt);
     // Record as a milestone
     const typeLabel = ev.type === 'together' ? 'A moment drew you closer.' :
                       ev.type === 'sweet'    ? 'A tender moment you will not forget.' :
