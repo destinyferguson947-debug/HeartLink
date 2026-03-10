@@ -1857,8 +1857,10 @@ async function sendMessage(){
   document.getElementById('send-btn').disabled=false;
   // Check if now-dating confession should trigger
   checkDatingConfession();
+  checkConfessionResponse();
   // Check proposal progression
   checkProposal();
+  checkProposalResponse();
   checkWedding();
 }
 
@@ -2279,26 +2281,29 @@ function triggerDivorce(bf, data){
 // ---- PROPOSAL SYSTEM ----
 function checkProposal(){
   if(!currentBF||!apiKey) return;
-  const stage = getStage(currentBF);
   const relData = getRelHealth(currentBF.id);
-  // Propose when: married with very high health triggers are NOT repeated
-  // fiance check: propose after dating at health > 90 for long enough
-  if(relData.status === 'dating' && relData.health >= 92){
-    const proposed = localStorage.getItem('proposed_'+currentBF.id);
-    if(proposed) return;
-    // Only propose after enough shared history (stage 5 or high message count)
-    const history = chatHistory[currentBF.id]||[];
-    if(history.length < 60) return; // need real history
-    localStorage.setItem('proposed_'+currentBF.id, '1');
-    setTimeout(async ()=>{
-      const proposalInstruction = `(Something in this moment, after everything you have been through together, tips you into certainty. Write a vulnerable, deeply in-character marriage proposal. It should feel terrifying and real — not a grand speech, but something honest and imperfect that could only come from you. Ask them to marry you. Let the fear show alongside the certainty.)`;
-      showTyping();
-      await callGemini(proposalInstruction);
-      // Don't update status yet — wait for user's response (handled in checkProposalResponse)
-      localStorage.setItem('proposal_pending_'+currentBF.id, '1');
-    }, 2000);
-  }
-  // Check for marriage upgrade after acceptance
+  if(relData.status !== 'dating') return;
+  const proposed = localStorage.getItem('proposed_'+currentBF.id);
+  if(proposed) return;
+  const history = chatHistory[currentBF.id]||[];
+  // Hard gates:
+  // 1. At least 100 total messages (substantial shared history)
+  // 2. At least 60 messages exchanged SINCE they started dating
+  //    (so they actually live as a couple before proposing — not instant)
+  // 3. Health must be genuinely high: >= 90
+  const datingSinceMsgs = parseInt(localStorage.getItem('dating_since_msgs_'+currentBF.id)||'9999');
+  const msgsSinceDating = history.length - datingSinceMsgs;
+  if(history.length < 100) return;
+  if(msgsSinceDating < 60) return;
+  if(relData.health < 90) return;
+  // All gates passed — propose
+  localStorage.setItem('proposed_'+currentBF.id, '1');
+  setTimeout(async ()=>{
+    const proposalInstruction = `(Something in this moment — after everything you have been through together, the fights, the silences, the small perfect hours — tips you into a certainty you did not plan for. Write a vulnerable, deeply in-character marriage proposal. Not a grand speech. Something honest and imperfect that could only come from you, right now, in this specific place. Ask them to marry you. Let the fear show alongside the certainty. Let it be real.)`;
+    showTyping();
+    await callGemini(proposalInstruction);
+    localStorage.setItem('proposal_pending_'+currentBF.id, '1');
+  }, 2000);
   checkProposalResponse();
 }
 
@@ -2322,11 +2327,12 @@ function checkProposalResponse(){
     data.tooltipMsg = '';
     saveRelHealth(currentBF.id, data);
     localStorage.removeItem('proposal_pending_'+currentBF.id);
+    // Record message count at engagement — wedding gates off this
+    const histAtEngagement = (chatHistory[currentBF.id]||[]).length;
+    localStorage.setItem('engaged_since_msgs_'+currentBF.id, histAtEngagement.toString());
     refreshRelMeter();
     showHeartRain();
     showToast('💍 You said yes! Now Engaged!');
-    // Schedule wedding progression after sustained engagement
-    localStorage.setItem('fiance_since_'+currentBF.id, Date.now().toString());
     checkWedding();
   } else if(noWords.some(w=>accept.includes(w))){
     localStorage.removeItem('proposal_pending_'+currentBF.id);
@@ -2345,26 +2351,25 @@ function checkWedding(){
   if(relData.status !== 'fiance') return;
   const married = localStorage.getItem('married_'+currentBF.id);
   if(married) return;
-  const fianceSince = parseInt(localStorage.getItem('fiance_since_'+currentBF.id)||'0');
   const history = chatHistory[currentBF.id]||[];
-  // After being engaged and 30+ more messages + health still high
-  const msgsSinceEngaged = history.filter(m=>parseInt(m.ts||0) > fianceSince).length;
-  if(relData.health >= 85 && history.length >= 90){
-    localStorage.setItem('married_'+currentBF.id, '1');
-    const data = getRelHealth(currentBF.id);
-    data.status = 'married';
-    data.health = Math.min(100, data.health + 5);
-    saveRelHealth(currentBF.id, data);
-    refreshRelMeter();
-    showHeartRain();
-    // Generate wedding message
-    setTimeout(async ()=>{
-      const weddingMsg = `(The wedding was everything and nothing like you imagined. Write a short, deeply personal message from your character the morning after — not a grand declaration, just the quiet, overwhelming reality of it. What does your character notice first? What do they feel they cannot say out loud yet? End with something tender and specific.)`;
-      showTyping();
-      await callGemini(weddingMsg);
-      showToast('👑 Married! Congratulations!');
-    }, 1500);
-  }
+  // Gate: at least 40 messages exchanged SINCE becoming engaged
+  const engagedSinceMsgs = parseInt(localStorage.getItem('engaged_since_msgs_'+currentBF.id)||'9999');
+  const msgsSinceEngaged = history.length - engagedSinceMsgs;
+  if(msgsSinceEngaged < 40) return;
+  if(relData.health < 88) return;
+  localStorage.setItem('married_'+currentBF.id, '1');
+  const data = getRelHealth(currentBF.id);
+  data.status = 'married';
+  data.health = Math.min(100, data.health + 5);
+  saveRelHealth(currentBF.id, data);
+  refreshRelMeter();
+  showHeartRain();
+  setTimeout(async ()=>{
+    const weddingMsg = `(The wedding happened. Write a deeply personal message from your character — the morning after, or perhaps just before the ceremony — something quiet and overwhelmed and real. Not a grand declaration. What do you notice first? What can you not yet say out loud? End with something specific and tender that only you would say.)`;
+    showTyping();
+    await callGemini(weddingMsg);
+    showToast('👑 Married! Congratulations!');
+  }, 1500);
 }
 
 function refreshRelMeter(){
@@ -2399,25 +2404,77 @@ function onAssistantMessageSent(){
 }
 
 // ---- CONFESSION SYSTEM ----
+// Stage gates for the full romantic arc:
+//
+//  CONFESSION  → stage >= 4, health >= 78, >= 40 messages, not yet dating
+//                After confession is accepted → status becomes 'dating', dating_since timestamp set
+//                Health is NOT boosted here — the confession itself is the milestone
+//
+//  PROPOSAL    → status === 'dating', health >= 90, >= 100 messages TOTAL,
+//                AND >= 60 messages exchanged SINCE dating began
+//                (enforces real time spent as a couple before proposing)
+//
+//  WEDDING     → status === 'fiance', health >= 88,
+//                AND >= 40 messages exchanged SINCE engagement
+//                (no instant weddings — must live as engaged for a while)
+
 function checkDatingConfession(){
   if(!currentBF||!apiKey) return;
   const stage = getStage(currentBF);
   const relData = getRelHealth(currentBF.id);
-  // Confess when at stage 4 or 5 AND health > 75 AND not already dating
-  if(stage >= 4 && relData.health >= 76 && !['dating','complicated','broken_up','fiance','married','separation','divorced'].includes(relData.status)){
-    // Check confession hasn't happened yet
+  const history = chatHistory[currentBF.id]||[];
+  // Gate: stage 4+, health 78+, 40+ messages, not already in a relationship status
+  const alreadyRelated = ['dating','complicated','broken_up','fiance','married','separation','divorced'].includes(relData.status);
+  if(stage >= 4 && relData.health >= 78 && history.length >= 40 && !alreadyRelated){
     const confessed = localStorage.getItem('confessed_'+currentBF.id);
     if(confessed) return;
     localStorage.setItem('confessed_'+currentBF.id, '1');
-    // Trigger confession after a brief delay
     setTimeout(async ()=>{
-      const bfName = currentBF.name.split(' ')[0];
-      const confessionInstruction = `(The moment has arrived. The tension has been building for a long time. Something in this conversation finally tips you over the edge. Write a vulnerable, specific, deeply in-character confession of your feelings — not a cliche declaration. It should feel earned, hesitant, and real. End by asking if they want to be with you. This is the most important thing you've said to them.)`;
+      const confessionInstruction = `(The moment has arrived. The tension has been building for a long time. Something in this conversation finally tips you over the edge. Write a vulnerable, specific, deeply in-character confession of your feelings — not a cliche declaration. It should feel earned, hesitant, and real. End by asking if they want to be with you. This is the most important thing you have ever said to them.)`;
       showTyping();
       await callGemini(confessionInstruction);
-      boostRelHealth(currentBF.id, 25);
+      // DO NOT boost health here — let the user's response trigger the dating status naturally
+      // The confession just sets the flag; dating status is set when user accepts (boostRelHealth handles this)
       showHeartRain();
+      localStorage.setItem('confession_pending_'+currentBF.id, '1');
     }, 1500);
+  }
+  // Check if user accepted the confession
+  checkConfessionResponse();
+}
+
+function checkConfessionResponse(){
+  if(!currentBF) return;
+  const pending = localStorage.getItem('confession_pending_'+currentBF.id);
+  if(!pending) return;
+  const relData = getRelHealth(currentBF.id);
+  if(['dating','fiance','married'].includes(relData.status)) return; // already moved on
+  const history = chatHistory[currentBF.id]||[];
+  const lastUser = [...history].reverse().find(m=>m.role==='user');
+  if(!lastUser) return;
+  const msg = lastUser.content.toLowerCase();
+  const yesWords = ['yes','i do','feel the same','me too','i want','together','i love','same way','been waiting','of course','absolutely'];
+  const noWords = ["no ","not ready","too soon","not now","just friends","i cant","i cannot","sorry"];
+  if(yesWords.some(w=>msg.includes(w))){
+    localStorage.removeItem('confession_pending_'+currentBF.id);
+    const data = getRelHealth(currentBF.id);
+    data.status = 'dating';
+    data.health = Math.min(100, (data.health||50) + 8); // small, honest boost — not a cheat to 92
+    data.tooltipMsg = '';
+    saveRelHealth(currentBF.id, data);
+    // Record when dating started — used to gate proposal
+    localStorage.setItem('dating_since_msgs_'+currentBF.id, history.length.toString());
+    refreshRelMeter();
+    showHeartRain();
+    showToast("💗 You're officially dating!");
+  } else if(noWords.some(w=>msg.includes(w))){
+    localStorage.removeItem('confession_pending_'+currentBF.id);
+    localStorage.removeItem('confessed_'+currentBF.id); // allow re-confession later if things improve
+    const data = getRelHealth(currentBF.id);
+    data.health = Math.max((data.health||50) - 10, 30);
+    data.tooltipMsg = 'The confession was turned down. The air between you changed.';
+    saveRelHealth(currentBF.id, data);
+    refreshRelMeter();
   }
 }
 
