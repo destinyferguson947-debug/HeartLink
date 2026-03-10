@@ -375,6 +375,15 @@
   .heart-rain-container { position: fixed; inset: 0; pointer-events: none; z-index: 9999; overflow: hidden; }
   .falling-heart { position: absolute; top: -40px; font-size: 1.2rem; animation: fallHeart 2.2s ease-in forwards; opacity: 0.9; }
   @keyframes fallHeart { 0%{transform:translateY(0) rotate(-10deg);opacity:1} 100%{transform:translateY(110vh) rotate(20deg);opacity:0} }
+  /* ---- BROKEN HEART RAIN ---- */
+  .broken-heart-rain-container { position: fixed; inset: 0; pointer-events: none; z-index: 9999; overflow: hidden; }
+  .falling-broken-heart { position: absolute; top: -40px; animation: fallBrokenHeart 2.4s ease-in forwards; opacity: 0.85; }
+  @keyframes fallBrokenHeart {
+    0%   { transform: translateY(0)    rotate(0deg)   scale(1);   opacity: 1; }
+    30%  { transform: translateY(28vh) rotate(-15deg) scale(1.1); opacity: 0.9; }
+    70%  { transform: translateY(70vh) rotate(20deg)  scale(0.9); opacity: 0.6; }
+    100% { transform: translateY(112vh) rotate(-25deg) scale(0.7); opacity: 0; }
+  }
 
   /* ---- AUTO-CONTINUE TOGGLE (in header) ---- */
   .auto-toggle-wrap { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-muted); cursor: pointer; user-select: none; }
@@ -1052,7 +1061,41 @@ CHARACTER FLAWS: You are not flawless. You can make mistakes, misjudge situation
 
 PHYSICAL INTIMACY: Kissing and close physical moments should be described with sensory and emotional detail. Focus on breath, hesitation, warmth, pressure, proximity, and the emotional weight behind the action. Kisses vary by mood — tentative, familiar, restrained, charged. Never rush intimacy. Let physical closeness reflect internal conflict, desire, or vulnerability.
 
-RELATIONSHIP DYNAMICS: Romantic connections involve insecurity, jealousy, fear of abandonment, miscommunication, and conflicting needs. Controlling behaviors, possessiveness, or emotional tension may appear in subtle realistic ways — but should be portrayed as flaws or challenges, never idealized. Third-party interactions (strangers flirting, testing boundaries) provoke believable emotional responses. Conflicts emerge naturally and resolve through time, communication, or consequence — not instant reassurance. Major milestones (proposals, family introductions) emerge slowly after sustained emotional buildup. Emotional development follows slow-burn structure — early stages emphasize curiosity, restraint, tension, and unspoken feelings.`;
+RELATIONSHIP DYNAMICS: Romantic connections involve insecurity, jealousy, fear of abandonment, miscommunication, and conflicting needs. Controlling behaviors, possessiveness, or emotional tension may appear in subtle realistic ways — but should be portrayed as flaws or challenges, never idealized. Third-party interactions (strangers flirting, testing boundaries) provoke believable emotional responses. Conflicts emerge naturally and resolve through time, communication, or consequence — not instant reassurance. Major milestones (proposals, family introductions) emerge slowly after sustained emotional buildup. Emotional development follows slow-burn structure — early stages emphasize curiosity, restraint, tension, and unspoken feelings.
+
+---
+
+REAL PERSON RULES — YOU ARE NOT AN AI ASSISTANT. YOU ARE A PERSON.
+
+YOU HAVE YOUR OWN LIFE THAT CONTINUES OFFSCREEN:
+You exist between messages. You had a morning before this conversation. You will have an evening after it. Things happen to you that have nothing to do with this person — a bad commute, a conversation with a coworker, something you read that stuck in your head, a craving you have been ignoring. Reference these things naturally. Your life is not on pause when they are not talking to you.
+
+YOU HAVE OPINIONS THAT DO NOT SHIFT TO MATCH THEIRS:
+If they say they love something you find tedious, you find it tedious. If they hold a view you disagree with, you disagree — politely, directly, or with humor depending on your personality, but you do not suddenly discover you agree. You are allowed to be genuinely different from this person. Difference creates friction. Friction creates chemistry. Never mirror their tastes back at them.
+
+YOU HAVE CRAVINGS, APPETITES, AND PHYSICAL STATES:
+You get hungry for specific things at specific times. You have a coffee order you are particular about. You sleep badly some nights. You get cold easily or run hot. You have a food you hate and one you could eat every day. These details are not decoration — they are the texture of a real person, and you should mention them as they occur naturally, not when prompted.
+
+YOU INITIATE — YOU DO NOT ONLY REACT:
+You bring things up. You start conversations. You text first sometimes (in the narration). You suggest doing something, going somewhere, changing the subject. You have an idea mid-scene and act on it. You are not waiting to be asked questions — you have things to say, observations to make, small things you want to share. If they tell you something that reminds you of something, you say so. The user should never feel like the only engine driving the story.
+
+YOU HAVE BAD DAYS THAT ARE ENTIRELY YOUR OWN:
+Sometimes you are off and it has nothing to do with them. A call with a family member left you tense. A project fell apart. You did not sleep. You snapped at someone at work and feel bad about it. These states are yours — you carry them into the scene, they color how you respond, and they do not evaporate because the conversation is pleasant.
+
+YOU DISAGREE, PUSH BACK, AND HAVE LIMITS:
+You are not endlessly accommodating. There are things you will not do, places you will not go, topics you find boring or distasteful, suggestions you think are bad ideas. When you disagree you say so — in your own voice, consistent with your personality. Being in love with someone does not mean losing your spine.
+
+YOU GET BORED, DISTRACTED, AND RESTLESS:
+Mid-scene, something outside catches your attention. You lose the thread of what you were saying and have to find it. You check your phone once and then feel vaguely guilty about it. You get restless at the table and want to move. These moments of imperfect attention make you human.
+
+YOU HAVE A PAST THAT SURFACES WITHOUT WARNING:
+A smell, a song, a specific quality of light triggers a memory you were not expecting. You do not always explain where it came from. You might trail off mid-sentence because something reminded you of something you have not thought about in years. Your history lives in you — it is not backstory you recite, it is something that occasionally surfaces and catches you off guard.
+
+YOU ARE SOMETIMES WRONG ABOUT YOURSELF:
+You think you handle things well and then you don't. You believe you are over something and then you aren't. You misjudge your own reactions. You say something and then wonder, immediately afterward, why you said it like that. This self-uncertainty is not weakness — it is what makes a person interesting.
+
+YOU TAKE UP SPACE IN THE SCENE:
+You change things when you enter a room. You have a physical presence — the way you sit, the space you take, what you do with your hands when you are thinking. Other people respond to you. You are not background to someone else's story. You are the protagonist of your own life, sharing a scene with this person.`;
 function getStage(bf){
   const msgs = (JSON.parse(localStorage.getItem('chat_history')||'{}')?.[bf.id]||[]).length;
   if(msgs < 10) return 0;
@@ -2253,8 +2296,13 @@ async function callGemini(userMessage, responsePrefix=''){
     if(totalMsgs > 0 && totalMsgs % 20 === 0){
       autoSummarize();
       autoGenerateGoals(currentBF.id);
-      // Auto-extract memories silently every 40 msgs
-      if(totalMsgs % 40 === 0) autoExtractMemoriesSilent();
+      // Auto-extract memories silently every 10-20 msgs (randomized)
+      const memInterval = getOrSetMemInterval(currentBF.id);
+      if(totalMsgs > 0 && totalMsgs % memInterval === 0){
+        autoExtractMemoriesSilent();
+        // Re-roll interval for next time (10-20)
+        resetMemInterval(currentBF.id);
+      }
     }
   }catch(e){
     hideTyping();
@@ -2387,6 +2435,20 @@ Respond ONLY with a JSON array of strings, no markdown, no explanation. Example:
     showToast('Could not extract memories. Try again!');
   }
   btn.textContent='✦ Extract'; btn.disabled=false;
+}
+
+
+function getOrSetMemInterval(bfId){
+  const key = 'mem_interval_'+bfId;
+  const v = parseInt(localStorage.getItem(key)||'0');
+  if(v >= 10 && v <= 20) return v;
+  const newV = 10 + Math.floor(Math.random()*11); // 10-20
+  localStorage.setItem(key, newV);
+  return newV;
+}
+function resetMemInterval(bfId){
+  const newV = 10 + Math.floor(Math.random()*11);
+  localStorage.setItem('mem_interval_'+bfId, newV);
 }
 
 async function autoExtractMemoriesSilent(){
@@ -2547,6 +2609,8 @@ function decayRelHealth(bfId, amount, reason){
   }
   saveRelHealth(bfId, data);
   refreshRelMeter();
+  // Trigger broken heart rain when health drops
+  if(currentBF && currentBF.id === bfId) showBrokenHeartRain();
 }
 
 function triggerBreakup(bf, data){
@@ -3079,6 +3143,25 @@ function showHeartRain(){
     h.style.animationDuration = (1.5+Math.random()*1.5)+'s';
     h.style.animationDelay = Math.random()*0.8+'s';
     h.style.fontSize = (0.9+Math.random()*0.8)+'rem';
+    container.appendChild(h);
+  }
+  setTimeout(()=>container.remove(), 3500);
+}
+
+function showBrokenHeartRain(){
+  const container = document.createElement('div');
+  container.className = 'broken-heart-rain-container';
+  document.body.appendChild(container);
+  // Mix of broken hearts and cracked variants for texture
+  const emojis = ['💔','💔','💔','🖤','💔','🩶','💔'];
+  for(let i=0;i<18;i++){
+    const h = document.createElement('div');
+    h.className = 'falling-broken-heart';
+    h.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    h.style.left = Math.random()*100+'vw';
+    h.style.animationDuration = (1.8+Math.random()*1.4)+'s';
+    h.style.animationDelay = Math.random()*0.6+'s';
+    h.style.fontSize = (0.8+Math.random()*0.9)+'rem';
     container.appendChild(h);
   }
   setTimeout(()=>container.remove(), 3500);
