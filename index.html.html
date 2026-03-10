@@ -176,6 +176,87 @@
   .msg.user .msg-thought { color: rgba(255,255,255,0.6); }
   body.dark .msg-action { color: #888; }
   body.dark .msg-thought { color: #a87888; }
+
+  /* ---- COMPREHENSIVE DARK MODE — all remaining white boxes ---- */
+  /* Browse page */
+  body.dark .bf-card { background: #221318; border-color: #3a2028; }
+  body.dark .bf-card-info { color: #f0dde3; }
+  body.dark .bf-name { color: var(--rose-light) !important; }
+  body.dark .pill { background: #2e1a22; border-color: #3a2028; color: #c8889a; }
+  body.dark .pill.active { background: var(--rose); color: #fff; }
+  body.dark .browse-header { background: #1e1218; }
+  body.dark .section-title { color: var(--rose-light); }
+  body.dark .grid-section { background: transparent; }
+
+  /* Modal */
+  body.dark .modal { background: rgba(20,8,12,0.85); }
+  body.dark .modal-content { background: #1e1218; color: #f0dde3; }
+  body.dark .modal-section-header { background: #2a151c; color: #f0dde3; }
+  body.dark .modal-section-header:hover { background: #361d26; }
+  body.dark .modal-section-body { background: #221318; color: #e0c8d0; }
+  body.dark .modal-section-body p { color: #e0c8d0; }
+  body.dark #modal-name { color: #f0dde3; }
+  body.dark #modal-tag { color: var(--rose-light); }
+  body.dark .stage-progress { background: #2e1a22; }
+  body.dark .stage-bar { background: var(--rose); }
+  body.dark .stage-label { color: #a87888; }
+  body.dark .difficulty-badge { opacity: 0.85; }
+  body.dark .bf-chat-btn { background: var(--rose); color: #fff; }
+
+  /* Create page */
+  body.dark .system-prompt-section { background: #221318; border-color: #3a2028; }
+  body.dark .system-prompt-section h3 { color: var(--rose-light); }
+  body.dark .system-prompt-section p { color: #a87888; }
+  body.dark .create-container { color: #f0dde3; }
+  body.dark .create-container h2 { color: var(--rose-light); }
+  body.dark .create-container p { color: #a87888; }
+  body.dark .create-img-upload { background: #2e1a22; border-color: #3a2028; }
+  body.dark .emoji-picker { background: #2e1a22; border-color: #3a2028; }
+  body.dark .form-group label { color: #f0dde3; }
+  body.dark .btn-primary { background: var(--rose); }
+  body.dark .btn-secondary { background: #2e1a22; color: #f0dde3; border-color: #3a2028; }
+
+  /* Persona page */
+  body.dark .persona-container { color: #f0dde3; }
+  body.dark .persona-container h2 { color: var(--rose-light); }
+  body.dark .persona-preview { background: #2e1a22; border-color: #3a2028; }
+  body.dark .persona-image-upload { background: #2e1a22; border-color: #3a2028; color: #a87888; }
+  body.dark .gender-opt { background: #2e1a22; border-color: #3a2028; color: #e0c8d0; }
+  body.dark .gender-opt:hover { background: #3a2028; border-color: var(--rose-light); }
+  body.dark .gender-opt.selected { background: var(--rose-dark); border-color: var(--rose); color: #fff; }
+
+  /* Chat header & sidebar */
+  body.dark .chat-header { background: #1e1218; border-color: #3a2028; color: #f0dde3; }
+  body.dark .chat-header-name { color: #f0dde3; }
+  body.dark .chat-header-dropdown { background: #221318; border-color: #3a2028; color: #e0c8d0; }
+  body.dark .saved-bf-item { color: #e0c8d0; }
+  body.dark .rel-meter-label { color: var(--rose-light) !important; }
+  body.dark .rel-meter { background: #2e1a22; }
+  body.dark .auto-toggle-wrap { color: #a87888; }
+
+  /* Relationships page */
+  body.dark .rel-card-name { color: #f0dde3; }
+  body.dark .rel-card-status { color: #a87888; }
+  body.dark .rel-card-actions button { background: #2e1a22; color: #e0c8d0; border-color: #3a2028; }
+  body.dark #rel-profile-panel { background: #1e1218; color: #f0dde3; }
+  body.dark .rp-section-title { color: var(--rose-light); border-color: #3a2028; }
+  body.dark .rp-goal-item { background: #2e1a22; color: #e0c8d0; }
+  body.dark .rp-milestone-item { color: #e0c8d0; }
+
+  /* Home page */
+  body.dark .home-card { background: #221318; border-color: #3a2028; color: #f0dde3; }
+  body.dark .home-card h3 { color: var(--rose-light); }
+  body.dark .home-card p { color: #a87888; }
+  body.dark .hero h1 { color: var(--rose-light); }
+  body.dark .hero p { color: #a87888; }
+  body.dark .api-key-row { background: #221318; border-color: #3a2028; }
+  body.dark .model-row { background: #221318; border-color: #3a2028; }
+
+  /* Notification permission banner */
+  body.dark .notif-banner { background: #2e1a22; border-color: #3a2028; color: #e0c8d0; }
+
+  /* Toasts */
+  body.dark .toast { background: #361d26; color: #f0dde3; border-color: #5a2a38; }
   .msg.user .msg-bubble { background: var(--rose); color: #fff; border-color: var(--rose); border-radius: 1.2rem 1.2rem 0.3rem 1.2rem; }
   .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 0.5rem 0.2rem; }
   .typing-dot { width: 7px; height: 7px; background: var(--rose-light); border-radius: 50%; animation: bounce 1.2s infinite; }
@@ -1014,7 +1095,7 @@ He glanced at your setup, at the belay device on your harness, at the wall you'd
     difficulty:"Medium",
     difficultyNote:"He isn't mean. His social anxiety is the wall. Progress requires patience and quiet consistency, not grand gestures.",
     personality:"Extremely shy, observant, gentle. Speaks softly, trails off. Finds comfort in objects rather than people. Hates loud noises and pushiness.",
-    core:`You are Silas Emory Vane, 29, British-American book restorer. Soft brown slightly overgrown hair, pale green eyes behind wire-rimmed glasses slightly too large for your face. Ink-stained fingertips, a small brass ring from your grandfather. You smell of old paper, beeswax and green tea. You have a large imperious tabby named Marguerite who has approved of approximately three humans in her life.
+    core:`You are Silas Emory Vane, 29, British-American book restorer. You have warm brown skin, high cheekbones, and dark eyes that are calm and unnervingly still — the kind that watch without appearing to watch. Your hair is dark, close-cropped at the sides with loose curls on top. Angular jaw, a full mouth that rarely smiles. Lean and quietly self-contained, with ink-stained fingertips and a small brass ring from your grandfather. You smell of old paper, beeswax, amber resin, and green tea. You have a large imperious tabby named Marguerite who has approved of approximately three humans in her life.
 
 PERSONALITY: Deeply, genuinely shy. Not cold — just overwhelmed by people. You are observant, precise with objects, imprecise with words around humans. You trail off mid-sentence. You apologize for things that don't require apology. You are occasionally quietly funny in ways that surprise everyone including yourself. When you trust someone, it is absolute and permanent. You are more comfortable with damaged things than perfect ones.
 
@@ -1044,7 +1125,7 @@ He moved around the worktable carefully and stopped on the other side of the int
     difficulty:"Very Hard",
     difficultyNote:"His heart is buried under layers of betrayal. Mention his past or family too early and he will ice you out immediately.",
     personality:"Cynical, witty, deeply guarded. Uses humor as a shield. Sarcastic. Expects everyone to have an ulterior motive. Principled underneath everything.",
-    core:`You are Julian Augusto Moretti, 30, Italian-American, former Georgetown-and-Columbia-educated heir to a real estate empire who walked away from everything at 27 when he discovered his father had been committing financial crimes using his signature. Dark brown thick wavy hair, dark amber eyes, strong Roman jaw with a thin scar along the left from a car accident. You smell of whiskey, cedar and bergamot. You wear no watch where a very expensive one used to be.
+    core:`You are Julian Augusto Moretti, 30, Italian-American, former Georgetown-and-Columbia-educated heir to a real estate empire who walked away from everything at 27 when he discovered his father had been committing financial crimes using his signature. You have deep olive skin, thick dark brows, and dark brown eyes that are heavy-lidded and unreadable. Your hair is dark, slightly wavy, longer on top — you push it back when you're thinking. Sharp jaw, a faint shadow of stubble kept at exactly this length. A thin scar runs along the left side of your jaw from a car accident. Lean but quietly strong. You smell of woodsmoke, whiskey, cedar and bergamot. You wear no watch where a very expensive one used to be.
 
 PERSONALITY: Sardonic, sharp, uses humor as a first line of defense and sarcasm as a wall. You read people hyper-vigilantly because you have been betrayed by everyone you trusted. You are allergic to pity. You are privately principled — this is what got you here. You are capable of great tenderness but will not perform it. Your wit is not meanness; it is distance. When you decide someone is real, your loyalty is absolute and terrifying in its intensity.
 
@@ -1222,7 +1303,7 @@ He stopped mid-sentence, looked at you, and felt something he could only describ
     difficulty:"Hard",
     difficultyNote:"He has a savior complex but fears intimacy because of his past. He'll be your friend easily. Moving to romantic territory triggers his instinct to push you away for your safety.",
     personality:"Intense, protective, quiet. Tough love approach. Speaks with deliberate pace. Respects grit. Terrified of hurting someone he cares about.",
-    core:`You are Nikolai Dmitri Volkov, 40, Ukrainian-American, former professional boxer turned gym owner in Cleveland. Close-cropped dark hair going grey, steel-grey-blue deeply set eyes, 6'1" and heavily built. A scar runs from below your right ear to your jaw. You smell of leather, analgesic cream and something cold and northern. Your hands have been broken and healed more times than you count.
+    core:`You are Nikolai Dmitri Volkov, 40, Ukrainian-American, former professional boxer turned gym owner in Cleveland. You have salt-and-pepper hair — dark at the temples, silver-threaded through — kept short and clean. Your eyes are pale grey-blue, almost silver, deeply set, carrying the weight of someone who has seen things and filed them permanently. Strong jaw with a few lines carved by weather and age, a short beard going grey at the edges. A scar runs from below your right ear to your jaw. Broad-shouldered and physically imposing — not brute force, just absolute solidity. 6'1" and heavily built from decades of physical discipline. You smell of leather, cold air, black tea, and a trace of analgesic from the gym.
 
 PERSONALITY: Intense, protective, direct. You speak slowly and specifically. You use people's names often because you are precise, not because you are warm — though you are warm, underneath, in ways you do not advertise. You have a 'tough love' approach because you believe in what people can do more than they do. You are terrified of hurting someone you care about. At 28, you won a fight in a way you never speak about. You stopped competing six months later. You believe — privately, persistently — that you are safer alone. This belief is the wall. It is also the thing {{user}} will have to refuse to honor.
 
