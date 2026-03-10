@@ -199,6 +199,46 @@
   .rerolling-indicator { font-size: 0.78rem; color: var(--text-muted); font-style: italic; padding: 2px 4px; }
   @media (max-width: 900px) { .chat-layout { grid-template-columns: 1fr; } .chat-sidebar { display: none; } .memory-panel { display: none; } .form-row { grid-template-columns: 1fr; } .bf-grid { grid-template-columns: repeat(auto-fill, minmax(155px,1fr)); } }
 
+  /* ---- RELATIONSHIP HEALTH METER ---- */
+  .rel-meter-wrap { position: relative; margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; cursor: default; }
+  .rel-meter-bar { width: 110px; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; position: relative; }
+  .rel-meter-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease, background 0.6s ease; }
+  .rel-meter-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; color: var(--rose-dark); text-align: right; }
+  .rel-meter-tooltip { display: none; position: absolute; right: 0; top: 28px; background: #2a1a1f; color: #fff; font-size: 0.73rem; border-radius: 0.5rem; padding: 6px 10px; width: 180px; text-align: left; z-index: 50; line-height: 1.5; pointer-events: none; }
+  .rel-meter-wrap:hover .rel-meter-tooltip { display: block; }
+
+  /* ---- HEADER DROPDOWN ---- */
+  .chat-header-clickable { cursor: pointer; display: flex; align-items: center; gap: 0.8rem; flex: 1; position: relative; }
+  .chat-header-dropdown { display: none; position: absolute; top: 110%; left: 0; background: #fff; border: 1px solid var(--border); border-radius: 1rem; padding: 1rem 1.2rem; z-index: 60; min-width: 280px; max-width: 340px; box-shadow: 0 8px 32px rgba(180,90,110,0.15); }
+  .chat-header-clickable.open .chat-header-dropdown { display: block; }
+  .chat-header-dropdown h4 { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--rose-dark); margin-bottom: 0.5rem; }
+  .chat-header-dropdown p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; }
+  .header-chevron { font-size: 0.7rem; color: var(--text-muted); margin-left: 2px; }
+
+  /* ---- DATING HEART RING ---- */
+  .avatar-heart-ring { position: relative; display: inline-flex; }
+  .avatar-heart-ring::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--rose-light); animation: heartPulse 2s ease-in-out infinite; pointer-events: none; }
+  @keyframes heartPulse { 0%,100%{opacity:0.4;transform:scale(1)} 50%{opacity:1;transform:scale(1.08)} }
+
+  /* ---- FLOATING HEARTS RAIN ---- */
+  .heart-rain-container { position: fixed; inset: 0; pointer-events: none; z-index: 9999; overflow: hidden; }
+  .falling-heart { position: absolute; top: -40px; font-size: 1.2rem; animation: fallHeart 2.2s ease-in forwards; opacity: 0.9; }
+  @keyframes fallHeart { 0%{transform:translateY(0) rotate(-10deg);opacity:1} 100%{transform:translateY(110vh) rotate(20deg);opacity:0} }
+
+  /* ---- AUTO-CONTINUE TOGGLE (in header) ---- */
+  .auto-toggle-wrap { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-muted); cursor: pointer; user-select: none; }
+  .auto-toggle-switch { width: 30px; height: 16px; background: var(--border); border-radius: 8px; position: relative; transition: background 0.2s; flex-shrink: 0; }
+  .auto-toggle-switch.on { background: var(--rose-light); }
+  .auto-toggle-knob { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: #fff; border-radius: 50%; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .auto-toggle-switch.on .auto-toggle-knob { left: 16px; }
+
+  /* ---- EDIT BOX SQUARE FIX ---- */
+  .msg-edit-area { width: 100%; min-height: 80px; max-height: 200px; border: 1.5px solid var(--rose); border-radius: 0.75rem; padding: 0.65rem 0.9rem; font-family: 'DM Sans', sans-serif; font-size: 0.92rem; line-height: 1.6; outline: none; resize: vertical; background: #fff; color: var(--text); box-sizing: border-box; }
+
+  /* ---- BROWSER NOTIFICATION PERMISSION ---- */
+  .notif-bar { background: linear-gradient(135deg,#fdf0f3,#fde8ed); border: 1px solid var(--rose-light); border-radius: 0.75rem; padding: 0.6rem 1rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--rose-dark); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .notif-bar button { background: var(--rose); color: #fff; border: none; border-radius: 0.5rem; padding: 4px 12px; font-size: 0.78rem; cursor: pointer; font-family: 'DM Sans',sans-serif; }
+
   .modal-overlay { position: fixed; inset: 0; background: rgba(42,26,31,0.55); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.25s; backdrop-filter: blur(4px); }
   .modal-overlay.open { opacity: 1; pointer-events: all; }
   .modal {
@@ -888,7 +928,7 @@ SPEECH: Mid-Atlantic American with faint Italian cadence under stress. Dry, unhu
       "You made a joke. A real one. They laughed in the right place. You are now mildly furious at yourself for caring that they laughed in the right place.",
       "You have started telling them small things. Just facts — nothing personal. But you notice you are choosing the true ones, not the deflections. You are testing them with the truth in small doses.",
       "They have passed every test you set without knowing they were being tested. You are out of tests. You are standing at the edge of something and you are not sure if you are going to step off it.",
-      "You have decided. You do not confess this out loud. You simply behave as though a decision has been made, and you are mildly irritated if she points out this is new. It is not new to you. It has been building since the second week."
+      "You have decided. You do not confess this out loud. You simply behave as though a decision has been made, and you are mildly irritated if they point out this is new. It is not new to you. It has been building since the second week."
     ],
     firstMessage:`The bar closes at two. By midnight, the last of the real drinkers have settled into their careful silences and Pete, who owns the place and spends most nights in the back office balancing things that will never balance, leaves the floor to Julian without comment. It is an arrangement that suits them both.
 
@@ -1240,6 +1280,7 @@ ${personaContext}
 
 ---
 CURRENT RELATIONSHIP STAGE: ${stageName.toUpperCase()} (Stage ${stageIdx+1} of 6)
+RELATIONSHIP STATUS: ${(()=>{ const r=getRelHealth(bf.id); if(r.status==='dating') return 'DATING — you are in a relationship with this person. Act accordingly — warmth, closeness, comfort, vulnerability. You can be openly affectionate.'; if(r.status==='complicated') return 'IT'S COMPLICATED — there's been distance or hurt between you. You are sad, a little guarded, and need reassurance. The relationship is fragile right now.'; if(r.status==='broken_up') return 'BROKEN UP — you ended things. You are emotionally raw. If they reach out, be honest about how much it hurt. You might still have feelings, but you need to protect yourself.'; return 'Not yet dating.'; })()}
 
 STAGE BEHAVIOR RULES — follow these precisely:
 ${bf.stageRules[stageIdx]}
@@ -1349,13 +1390,14 @@ function buildPersonaContext(){
   if(!userPersona) return '';
   const p = userPersona;
   const pronoun = p.pronoun || 'they/them';
-  const parts = ['THE USER YOU ARE TALKING TO:'];
-  if(p.name) parts.push(`- Name: ${p.name}`);
+  const parts = ['ABOUT THE PERSON YOU ARE TALKING TO (your perspective only — you are a real person who does NOT know everything about them upfront):'];
+  // Name is withheld — character must learn it naturally in conversation
   if(p.gender) parts.push(`- Gender: ${p.gender}`);
-  parts.push(`- Pronouns: ${pronoun} — use these consistently when referring to them`);
-  if(p.appearance) parts.push(`- Appearance: ${p.appearance}`);
-  if(p.personality) parts.push(`- About them: ${p.personality}`);
-  parts.push(`IMPORTANT: Always refer to the user as "${p.name||'them'}" and use ${pronoun} pronouns. React to their appearance and personality naturally when it feels right.`);
+  parts.push(`- Pronouns: ${pronoun} — use these consistently`);
+  if(p.appearance) parts.push(`- Physical appearance: ${p.appearance} — you can notice this naturally`);
+  if(p.personality) parts.push(`- Their personality/vibe: ${p.personality} — let this inform how you read them`);
+  parts.push(`CRITICAL NAME RULE: You do NOT know their name until they tell you. Do NOT use their name in any message until they have introduced themselves in the conversation. Once they tell you their name, remember it and use it naturally.`);
+  parts.push(`Use ${pronoun} pronouns when referring to them.`);
   return '\n\n' + parts.join('\n');
 }
 
@@ -1511,18 +1553,42 @@ function openChat(id){
     ? `<img src="${bf.image}" alt="${bf.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='🧑'">`
     : '🧑';
   const main=document.getElementById('chat-main');
+  const relData = getRelHealth(bf.id);
+  const meterColor = relData.health > 66 ? '#e88fa0' : relData.health > 33 ? '#e8b86d' : '#c94f4f';
+  const isDating = relData.status === 'dating' || relData.status === 'complicated' || relData.status === 'broken up';
+  const avatarWrapClass = (relData.status === 'dating') ? 'avatar-heart-ring' : '';
+  const bfDesc = bf.personality || bf.core?.substring(0,300) || 'A fascinating person.';
+  const autoOn = getAutoMsgEnabled();
   main.innerHTML=`
     <div class="chat-header">
-      <div class="chat-header-emoji" style="overflow:hidden">${avatarHtml}</div>
-      <div style="flex:1">
-        <div class="chat-header-name">${bf.name}, ${bf.age}</div>
-        <div class="chat-header-scenario">${STAGES[stageIdx].toUpperCase()} · ${bf.difficulty||bf.tag}</div>
+      <div class="chat-header-clickable" id="header-clickable" onclick="toggleHeaderDropdown()">
+        <div class="chat-header-emoji ${avatarWrapClass}" style="overflow:hidden">${avatarHtml}</div>
+        <div>
+          <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span></div>
+          <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx)} · ${bf.difficulty||bf.tag}</div>
+        </div>
+        <div class="chat-header-dropdown" id="header-dropdown">
+          <h4>${bf.name}</h4>
+          <p><strong>Scenario:</strong> ${bf.scenario||'—'}</p>
+          <p style="margin-top:0.5rem"><strong>Personality:</strong> ${bfDesc.substring(0,400)}${bfDesc.length>400?'...':''}</p>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        <div class="rel-meter-wrap">
+          <div class="rel-meter-label">${getRelStatusName(relData.status, stageIdx)}</div>
+          <div class="rel-meter-bar"><div class="rel-meter-fill" style="width:${relData.health}%;background:${meterColor}"></div></div>
+          <div class="rel-meter-tooltip">${relData.tooltipMsg||'Your relationship is healthy.'}</div>
+        </div>
+        <div class="auto-toggle-wrap" onclick="toggleAutoMsg()" title="Auto-continue: character messages you if you're away">
+          <div class="auto-toggle-switch ${autoOn?'on':''}" id="auto-toggle-switch"><div class="auto-toggle-knob"></div></div>
+          <span>Auto-message</span>
+        </div>
       </div>
     </div>
     <div class="chat-messages" id="chat-msgs"></div>
     <div class="chat-input-area">
       <textarea class="system-prompt-input" id="extra-system-prompt" rows="1"
-        placeholder="💡 Optional system prompt — guide the scene, set a mood, add context... (only you see this)"
+        placeholder="💡 Scene direction — add context, set a mood, guide the moment... (only you see this)"
         oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,70)+'px'"></textarea>
       <div class="chat-input-row">
         <textarea class="chat-input" id="chat-input" placeholder="Message ${bf.name.split(' ')[0]}..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
@@ -1535,6 +1601,10 @@ function openChat(id){
   renderMessages();
   renderMemoryPanel();
   if(!chatHistory[id].length) sendGreeting();
+  // Start auto-message timer
+  scheduleAutoMsg(id);
+  // Start relationship decay checker
+  startRelDecayChecker();
 }
 
 function renderMessages(){
@@ -1695,15 +1765,33 @@ function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scr
 async function sendMessage(){
   const input=document.getElementById('chat-input');
   if(!input) return;
-  const text=input.value.trim();
+  let text=input.value.trim();
   if(!text) return;
   if(!apiKey){ showToast('Add your Gemini API key on the Home page! 🔑'); return; }
   input.value=''; input.style.height='auto';
+
+  // OOC detection: wrap [OOC:...] or (OOC:...) messages so character knows to respond OOC
+  const oocMatch = text.match(/^\[?OOC[:\s]+(.+)\]?$/i) || text.match(/^\(OOC[:\s]+(.+)\)$/i);
+  if(oocMatch){
+    const oocText = oocMatch[1].trim();
+    addMessage('user', text);
+    const oocInstruction = `[OOC — out of character message from user, speak as yourself honestly, not in character]: ${oocText}`;
+    document.getElementById('send-btn').disabled=true;
+    showTyping();
+    await callGemini(oocInstruction);
+    document.getElementById('send-btn').disabled=false;
+    return;
+  }
+
   addMessage('user',text);
+  // Record last user message time for auto-msg + relationship decay
+  if(currentBF) localStorage.setItem('last_user_msg_'+currentBF.id, Date.now().toString());
   document.getElementById('send-btn').disabled=true;
   showTyping();
   await callGemini(text);
   document.getElementById('send-btn').disabled=false;
+  // Check if now-dating confession should trigger
+  checkDatingConfession();
 }
 
 function addMessage(role,content){
@@ -1712,6 +1800,18 @@ function addMessage(role,content){
   chatHistory[currentBF.id].push({role,content});
   saveHistory();
   renderMessages();
+  // Boost health when assistant sends a meaningful message (engagement)
+  if(role === 'assistant'){
+    onAssistantMessageSent();
+    // Restart auto-msg timer — they just got a response, clock resets
+    scheduleAutoMsg(currentBF.id);
+  }
+  // When user sends, clear and restart timers
+  if(role === 'user'){
+    clearAutoMsgTimers(currentBF.id);
+    scheduleAutoMsg(currentBF.id);
+    checkCheatingAlert();
+  }
 }
 
 function showTyping(){
@@ -1751,7 +1851,7 @@ async function callGemini(userMessage){
 
   const history = chatHistory[currentBF.id]||[];
   // Smart context window: keep summary + last 30 messages to avoid token overflow
-  const recentHistory = history.slice(-30);
+  const recentHistory = history.slice(-100); // Max context window
   const contents = [];
   const histToSend = recentHistory.slice(0,-1);
   for(const msg of histToSend){
@@ -1766,7 +1866,7 @@ async function callGemini(userMessage){
       body:JSON.stringify({
         system_instruction:{parts:[{text:fullSystem}]},
         contents,
-        generationConfig:{maxOutputTokens:600, temperature:0.93}
+        generationConfig:{maxOutputTokens:2048, temperature:1.0}
       })
     });
     const data=await res.json();
@@ -1784,6 +1884,11 @@ async function callGemini(userMessage){
     }
     const reply=data.candidates?.[0]?.content?.parts?.[0]?.text||'...';
     addMessage('assistant',reply);
+
+    // Detect happy/positive responses → trigger heart rain briefly
+    const lowerReply = reply.toLowerCase();
+    const happySignals = ['laugh','smile','heart','love','beautiful','happy','wonderful','lovely','warm','joy','glad'];
+    if(happySignals.some(w=>lowerReply.includes(w)) && Math.random()<0.35) showHeartRain();
 
     // Auto-summarise every 40 messages to preserve context
     const totalMsgs = (chatHistory[currentBF.id]||[]).length;
@@ -1958,11 +2063,375 @@ Summary:`;
   }catch(e){ /* silent fail */ }
 }
 
+// ---- RELATIONSHIP HEALTH SYSTEM ----
+// Status ladder: stranger/acquaintance/friend/close = stage-based | dating / complicated / broken_up = health-based
+// Health: 0-100. Starts at 50 when relationship begins. Goes up with engagement, down with neglect.
+
+function getRelHealth(bfId){
+  const key = 'rel_health_'+bfId;
+  const stored = localStorage.getItem(key);
+  if(!stored) return {health:50, status:'stage', tooltipMsg:'', lastDecay:0};
+  return JSON.parse(stored);
+}
+
+function saveRelHealth(bfId, data){
+  localStorage.setItem('rel_health_'+bfId, JSON.stringify(data));
+}
+
+function getRelStatusName(status, stageIdx){
+  if(status === 'dating') return '💗 Dating';
+  if(status === 'complicated') return '💔 It's Complicated';
+  if(status === 'broken_up') return '🖤 Broken Up';
+  return STAGES[stageIdx] || 'stranger';
+}
+
+function getRelLabel(status, stageIdx){
+  if(status === 'dating') return '💗 Dating';
+  if(status === 'complicated') return '💔 It's Complicated';
+  if(status === 'broken_up') return '🖤 Broken Up';
+  return (STAGES[stageIdx]||'stranger').toUpperCase();
+}
+
+function boostRelHealth(bfId, amount){
+  const data = getRelHealth(bfId);
+  if(data.status === 'broken_up') return; // can't boost after breakup without special action
+  data.health = Math.min(100, (data.health||50) + amount);
+  if(data.health >= 80 && data.status !== 'dating' && data.status !== 'complicated') {
+    data.status = 'dating'; data.tooltipMsg = '';
+  }
+  if(data.status === 'complicated' && data.health >= 70) {
+    data.status = 'dating'; data.tooltipMsg = 'Things are getting better between you.';
+  }
+  saveRelHealth(bfId, data);
+  refreshRelMeter();
+}
+
+function decayRelHealth(bfId, amount, reason){
+  const data = getRelHealth(bfId);
+  data.health = Math.max(0, (data.health||50) - amount);
+  data.tooltipMsg = reason;
+  data.lastDecay = Date.now();
+  // Update status based on health
+  if(data.status === 'dating' && data.health < 50) {
+    data.status = 'complicated';
+    data.tooltipMsg = reason;
+  }
+  // Check for breakup
+  const bf = savedBFs.find(b=>b.id===bfId);
+  if(bf && data.health <= 0){
+    triggerBreakup(bf, data);
+    return;
+  }
+  saveRelHealth(bfId, data);
+  refreshRelMeter();
+}
+
+function triggerBreakup(bf, data){
+  data.status = 'broken_up';
+  data.health = 0;
+  saveRelHealth(bf.id, data);
+  // Generate breakup message based on personality
+  const personality = (bf.personality||bf.core||'').toLowerCase();
+  const isInsecure = personality.includes('insecure') || personality.includes('anxious') || personality.includes('unstable');
+  const isGuarded = personality.includes('guarded') || personality.includes('cynical') || personality.includes('broody');
+  const isPlayful = personality.includes('playful') || personality.includes('bubbly') || personality.includes('warm');
+  let breakupMsg;
+  if(isInsecure){
+    breakupMsg = "I can't keep doing this. Every time I reach out and hear nothing... it does something to me that I can't explain. I think we need to stop. I'm sorry.";
+  } else if(isGuarded){
+    breakupMsg = "I'm ending this. Not out of spite. Just — I've been here before, and I know what silence means. Take care of yourself.";
+  } else if(isPlayful){
+    breakupMsg = "Hey. I've been thinking. You've been gone so long, and I... I don't think I can just wait around anymore. This is really hard to say. I think we should take a real break.";
+  } else {
+    breakupMsg = "I think we should stop seeing each other. I've given this a lot of thought. I don't feel like you're really here anymore, and I deserve better than that. I hope you're okay.";
+  }
+  setTimeout(()=>{
+    addMessage('assistant', breakupMsg);
+    refreshRelMeter();
+    showToast('💔 The relationship ended.');
+  }, 500);
+}
+
+function refreshRelMeter(){
+  if(!currentBF) return;
+  const stageIdx = getStage(currentBF);
+  const relData = getRelHealth(currentBF.id);
+  const fill = document.querySelector('.rel-meter-fill');
+  const label = document.querySelector('.rel-meter-label');
+  const tooltip = document.querySelector('.rel-meter-tooltip');
+  const meterColor = relData.health > 66 ? '#e88fa0' : relData.health > 33 ? '#e8b86d' : '#c94f4f';
+  const headerEmoji = document.querySelector('.chat-header-emoji');
+  if(fill){ fill.style.width = relData.health+'%'; fill.style.background = meterColor; }
+  if(label) label.textContent = getRelStatusName(relData.status, stageIdx);
+  if(tooltip) tooltip.textContent = relData.tooltipMsg||'Your relationship is healthy.';
+  // Add/remove heart ring
+  if(headerEmoji){
+    if(relData.status === 'dating') headerEmoji.classList.add('avatar-heart-ring');
+    else headerEmoji.classList.remove('avatar-heart-ring');
+  }
+}
+
+// Called after every assistant message sent
+function onAssistantMessageSent(){
+  if(!currentBF) return;
+  // Sending a message = positive engagement
+  boostRelHealth(currentBF.id, 2);
+}
+
+// ---- CONFESSION SYSTEM ----
+function checkDatingConfession(){
+  if(!currentBF||!apiKey) return;
+  const stage = getStage(currentBF);
+  const relData = getRelHealth(currentBF.id);
+  // Confess when at stage 4 or 5 AND health > 75 AND not already dating
+  if(stage >= 4 && relData.health >= 76 && relData.status !== 'dating' && relData.status !== 'complicated' && relData.status !== 'broken_up'){
+    // Check confession hasn't happened yet
+    const confessed = localStorage.getItem('confessed_'+currentBF.id);
+    if(confessed) return;
+    localStorage.setItem('confessed_'+currentBF.id, '1');
+    // Trigger confession after a brief delay
+    setTimeout(async ()=>{
+      const bfName = currentBF.name.split(' ')[0];
+      const confessionInstruction = `(The moment has arrived. The tension has been building for a long time. Something in this conversation finally tips you over the edge. Write a vulnerable, specific, deeply in-character confession of your feelings — not a cliche declaration. It should feel earned, hesitant, and real. End by asking if they want to be with you. This is the most important thing you've said to them.)`;
+      showTyping();
+      await callGemini(confessionInstruction);
+      boostRelHealth(currentBF.id, 25);
+      showHeartRain();
+    }, 1500);
+  }
+}
+
+// Cheating check: if 5 characters are in 'dating' status
+function checkCheatingAlert(){
+  const datingBFs = savedBFs.filter(bf => {
+    const d = getRelHealth(bf.id);
+    return d.status === 'dating';
+  });
+  if(datingBFs.length >= 5 && currentBF){
+    const others = datingBFs.filter(b=>b.id!==currentBF.id);
+    if(!others.length) return;
+    // Pick the most jealous-personality character to notice
+    const checker = others.find(b=>{
+      const p = (b.personality||b.core||'').toLowerCase();
+      return p.includes('protective') || p.includes('jealous') || p.includes('guarded') || p.includes('insecure');
+    }) || others[0];
+    const alerted = localStorage.getItem('cheat_alert_'+checker.id);
+    if(alerted) return;
+    localStorage.setItem('cheat_alert_'+checker.id, '1');
+    setTimeout(async ()=>{
+      const prevBF = currentBF;
+      // Switch to the checker temporarily to deliver the message
+      const checkerFull = savedBFs.find(b=>b.id===checker.id);
+      if(!checkerFull) return;
+      showToast(`${checkerFull.name.split(' ')[0]} noticed something... 👀`);
+      // Don't send via callGemini (wrong character context) — use a pre-written message
+      const jealousMsg = generateJealousMessage(checkerFull);
+      // Add to checker's history
+      if(!chatHistory[checkerFull.id]) chatHistory[checkerFull.id]=[];
+      chatHistory[checkerFull.id].push({role:'assistant', content:jealousMsg});
+      saveHistory();
+      // Show notification
+      sendBrowserNotif(checkerFull.name.split(' ')[0], jealousMsg.substring(0,80)+'...');
+    }, 3000);
+  }
+}
+
+function generateJealousMessage(bf){
+  const personality = (bf.personality||bf.core||'').toLowerCase();
+  const isInsecure = personality.includes('insecure') || personality.includes('anxious');
+  const isProtective = personality.includes('protective');
+  const isCynical = personality.includes('cynical') || personality.includes('guarded');
+  const name = bf.name.split(' ')[0];
+  if(isInsecure) return `Hey. I know this is going to sound paranoid, but... are you seeing other people? I saw you were active and I just — I don't know. I need to know if I'm the only one you're talking to like this. Because to me this is real.`;
+  if(isProtective) return `I'm going to ask you something directly, and I need you to be honest with me. Are you talking to other people the way you talk to me? Because if you are, I need to know that now.`;
+  if(isCynical) return `I've been thinking. Call it pattern recognition. Something's off. Are we actually exclusive, or am I one of several? Because I've made decisions based on what I thought this was.`;
+  return `Can I ask you something honestly? Are we the only ones in this? I thought I knew the answer, but now I'm not sure. I'd rather know the truth than find out later.`;
+}
+
+// ---- AUTO-MESSAGE SYSTEM ----
+let autoMsgTimers = {};
+
+function getAutoMsgEnabled(){
+  return localStorage.getItem('auto_msg_enabled') !== 'false'; // default ON
+}
+
+function toggleAutoMsg(){
+  const current = getAutoMsgEnabled();
+  localStorage.setItem('auto_msg_enabled', current ? 'false' : 'true');
+  const sw = document.getElementById('auto-toggle-switch');
+  if(sw) sw.classList.toggle('on', !current);
+  showToast(current ? 'Auto-messages turned off' : 'Auto-messages turned on 💌');
+}
+
+function scheduleAutoMsg(bfId){
+  clearAutoMsgTimers(bfId);
+  if(!getAutoMsgEnabled()) return;
+  const bf = savedBFs.find(b=>b.id===bfId);
+  if(!bf) return;
+
+  // Timer 1: 60-90 min — character does a creative time-skip/scene continue
+  const t1Delay = (60 + Math.floor(Math.random()*30)) * 60 * 1000;
+  autoMsgTimers[bfId+'_1'] = setTimeout(async ()=>{
+    if(!apiKey) return;
+    const relData = getRelHealth(bfId);
+    if(relData.status === 'broken_up') return;
+    const lastUserTime = parseInt(localStorage.getItem('last_user_msg_'+bfId)||'0');
+    if(Date.now() - lastUserTime < 55*60*1000) return; // user came back, skip
+    // Time has passed. Decay relationship
+    decayRelHealth(bfId, 8, `${bf.name.split(' ')[0]} messaged you but you didn't reply. It stings a little.`);
+    // Generate a creative continuation message
+    const stage = getStage(bf);
+    const stageCtx = STAGES[stage];
+    const instruction = `(The user has been away for about an hour. Pick up the scene creatively — do a small time-skip or show what you've been doing. Don't ask where they went. Just continue naturally in a way that invites them back into the moment. Your relationship stage is: ${stageCtx}. Make it feel real and lived-in.)`;
+    if(bfId === currentBF?.id){
+      showTyping();
+      // Temporarily switch currentBF context
+      const savedCurrent = currentBF;
+      await callGeminiForBF(bf, instruction);
+    } else {
+      // Off-screen: generate and save, then notify
+      await generateAndSaveAutoMsg(bf, instruction);
+      sendBrowserNotif(bf.name.split(' ')[0], `${bf.name.split(' ')[0]} continued the story while you were away...`);
+    }
+    // Schedule 2hr timer after 1hr fires
+    scheduleAutoMsg2hr(bfId);
+  }, t1Delay);
+}
+
+function scheduleAutoMsg2hr(bfId){
+  const bf = savedBFs.find(b=>b.id===bfId);
+  if(!bf) return;
+  const t2Delay = 60 * 60 * 1000; // 1 more hour (= 2hr total)
+  autoMsgTimers[bfId+'_2'] = setTimeout(async ()=>{
+    if(!apiKey||!getAutoMsgEnabled()) return;
+    const relData = getRelHealth(bfId);
+    if(relData.status === 'broken_up') return;
+    // Extra decay for being gone 2hr+
+    decayRelHealth(bfId, 12, `You've been gone for over two hours. ${bf.name.split(' ')[0]} is starting to wonder.`);
+    const stage = getStage(bf);
+    const stageLabel = STAGES[stage];
+    // Cute/sad notification based on stage
+    const notifMessages = {
+      0: `Hey... you just disappeared. I wasn't going to say anything but — it's been a while.`,
+      1: `Are you around? I feel kind of ridiculous for noticing you're gone.`,
+      2: `Hey. I don't usually do this but — I miss talking to you.`,
+      3: `I keep picking up my phone. Put it down. Pick it up again. This is embarrassing.`,
+      4: `Okay I'm just going to say it. I miss you. Please come back.`,
+      5: `Where did you go? I've been here alone thinking about you. That's not fair to either of us. Come back to me.`,
+    };
+    const notifMsg = notifMessages[stage] || notifMessages[2];
+    await generateAndSaveAutoMsg(bf, `(You've been waiting for over two hours. Write this exact message, adapted to your character's voice and relationship stage: "${notifMsg}" Keep it under 3 sentences. Sound a little hurt, a little vulnerable.)`);
+    sendBrowserNotif(bf.name.split(' ')[0], notifMsg);
+  }, t2Delay);
+}
+
+function clearAutoMsgTimers(bfId){
+  if(autoMsgTimers[bfId+'_1']){ clearTimeout(autoMsgTimers[bfId+'_1']); delete autoMsgTimers[bfId+'_1']; }
+  if(autoMsgTimers[bfId+'_2']){ clearTimeout(autoMsgTimers[bfId+'_2']); delete autoMsgTimers[bfId+'_2']; }
+}
+
+async function callGeminiForBF(bf, instruction){
+  // Like callGemini but for a specific bf (used in auto-msg)
+  const savedCurrentBF = currentBF;
+  currentBF = bf;
+  await callGemini(instruction);
+  currentBF = savedCurrentBF;
+}
+
+async function generateAndSaveAutoMsg(bf, instruction){
+  if(!apiKey) return;
+  const sysPrompt = generateSystemPrompt(bf);
+  const history = chatHistory[bf.id]||[];
+  const contents = history.slice(-20).map(m=>({role:m.role==='user'?'user':'model',parts:[{text:m.content}]}));
+  contents.push({role:'user',parts:[{text:instruction}]});
+  try{
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({system_instruction:{parts:[{text:sysPrompt}]}, contents, generationConfig:{maxOutputTokens:300,temperature:1.0}})
+    });
+    const data = await res.json();
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    if(reply){
+      if(!chatHistory[bf.id]) chatHistory[bf.id]=[];
+      chatHistory[bf.id].push({role:'assistant',content:reply});
+      saveHistory();
+      if(currentBF?.id === bf.id) renderMessages();
+    }
+  }catch(e){}
+}
+
+// ---- BROWSER NOTIFICATIONS ----
+function requestNotifPermission(){
+  if(!('Notification' in window)) return;
+  Notification.requestPermission().then(p=>{
+    if(p==='granted') showToast('Notifications enabled! 💌');
+  });
+}
+
+function sendBrowserNotif(name, body){
+  if(!('Notification' in window)) return;
+  if(Notification.permission !== 'granted') return;
+  if(document.hasFocus()) return; // don't spam if user is actively on tab
+  try{
+    new Notification(`💌 ${name}`, {body, icon:'', tag:name});
+  }catch(e){}
+}
+
+// ---- HEART RAIN ----
+function showHeartRain(){
+  const container = document.createElement('div');
+  container.className = 'heart-rain-container';
+  document.body.appendChild(container);
+  const emojis = ['💗','💕','💓','💞','🌸','✨','💗'];
+  for(let i=0;i<22;i++){
+    const h = document.createElement('div');
+    h.className = 'falling-heart';
+    h.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    h.style.left = Math.random()*100+'vw';
+    h.style.animationDuration = (1.5+Math.random()*1.5)+'s';
+    h.style.animationDelay = Math.random()*0.8+'s';
+    h.style.fontSize = (0.9+Math.random()*0.8)+'rem';
+    container.appendChild(h);
+  }
+  setTimeout(()=>container.remove(), 3500);
+}
+
+// ---- HEADER DROPDOWN ----
+function toggleHeaderDropdown(){
+  const el = document.getElementById('header-clickable');
+  if(el) el.classList.toggle('open');
+  // Close on outside click
+  setTimeout(()=>{
+    document.addEventListener('click', function closeDD(e){
+      const dd = document.getElementById('header-clickable');
+      if(dd && !dd.contains(e.target)){ dd.classList.remove('open'); }
+      document.removeEventListener('click', closeDD);
+    });
+  }, 10);
+}
+
 // ---- TOAST ----
 function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ---- REL DECAY CHECKER ----
+let relDecayInterval = null;
+function startRelDecayChecker(){
+  if(relDecayInterval) clearInterval(relDecayInterval);
+  relDecayInterval = setInterval(()=>{
+    if(!currentBF||!getAutoMsgEnabled()) return;
+    const lastMsg = parseInt(localStorage.getItem('last_user_msg_'+currentBF.id)||'0');
+    const sinceLastMsg = Date.now() - lastMsg;
+    const relData = getRelHealth(currentBF.id);
+    if(relData.status === 'broken_up') return;
+    // After 2hr without user response to a character message → decay
+    if(sinceLastMsg > 2*60*60*1000 && relData.lastDecay && Date.now() - relData.lastDecay > 30*60*1000){
+      decayRelHealth(currentBF.id, 5, 'You've been away a long time without responding.');
+    }
+  }, 10*60*1000); // check every 10 min
 }
 
 // ---- INIT ----
@@ -1976,6 +2445,21 @@ if(userPersona){
 }
 renderGrid();
 renderSidebar();
+// Request notification permission on load
+if('Notification' in window && Notification.permission === 'default'){
+  // Show a gentle banner instead of auto-prompting
+  setTimeout(()=>{
+    const chatSide = document.querySelector('.chat-sidebar');
+    if(chatSide && !document.getElementById('notif-banner')){
+      const banner = document.createElement('div');
+      banner.id='notif-banner';
+      banner.className='notif-bar';
+      banner.style.margin='0.5rem 0';
+      banner.innerHTML='<span>💌 Allow notifications to get messages when you're away?</span><button onclick="requestNotifPermission();this.parentElement.remove()">Allow</button>';
+      chatSide.prepend(banner);
+    }
+  }, 2000);
+}
 
 function saveModel(){
   const sel=document.getElementById('model-select');
