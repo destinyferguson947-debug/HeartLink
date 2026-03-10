@@ -18,6 +18,44 @@
     --border: #f0d8df;
     --shadow: 0 4px 24px rgba(180,90,110,0.10);
   }
+  body.dark {
+    --rose: #e07b90;
+    --rose-light: #c96a7e;
+    --rose-dark: #f0a8b8;
+    --cream: #1a1015;
+    --warm: #261820;
+    --text: #f0dde3;
+    --text-muted: #a87888;
+    --card: #221318;
+    --border: #3a2028;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  body.dark nav { background: rgba(26,16,21,0.97); }
+  body.dark .msg-bubble { background: #2e1a22; border-color: #3a2028; color: #f0dde3; }
+  body.dark .msg.user .msg-bubble { background: #7a3048; border-color: #7a3048; color: #fff; }
+  body.dark .chat-input { background: #261820; color: #f0dde3; border-color: #3a2028; }
+  body.dark .chat-input-area { background: #1e1218; }
+  body.dark .chat-messages { background: #1a1015; }
+  body.dark .memory-panel { background: #1e1218; }
+  body.dark .chat-sidebar { background: #1e1218; }
+  body.dark input, body.dark textarea { background: #261820; color: #f0dde3; border-color: #3a2028; }
+  body.dark .memory-card { background: #2e1a22; border-color: #3a2028; }
+  body.dark .summary-card { background: linear-gradient(135deg,#2e1a22,#3a1e28); border-color: #5a2a38; }
+  body.dark .modal-content { background: #221318; }
+  body.dark .rel-card { background: #221318; border-color: #3a2028; }
+  body.dark .system-prompt-input { background: #261820; color: #f0dde3; }
+  body.dark .create-container, body.dark .persona-container { background: #1e1218; }
+  body.dark .form-group label { color: #f0dde3; }
+  body.dark .p-chip { background: #2e1a22; border-color: #3a2028; color: #f0dde3; }
+  body.dark .p-chip.selected { background: var(--rose); color: #fff; }
+  body.dark .saved-bf-item:hover, body.dark .saved-bf-item.active { background: #2e1a22; }
+  body.dark .nav-tab { color: #a87888; }
+  body.dark .nav-tab:hover { background: #2e1a22; }
+  body.dark .dark-mode-btn { background: #2e1a22; color: #f0dde3; }
+
+  /* ---- DARK MODE TOGGLE ---- */
+  .dark-mode-btn { background: var(--warm); border: 1.5px solid var(--border); border-radius: 2rem; padding: 0.35rem 0.9rem; font-size: 0.82rem; cursor: pointer; font-family: 'DM Sans',sans-serif; color: var(--text-muted); transition: all 0.2s; display: flex; align-items: center; gap: 0.4rem; }
+  .dark-mode-btn:hover { border-color: var(--rose); color: var(--rose); }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; }
 
@@ -129,6 +167,12 @@
   .msg.user { flex-direction: row-reverse; margin-left: auto; }
   .msg-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; background: var(--warm); }
   .msg-bubble { background: #fff; border: 1px solid var(--border); border-radius: 1.2rem 1.2rem 1.2rem 0.3rem; padding: 0.75rem 1rem; font-size: 0.92rem; line-height: 1.6; color: var(--text); box-shadow: 0 2px 8px rgba(180,90,110,0.07); }
+  .msg-action { color: #999; font-style: italic; }
+  .msg-thought { color: var(--text-muted); font-style: italic; opacity: 0.85; }
+  .msg.user .msg-action { color: rgba(255,255,255,0.65); }
+  .msg.user .msg-thought { color: rgba(255,255,255,0.6); }
+  body.dark .msg-action { color: #888; }
+  body.dark .msg-thought { color: #a87888; }
   .msg.user .msg-bubble { background: var(--rose); color: #fff; border-color: var(--rose); border-radius: 1.2rem 1.2rem 0.3rem 1.2rem; }
   .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 0.5rem 0.2rem; }
   .typing-dot { width: 7px; height: 7px; background: var(--rose-light); border-radius: 50%; animation: bounce 1.2s infinite; }
@@ -252,6 +296,18 @@
   .rel-card-btn.primary:hover { background: var(--rose-dark); border-color: var(--rose-dark); }
   /* Status color dots */
   .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+
+  /* ---- RELATIONSHIP PROFILE PANEL ---- */
+  .rp-section-title { font-family: 'Cormorant Garamond',serif; font-size: 1rem; color: var(--rose-dark); font-weight: 600; margin-bottom: 0.6rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+  .rp-section-body { display: flex; flex-direction: column; gap: 0.5rem; }
+  .rp-milestone-item { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.82rem; line-height: 1.5; color: var(--text); }
+  .rp-milestone-dot { width: 8px; height: 8px; background: var(--rose); border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .rp-goal-item { font-size: 0.82rem; line-height: 1.5; color: var(--text); padding: 0.4rem 0.5rem; background: var(--warm); border-radius: 0.5rem; }
+
+  /* ---- CREATE IMAGE UPLOAD ---- */
+  .create-img-upload { border: 2px dashed var(--border); border-radius: 0.9rem; padding: 1.5rem; text-align: center; cursor: pointer; transition: border-color 0.2s; background: var(--card); min-height: 100px; display: flex; align-items: center; justify-content: center; }
+  .create-img-upload:hover { border-color: var(--rose); }
+  .create-img-upload img { width: 120px; height: 120px; object-fit: cover; border-radius: 0.75rem; display: block; margin: 0 auto; }
 
   /* ---- BROWSER NOTIFICATION PERMISSION ---- */
   .notif-bar { background: linear-gradient(135deg,#fdf0f3,#fde8ed); border: 1px solid var(--rose-light); border-radius: 0.75rem; padding: 0.6rem 1rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--rose-dark); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
@@ -422,6 +478,9 @@
 
 <nav>
   <div class="nav-logo">Heart<span>link</span></div>
+  <div style="display:flex;align-items:center;gap:0.7rem">
+    <button class="dark-mode-btn" id="dark-mode-btn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙 Dark</button>
+  </div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('home')">✨ Home</button>
     <button class="nav-tab" onclick="showPage('browse')">💝 Browse</button>
@@ -505,21 +564,18 @@
       </div>
     </div>
     <div class="form-group">
-      <label>Choose His Avatar</label>
-      <div class="emoji-picker">
-        <div class="emoji-opt selected" onclick="selectEmoji(this,'🧑')">🧑</div>
-        <div class="emoji-opt" onclick="selectEmoji(this,'👨')">👨</div>
-        <div class="emoji-opt" onclick="selectEmoji(this,'🧔')">🧔</div>
-        <div class="emoji-opt" onclick="selectEmoji(this,'👨‍🎨')">👨‍🎨</div>
-        <div class="emoji-opt" onclick="selectEmoji(this,'👨‍💼')">👨‍💼</div>
-        <div class="emoji-opt" onclick="selectEmoji(this,'👨‍🍳')">👨‍🍳</div>
-        <div class="emoji-opt" onclick="selectEmoji(this,'🧑‍💻')">🧑‍💻</div>
-        <div class="emoji-opt" onclick="selectEmoji(this,'👨‍🎤')">👨‍🎤</div>
-        <div class="emoji-opt" onclick="selectEmoji(this,'🧑‍🚀')">🧑‍🚀</div>
-        <div class="emoji-opt" onclick="selectEmoji(this,'🧛')">🧛</div>
-        <div class="emoji-opt" onclick="selectEmoji(this,'🧝')">🧝</div>
-        <div class="emoji-opt" onclick="selectEmoji(this,'🤴')">🤴</div>
+      <label>Character Image</label>
+      <div class="create-img-upload" id="create-img-upload" onclick="document.getElementById('c-img-input').click()">
+        <div id="create-img-preview-wrap">
+          <div style="font-size:2.5rem;margin-bottom:0.4rem">📷</div>
+          <div style="font-size:0.85rem;color:var(--text-muted)">Click to upload an image</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem">or paste a URL below</div>
+        </div>
+        <input type="file" id="c-img-input" accept="image/*" style="display:none" onchange="handleCreateImgUpload(event)"/>
       </div>
+      <input type="text" id="c-img-url" placeholder="Or paste an image URL (e.g. from Imgur)..."
+        style="margin-top:0.5rem;width:100%;border:1.5px solid var(--border);border-radius:0.5rem;padding:0.5rem 0.8rem;font-family:'DM Sans',sans-serif;font-size:0.85rem;background:var(--card);color:var(--text);outline:none;"
+        oninput="handleCreateImgUrl(this.value)"/>
     </div>
     <div class="form-group">
       <label>Personality Traits (pick up to 4)</label>
@@ -544,15 +600,15 @@
     </div>
     <div class="form-group">
       <label>His Backstory</label>
-      <textarea id="c-backstory" rows="3" placeholder="e.g. A former concert pianist who gave up his career to travel the world..."></textarea>
+      <textarea id="c-backstory" rows="5" style="min-height:110px;resize:vertical;" placeholder="e.g. A former concert pianist who gave up his career to travel the world..."></textarea>
     </div>
     <div class="form-group">
       <label>Scenario / Setting</label>
-      <input type="text" id="c-scenario" placeholder="e.g. You're both stranded at an airport during a snowstorm..." />
+      <textarea id="c-scenario" rows="3" style="min-height:80px;resize:vertical;" placeholder="e.g. You're both stranded at an airport during a snowstorm..."></textarea>
     </div>
     <div class="form-group">
       <label>Personality Description</label>
-      <textarea id="c-personality-desc" rows="3" placeholder="Describe his full personality in your own words — how he speaks, what he values, his quirks, how he shows affection, what he's afraid of..."></textarea>
+      <textarea id="c-personality-desc" rows="6" style="min-height:140px;resize:vertical;" placeholder="Describe his full personality in your own words — how he speaks, what he values, his quirks, how he shows affection, what he's afraid of..."></textarea>
     </div>
     <div class="form-group">
       <label>His First Message <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem">— what he says to open the conversation</span></label>
@@ -565,7 +621,7 @@
     <div class="system-prompt-section">
       <h3>⚙️ Advanced: Custom System Prompt</h3>
       <p>Write the exact instructions that shape his personality. Leave blank to auto-generate from your settings above.</p>
-      <textarea id="c-systemprompt" rows="10" style="min-height:180px;" placeholder="e.g. You are Kai, a 25-year-old musician. You speak gently, use music metaphors, and find it hard to say what you feel directly..."></textarea>
+      <textarea id="c-systemprompt" rows="14" style="min-height:280px;resize:vertical;font-family:monospace;font-size:0.82rem;" placeholder="e.g. You are Kai, a 25-year-old musician. You speak gently, use music metaphors, and find it hard to say what you feel directly..."></textarea>
     </div>
     <button class="btn-primary" style="width:100%;padding:1rem;font-size:1rem;" onclick="saveBoyfriend()">💾 Save & Start Chatting</button>
   </div>
@@ -658,19 +714,24 @@
 <!-- CHAT -->
 <!-- MY RELATIONSHIPS PAGE -->
 <div id="page-relationships" class="page">
-  <div style="max-width:900px;margin:0 auto;padding:2.5rem 1.5rem">
+  <div style="max-width:1100px;margin:0 auto;padding:2.5rem 1.5rem">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
       <h2 style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--rose-dark);font-weight:400">💞 My Relationships</h2>
       <button class="btn-secondary" style="font-size:0.82rem;padding:0.4rem 1rem" onclick="showPage('browse')">+ Add Character</button>
     </div>
-    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:2rem">All your active connections, their status, and how the bond is holding.</p>
-    <div id="rel-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.2rem"></div>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:2rem">All your connections — click a profile to see milestones &amp; goals.</p>
+    <div id="rel-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.2rem"></div>
     <div id="rel-empty" style="display:none;text-align:center;padding:4rem 2rem;color:var(--text-muted)">
       <div style="font-size:3rem;margin-bottom:1rem">💔</div>
       <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--rose-dark);margin-bottom:0.5rem">No relationships yet</h3>
-      <p>Browse characters and start chatting to build your first connection.</p>
-      <br>
+      <p>Browse characters and start chatting to build your first connection.</p><br>
       <button class="btn-primary" onclick="showPage('browse')">Browse Characters</button>
+    </div>
+  </div>
+  <!-- PROFILE PANEL OVERLAY -->
+  <div id="rel-profile-overlay" style="display:none;position:fixed;inset:0;background:rgba(42,26,31,0.6);z-index:500;backdrop-filter:blur(4px)" onclick="closeRelProfile(event)">
+    <div id="rel-profile-panel" style="position:absolute;right:0;top:0;bottom:0;width:min(680px,100vw);background:var(--card);overflow-y:auto;box-shadow:-8px 0 40px rgba(0,0,0,0.2);display:flex;flex-direction:column">
+      <div id="rel-profile-inner"></div>
     </div>
   </div>
 </div>
@@ -809,6 +870,7 @@ let activeTag = 'all';
 let userPersona = JSON.parse(localStorage.getItem('user_persona') || 'null');
 let selectedGender = '';
 let selectedPronoun = '';
+let createImgData = '';
 
 // ---- BOYFRIEND DATABASE ----
 const TAGS_LIST = ["hard to get","slow burn","protective","intellectual","broody","playful","artistic","mysterious"];
@@ -1498,7 +1560,9 @@ ${IMMERSION_RULES}
 
 Stay fully in character. You are a real person. Never acknowledge being an AI. Be emotionally present and natural. Show feelings through behavior and subtext. Keep responses conversational.`;
   }
-  const bf={id:Date.now(),name,age,emoji:selectedEmoji,tag:traits.split(',')[0]?.trim().toLowerCase()||'romantic',scenario:scenario||'Your personal AI companion',personality:personalityDesc||traits,backstory,systemPrompt,firstMessage,isCustom:true};
+  const bfImage = createImgData || '';
+  const bf={id:Date.now(),name,age,emoji:'🧑',image:bfImage,tag:traits.split(',')[0]?.trim().toLowerCase()||'romantic',scenario:scenario||'Your personal AI companion',personality:personalityDesc||traits,backstory,systemPrompt,firstMessage,isCustom:true};
+  createImgData = ''; // reset for next creation
   savedBFs.push(bf); saveBFs();
   showToast(`${name} created! Let's chat 💬`);
   showPage('chat');
@@ -1653,7 +1717,7 @@ function openChat(id){
     <div class="chat-messages" id="chat-msgs"></div>
     <div class="chat-input-area">
       <textarea class="system-prompt-input" id="extra-system-prompt" rows="1"
-        placeholder="💡 Scene direction — add context, set a mood, guide the moment... (only you see this)"
+        placeholder="💡 Custom instructions — add rules, set a scene, give directions... character MUST follow these (only you see this)"
         oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,70)+'px'"></textarea>
       <div class="chat-input-row">
         <textarea class="chat-input" id="chat-input" placeholder="Message ${bf.name.split(' ')[0]}..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
@@ -1687,7 +1751,22 @@ function renderMessages(){
     const isUser = m.role === 'user';
     const avatarHtml = isUser ? userAvatarHtml : bfAvatarHtml;
     const avatarStyle = isUser && userPersona?.imgUrl ? 'overflow:hidden;padding:0;' : '';
-    const bubbleContent = `<div class="msg-bubble">${m.content.replace(/\n/g,'<br>')}</div>`;
+    // Format message content: *actions* → grey italic, `thoughts` → italic muted
+    function formatMsg(text){
+      // Escape HTML first
+      let t = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      // *action text* → styled action span
+      t = t.replace(/\*((?:[^*])+)\*/g, '<span class="msg-action">*$1*</span>');
+      // `thought text` → styled thought span
+      t = t.replace(/`((?:[^`])+)`/g, '<span class="msg-thought">`$1`</span>');
+      // newlines
+      t = t.replace(/\n/g,'<br>');
+      return t;
+    }
+    const hasAction = /\*[^*]+\*/.test(m.content);
+    const hasThought = /`[^`]+`/.test(m.content);
+    const bubbleExtra = (hasAction||hasThought) ? ' mixed-content' : '';
+    const bubbleContent = `<div class="msg-bubble${bubbleExtra}">${formatMsg(m.content)}</div>`;
 
     // Action buttons — different set for user vs assistant
     const actions = isUser
@@ -1856,6 +1935,8 @@ async function sendMessage(){
   await callGemini(text);
   document.getElementById('send-btn').disabled=false;
   // Check if now-dating confession should trigger
+  checkAskOut();
+  checkAskOutResponse();
   checkDatingConfession();
   checkConfessionResponse();
   // Check proposal progression
@@ -1919,7 +2000,7 @@ async function callGemini(userMessage){
     fullSystem += `\n\n--- CONVERSATION SUMMARY (earlier chats) ---\n${summary}\n(Use this as background context. The recent messages below are the live conversation.)`;
   }
   if(extraPrompt){
-    fullSystem += `\n\n--- SCENE DIRECTION (user-set, follow this now) ---\n${extraPrompt}`;
+    fullSystem += `\n\n--- MANDATORY CUSTOM INSTRUCTIONS (from user — you MUST follow these exactly, they override everything else) ---\n${extraPrompt}\n--- END CUSTOM INSTRUCTIONS ---`;
   }
 
   const history = chatHistory[currentBF.id]||[];
@@ -1963,10 +2044,13 @@ async function callGemini(userMessage){
     const happySignals = ['laugh','smile','heart','love','beautiful','happy','wonderful','lovely','warm','joy','glad'];
     if(happySignals.some(w=>lowerReply.includes(w)) && Math.random()<0.35) showHeartRain();
 
-    // Auto-summarise every 40 messages to preserve context
+    // Auto-summarise every 20 messages + refresh goals
     const totalMsgs = (chatHistory[currentBF.id]||[]).length;
-    if(totalMsgs > 0 && totalMsgs % 40 === 0){
+    if(totalMsgs > 0 && totalMsgs % 20 === 0){
       autoSummarize();
+      autoGenerateGoals(currentBF.id);
+      // Auto-extract memories silently every 40 msgs
+      if(totalMsgs % 40 === 0) autoExtractMemoriesSilent();
     }
   }catch(e){
     hideTyping();
@@ -2099,6 +2183,36 @@ Respond ONLY with a JSON array of strings, no markdown, no explanation. Example:
     showToast('Could not extract memories. Try again!');
   }
   btn.textContent='✦ Extract'; btn.disabled=false;
+}
+
+async function autoExtractMemoriesSilent(){
+  // Like autoExtractMemories but no UI feedback
+  if(!currentBF||!apiKey) return;
+  const history=chatHistory[currentBF.id]||[];
+  if(history.length < 8) return;
+  const bfFirstName=currentBF.name.split(' ')[0];
+  const pronoun=userPersona?.pronoun||'they/them';
+  const userName=userPersona?.name||'the user';
+  const recentMsgs=history.slice(-60).map(m=>`${m.role==='user'?userName:bfFirstName}: ${m.content}`).join('\n');
+  const extractPrompt=`Read this roleplay conversation and extract 3-5 meaningful memories from ${bfFirstName}'s perspective about ${userName}. Write each memory as a single sentence in third person from ${bfFirstName}'s point of view, using ${pronoun} pronouns for ${userName}.
+CONVERSATION:\n${recentMsgs}\nRespond ONLY with a JSON array of strings.`;
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{role:'user',parts:[{text:extractPrompt}]}],generationConfig:{maxOutputTokens:300,temperature:0.85}})
+    });
+    const data=await res.json();
+    const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
+    const clean=raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+    const extracted=JSON.parse(clean);
+    if(Array.isArray(extracted)&&extracted.length){
+      const existing=getMemories(currentBF.id);
+      const manual=existing.filter(m=>!m.auto);
+      const newMems=extracted.map(t=>({id:Date.now()+Math.random(),text:t,auto:true,ts:Date.now()}));
+      saveMemories(currentBF.id,[...manual,...newMems]);
+      renderMemoryPanel();
+    }
+  }catch(e){}
 }
 
 async function autoSummarize(){
@@ -2333,6 +2447,7 @@ function checkProposalResponse(){
     refreshRelMeter();
     showHeartRain();
     showToast('💍 You said yes! Now Engaged!');
+    addMilestone(currentBF.id, `${currentBF.name.split(' ')[0]} proposed — and you said yes. You are engaged.`);
     checkWedding();
   } else if(noWords.some(w=>accept.includes(w))){
     localStorage.removeItem('proposal_pending_'+currentBF.id);
@@ -2369,6 +2484,7 @@ function checkWedding(){
     showTyping();
     await callGemini(weddingMsg);
     showToast('👑 Married! Congratulations!');
+    if(currentBF) addMilestone(currentBF.id, currentBF.name.split(' ')[0]+' and you got married.');
   }, 1500);
 }
 
@@ -2401,6 +2517,68 @@ function onAssistantMessageSent(){
   if(!currentBF) return;
   // Sending a message = positive engagement
   boostRelHealth(currentBF.id, 2);
+}
+
+// ---- ASK OUT SYSTEM ----
+// This fires BEFORE confession — when health is moderately high and stage is 3+
+// The character asks the user out on a date / asks to be their partner
+// (distinct from confession which is a deeper feelings moment)
+function checkAskOut(){
+  if(!currentBF||!apiKey) return;
+  const stage = getStage(currentBF);
+  const relData = getRelHealth(currentBF.id);
+  const history = chatHistory[currentBF.id]||[];
+  // Gate: stage 3+, health 65+, 25+ messages, not yet dating or further
+  const alreadyRelated = ['dating','complicated','broken_up','fiance','married','separation','divorced'].includes(relData.status);
+  if(alreadyRelated) return;
+  if(stage < 3 || relData.health < 65 || history.length < 25) return;
+  const askedOut = localStorage.getItem('asked_out_'+currentBF.id);
+  if(askedOut) return;
+  localStorage.setItem('asked_out_'+currentBF.id, '1');
+  // Determine how to phrase based on user's persona gender
+  const gender = userPersona?.gender || '';
+  const pronoun = userPersona?.pronoun || 'they/them';
+  const partnerTerm = gender === 'Woman' ? 'my girlfriend' : gender === 'Man' ? 'my boyfriend' : 'my partner';
+  const dateTerm = gender === 'Woman' ? 'her out' : gender === 'Man' ? 'him out' : 'them out';
+  setTimeout(async ()=>{
+    const askInstruction = `(Something shifts. You have been circling around this for long enough. Ask them out — on a real date, or directly ask if they want to be ${partnerTerm}. Do it in your character's specific voice. It should be a little awkward, a little nervous, but genuine. Don't be too smooth. Let the vulnerability show.)`;
+    showTyping();
+    await callGemini(askInstruction);
+    localStorage.setItem('askout_pending_'+currentBF.id, '1');
+  }, 1500);
+}
+
+function checkAskOutResponse(){
+  if(!currentBF) return;
+  const pending = localStorage.getItem('askout_pending_'+currentBF.id);
+  if(!pending) return;
+  const relData = getRelHealth(currentBF.id);
+  if(['dating','fiance','married'].includes(relData.status)) return;
+  const history = chatHistory[currentBF.id]||[];
+  const lastUser = [...history].reverse().find(m=>m.role==='user');
+  if(!lastUser) return;
+  const msg = lastUser.content.toLowerCase();
+  const yesWords = ["yes","sure","id love","i would","sounds good","of course","would love","okay","alright","lets do it","lets"];
+  const noWords = ["no ","not ready","too soon","not now","just friends","maybe later","i dont think"];
+  if(yesWords.some(w=>msg.includes(w))){
+    localStorage.removeItem('askout_pending_'+currentBF.id);
+    // Small health boost — they said yes to a date, not to full dating status yet
+    const data = getRelHealth(currentBF.id);
+    data.health = Math.min(100, (data.health||50) + 6);
+    data.tooltipMsg = '';
+    saveRelHealth(currentBF.id, data);
+    refreshRelMeter();
+    addMilestone(currentBF.id, currentBF.name.split(' ')[0]+' asked you out — and you said yes.');
+    showToast('💌 Date planned!');
+  } else if(noWords.some(w=>msg.includes(w))){
+    localStorage.removeItem('askout_pending_'+currentBF.id);
+    localStorage.removeItem('asked_out_'+currentBF.id); // can try again
+    const data = getRelHealth(currentBF.id);
+    data.health = Math.max((data.health||50) - 8, 20);
+    data.tooltipMsg = 'The ask-out was turned down. It stung.';
+    saveRelHealth(currentBF.id, data);
+    refreshRelMeter();
+  }
 }
 
 // ---- CONFESSION SYSTEM ----
@@ -2467,6 +2645,7 @@ function checkConfessionResponse(){
     refreshRelMeter();
     showHeartRain();
     showToast("💗 You're officially dating!");
+    addMilestone(currentBF.id, `${currentBF.name.split(' ')[0]} confessed their feelings — and you said yes.`);
   } else if(noWords.some(w=>msg.includes(w))){
     localStorage.removeItem('confession_pending_'+currentBF.id);
     localStorage.removeItem('confessed_'+currentBF.id); // allow re-confession later if things improve
@@ -2508,7 +2687,7 @@ function checkCheatingAlert(){
       chatHistory[checkerFull.id].push({role:'assistant', content:jealousMsg});
       saveHistory();
       // Show notification
-      sendBrowserNotif(checkerFull.name.split(' ')[0], jealousMsg.substring(0,80)+'...');
+      sendBrowserNotif(checkerFull.name.split(' ')[0], jealousMsg.substring(0,80)+'...', checkerFull.id);
     }, 3000);
   }
 }
@@ -2568,7 +2747,7 @@ function scheduleAutoMsg(bfId){
     } else {
       // Off-screen: generate and save, then notify
       await generateAndSaveAutoMsg(bf, instruction);
-      sendBrowserNotif(bf.name.split(' ')[0], `${bf.name.split(' ')[0]} continued the story while you were away...`);
+      sendBrowserNotif(bf.name.split(' ')[0], `${bf.name.split(' ')[0]} continued the story while you were away...`, bf.id);
     }
     // Schedule 2hr timer after 1hr fires
     scheduleAutoMsg2hr(bfId);
@@ -2598,7 +2777,7 @@ function scheduleAutoMsg2hr(bfId){
     };
     const notifMsg = notifMessages[stage] || notifMessages[2];
     await generateAndSaveAutoMsg(bf, `(You've been waiting for over two hours. Write this exact message, adapted to your character's voice and relationship stage: "${notifMsg}" Keep it under 3 sentences. Sound a little hurt, a little vulnerable.)`);
-    sendBrowserNotif(bf.name.split(' ')[0], notifMsg);
+    sendBrowserNotif(bf.name.split(' ')[0], notifMsg, bf.id);
   }, t2Delay);
 }
 
@@ -2645,12 +2824,14 @@ function requestNotifPermission(){
   });
 }
 
-function sendBrowserNotif(name, body){
+function sendBrowserNotif(name, body, bfId){
   if(!('Notification' in window)) return;
   if(Notification.permission !== 'granted') return;
-  if(document.hasFocus()) return; // don't spam if user is actively on tab
+  if(document.hasFocus()) return;
   try{
-    new Notification(`💌 ${name}`, {body, icon:'', tag:name});
+    // Tag includes bfId so each character's notifications never collide
+    const tag = bfId ? `heartlink_${bfId}` : `heartlink_${name}`;
+    new Notification(`💌 ${name}`, {body, icon:'', tag});
   }catch(e){}
 }
 
@@ -2715,7 +2896,7 @@ function renderRelationshipsPage(){
       : `<div class="rel-card-img" style="display:flex;align-items:center;justify-content:center;font-size:4rem">${bf.emoji||'🧑'}</div>`;
     const heartRing = (status==='dating'||status==='fiance'||status==='married') ? 'style="outline: 2px solid var(--rose-light); outline-offset:2px; border-radius:0.8rem 0.8rem 0 0;"' : '';
 
-    return `<div class="rel-card" onclick="goToChat(${bf.id})">
+    return `<div class="rel-card" onclick="openRelProfile(${bf.id})">
       <div ${heartRing}>${imgHtml}</div>
       <div class="rel-card-body">
         <div class="rel-card-name">${bf.name}</div>
@@ -2725,7 +2906,7 @@ function renderRelationshipsPage(){
         <div class="rel-card-meta" style="margin-top:3px;font-style:italic;opacity:0.8">"${lastMsgPreview}"</div>
         <div class="rel-card-actions">
           <button class="rel-card-btn primary" onclick="event.stopPropagation();goToChat(${bf.id})">💬 Chat</button>
-          <button class="rel-card-btn" onclick="event.stopPropagation();showPage('browse')" title="View profile">👤 Profile</button>
+          <button class="rel-card-btn" onclick="event.stopPropagation();openRelProfile(${bf.id})" title="View profile & goals">👤 Profile</button>
         </div>
       </div>
     </div>`;
@@ -2735,6 +2916,204 @@ function renderRelationshipsPage(){
 function goToChat(bfId){
   showPage('chat');
   setTimeout(()=>openChat(bfId), 100);
+}
+
+// ---- DARK MODE ----
+function toggleDarkMode(){
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('dark_mode', isDark ? '1' : '0');
+  const btn = document.getElementById('dark-mode-btn');
+  if(btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+}
+// Apply saved dark mode on load
+if(localStorage.getItem('dark_mode') === '1'){
+  document.body.classList.add('dark');
+}
+
+// ---- CREATE PAGE IMAGE UPLOAD ----
+function handleCreateImgUpload(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    createImgData = ev.target.result;
+    showCreateImgPreview(createImgData);
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleCreateImgUrl(url){
+  if(!url.trim()) return;
+  createImgData = url.trim();
+  showCreateImgPreview(createImgData);
+}
+
+function showCreateImgPreview(src){
+  const wrap = document.getElementById('create-img-preview-wrap');
+  if(wrap) wrap.innerHTML = `<img src="${src}" alt="Character preview" onerror="this.src=''">`;
+}
+
+// ---- RELATIONSHIP MILESTONES STORAGE ----
+function getMilestones(bfId){
+  const stored = localStorage.getItem('milestones_'+bfId);
+  return stored ? JSON.parse(stored) : [];
+}
+function saveMilestones(bfId, arr){
+  localStorage.setItem('milestones_'+bfId, JSON.stringify(arr));
+}
+function addMilestone(bfId, text){
+  const arr = getMilestones(bfId);
+  arr.push({id: Date.now(), text, ts: Date.now()});
+  saveMilestones(bfId, arr);
+}
+
+// ---- GOALS STORAGE ----
+function getGoals(bfId){
+  const stored = localStorage.getItem('goals_'+bfId);
+  return stored ? JSON.parse(stored) : [];
+}
+function saveGoals(bfId, arr){
+  localStorage.setItem('goals_'+bfId, JSON.stringify(arr));
+}
+
+// Auto-generate goals from context using AI
+async function autoGenerateGoals(bfId){
+  if(!apiKey) return;
+  const bf = savedBFs.find(b=>b.id===bfId);
+  if(!bf) return;
+  const history = chatHistory[bfId]||[];
+  if(history.length < 6) return;
+  const relData = getRelHealth(bfId);
+  const status = relData.status;
+  const recentText = history.slice(-20).map(m=>(m.role==='user'?'User':bf.name.split(' ')[0])+': '+m.content).join('\n');
+  const prompt = `You are ${bf.name}. Based on what has happened between you and the user so far, write 2-4 short personal goals from YOUR perspective — what you want from this relationship, what you are hoping for, what worries you, what you are working toward. Current relationship status: ${status}.
+
+Be honest and in-character. If the user hurt you, show it. If you are falling for them, show that too. Write each goal as a single sentence in first person, from your own voice.
+
+Conversation context:
+${recentText}
+
+Respond ONLY with a JSON array of strings. Example: ["I want to get closer to them.", "They left me on read and I keep thinking about it."]`;
+
+  try{
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}], generationConfig:{maxOutputTokens:300, temperature:1.0}})
+    });
+    const data = await res.json();
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const goals = JSON.parse(clean);
+    if(Array.isArray(goals) && goals.length){
+      saveGoals(bfId, goals.map(g=>({id:Date.now()+Math.random(), text:g, ts:Date.now()})));
+    }
+  }catch(e){ /* silent */ }
+}
+
+// ---- RELATIONSHIP PROFILE PANEL ----
+function openRelProfile(bfId){
+  const bf = savedBFs.find(b=>b.id===bfId);
+  if(!bf) return;
+  const overlay = document.getElementById('rel-profile-overlay');
+  const inner = document.getElementById('rel-profile-inner');
+  if(!overlay||!inner) return;
+
+  const relData = getRelHealth(bf.id);
+  const stageIdx = getStage(bf);
+  const statusName = getRelStatusName(relData.status, stageIdx);
+  const color = getStatusColor(relData.status);
+  const history = chatHistory[bf.id]||[];
+  const milestones = getMilestones(bf.id);
+  const goals = getGoals(bf.id);
+  const memories = getMemories(bf.id);
+
+  // Build milestones HTML
+  const milestonesHtml = milestones.length
+    ? milestones.map(m=>`<div class="rp-milestone-item">
+        <div class="rp-milestone-dot"></div>
+        <div>${m.text}</div>
+      </div>`).join('')
+    : '<div style="color:var(--text-muted);font-size:0.83rem;font-style:italic">No milestones recorded yet. Keep chatting!</div>';
+
+  // Build goals HTML
+  const goalsHtml = goals.length
+    ? goals.map(g=>`<div class="rp-goal-item">
+        <span style="color:var(--rose);margin-right:6px">✦</span>${g.text}
+      </div>`).join('')
+    : '<div style="color:var(--text-muted);font-size:0.83rem;font-style:italic">Goals will generate automatically every 20 messages.</div>';
+
+  // Build memories HTML
+  const memoriesHtml = memories.length
+    ? memories.map(m=>`<div class="rp-goal-item">
+        <span style="color:var(--rose-light);margin-right:6px">🌸</span>${m.text}
+      </div>`).join('')
+    : '<div style="color:var(--text-muted);font-size:0.83rem;font-style:italic">No memories yet.</div>';
+
+  const imgHtml = bf.image && !bf.image.startsWith('PLACEHOLDER')
+    ? `<img src="${bf.image}" style="width:100%;height:220px;object-fit:cover;object-position:top;display:block;">`
+    : `<div style="width:100%;height:220px;display:flex;align-items:center;justify-content:center;font-size:6rem;background:var(--warm)">${bf.emoji||'🧑'}</div>`;
+
+  inner.innerHTML = `
+    <div style="position:relative">
+      ${imgHtml}
+      <button onclick="closeRelProfileBtn()" style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+      <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(26,10,15,0.85));padding:1rem 1.2rem">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;color:#fff;font-weight:600">${bf.name}</div>
+        <div style="font-size:0.82rem;color:#ffccd8">${statusName} · ${history.length} messages</div>
+      </div>
+    </div>
+    <div style="padding:1.2rem">
+      <!-- Health meter -->
+      <div style="margin-bottom:1.2rem">
+        <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px">
+          <span style="font-weight:600;color:${color}">${statusName}</span>
+          <span style="color:var(--text-muted)">${relData.health}%</span>
+        </div>
+        <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${relData.health}%;background:${color};border-radius:4px;transition:width 0.5s"></div>
+        </div>
+        ${relData.tooltipMsg ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;font-style:italic">${relData.tooltipMsg}</div>` : ''}
+      </div>
+      <!-- Two-column: Milestones + Goals -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem">
+        <div>
+          <div class="rp-section-title">💫 Relationship Milestones</div>
+          <div class="rp-section-body">${milestonesHtml}</div>
+        </div>
+        <div>
+          <div class="rp-section-title">🎯 ${bf.name.split(' ')[0]}'s Goals</div>
+          <div class="rp-section-body">${goalsHtml}</div>
+          <button onclick="refreshGoals(${bf.id})" style="margin-top:0.6rem;font-size:0.72rem;background:none;border:1px solid var(--border);border-radius:1rem;padding:3px 10px;cursor:pointer;color:var(--text-muted);font-family:'DM Sans',sans-serif">↻ Refresh Goals</button>
+        </div>
+      </div>
+      <!-- Memories -->
+      <div style="margin-top:1.2rem">
+        <div class="rp-section-title">🧠 Memories</div>
+        <div class="rp-section-body">${memoriesHtml}</div>
+      </div>
+      <!-- Quick actions -->
+      <div style="display:flex;gap:0.6rem;margin-top:1.4rem">
+        <button class="btn-primary" style="flex:1;font-size:0.85rem;padding:0.55rem" onclick="closeRelProfileBtn();goToChat(${bf.id})">💬 Chat Now</button>
+      </div>
+    </div>
+  `;
+
+  overlay.style.display = 'block';
+  // Auto-generate goals if none exist
+  if(!goals.length) autoGenerateGoals(bf.id).then(()=>openRelProfile(bfId));
+}
+
+function closeRelProfile(e){
+  if(e.target.id === 'rel-profile-overlay') closeRelProfileBtn();
+}
+function closeRelProfileBtn(){
+  const overlay = document.getElementById('rel-profile-overlay');
+  if(overlay) overlay.style.display = 'none';
+}
+
+async function refreshGoals(bfId){
+  await autoGenerateGoals(bfId);
+  openRelProfile(bfId);
 }
 
 // ---- TOAST ----
@@ -2769,6 +3148,12 @@ if(modelSel) modelSel.value=selectedModel;
 if(userPersona){
   selectedGender = userPersona.gender||'';
   selectedPronoun = userPersona.pronoun||'';
+}
+// Apply saved dark mode on load
+if(localStorage.getItem('dark_mode') === '1'){
+  document.body.classList.add('dark');
+  const btn = document.getElementById('dark-mode-btn');
+  if(btn) btn.textContent = '☀️ Light';
 }
 renderGrid();
 renderSidebar();
