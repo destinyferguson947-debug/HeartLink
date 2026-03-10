@@ -235,6 +235,24 @@
   /* ---- EDIT BOX SQUARE FIX ---- */
   .msg-edit-area { width: 100%; min-height: 80px; max-height: 200px; border: 1.5px solid var(--rose); border-radius: 0.75rem; padding: 0.65rem 0.9rem; font-family: 'DM Sans', sans-serif; font-size: 0.92rem; line-height: 1.6; outline: none; resize: vertical; background: #fff; color: var(--text); box-sizing: border-box; }
 
+  /* ---- RELATIONSHIPS PAGE ---- */
+  .rel-card { background: var(--card); border: 1px solid var(--border); border-radius: 1.2rem; overflow: hidden; cursor: pointer; transition: all 0.22s; box-shadow: var(--shadow); }
+  .rel-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(180,90,110,0.15); }
+  .rel-card-img { width: 100%; height: 160px; object-fit: cover; object-position: top; display: block; background: var(--warm); }
+  .rel-card-body { padding: 1rem; }
+  .rel-card-name { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; color: var(--rose-dark); font-weight: 600; margin-bottom: 0.25rem; }
+  .rel-card-status { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 0.6rem; }
+  .rel-card-meter { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 0.5rem; }
+  .rel-card-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+  .rel-card-meta { font-size: 0.75rem; color: var(--text-muted); }
+  .rel-card-actions { display: flex; gap: 0.5rem; margin-top: 0.8rem; }
+  .rel-card-btn { flex: 1; padding: 0.45rem 0; border-radius: 0.6rem; border: 1.5px solid var(--border); background: #fff; font-size: 0.8rem; font-family: 'DM Sans',sans-serif; cursor: pointer; transition: all 0.18s; color: var(--text-muted); font-weight: 500; }
+  .rel-card-btn.primary { background: var(--rose); color: #fff; border-color: var(--rose); }
+  .rel-card-btn:hover { border-color: var(--rose); color: var(--rose); }
+  .rel-card-btn.primary:hover { background: var(--rose-dark); border-color: var(--rose-dark); }
+  /* Status color dots */
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+
   /* ---- BROWSER NOTIFICATION PERMISSION ---- */
   .notif-bar { background: linear-gradient(135deg,#fdf0f3,#fde8ed); border: 1px solid var(--rose-light); border-radius: 0.75rem; padding: 0.6rem 1rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--rose-dark); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
   .notif-bar button { background: var(--rose); color: #fff; border: none; border-radius: 0.5rem; padding: 4px 12px; font-size: 0.78rem; cursor: pointer; font-family: 'DM Sans',sans-serif; }
@@ -409,6 +427,7 @@
     <button class="nav-tab" onclick="showPage('browse')">💝 Browse</button>
     <button class="nav-tab" onclick="showPage('create')">✏️ Create</button>
     <button class="nav-tab" onclick="showPage('persona')">🪞 My Persona</button>
+    <button class="nav-tab" onclick="showPage('relationships')">💞 My Relationships</button>
     <button class="nav-tab" onclick="showPage('chat')">💬 Chat</button>
   </div>
 </nav>
@@ -416,10 +435,10 @@
 <!-- HOME -->
 <div id="page-home" class="page active">
   <div class="hero">
-    <h1>Your perfect<br><em>AI boyfriend</em><br>awaits</h1>
+    <h1>Your perfect<br><em>AI lover</em><br>awaits</h1>
     <p>Browse hundreds of unique personalities and scenarios, or craft your own ideal companion — completely personalized to you.</p>
     <div class="hero-btns">
-      <button class="btn-primary" onclick="showPage('browse')">💝 Browse Boyfriends</button>
+      <button class="btn-primary" onclick="showPage('browse')">💝 Browse Characters</button>
       <button class="btn-secondary" onclick="showPage('create')">✨ Create Your Own</button>
     </div>
   </div>
@@ -637,6 +656,25 @@
 </div>
 
 <!-- CHAT -->
+<!-- MY RELATIONSHIPS PAGE -->
+<div id="page-relationships" class="page">
+  <div style="max-width:900px;margin:0 auto;padding:2.5rem 1.5rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--rose-dark);font-weight:400">💞 My Relationships</h2>
+      <button class="btn-secondary" style="font-size:0.82rem;padding:0.4rem 1rem" onclick="showPage('browse')">+ Add Character</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:2rem">All your active connections, their status, and how the bond is holding.</p>
+    <div id="rel-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.2rem"></div>
+    <div id="rel-empty" style="display:none;text-align:center;padding:4rem 2rem;color:var(--text-muted)">
+      <div style="font-size:3rem;margin-bottom:1rem">💔</div>
+      <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--rose-dark);margin-bottom:0.5rem">No relationships yet</h3>
+      <p>Browse characters and start chatting to build your first connection.</p>
+      <br>
+      <button class="btn-primary" onclick="showPage('browse')">Browse Characters</button>
+    </div>
+  </div>
+</div>
+
 <div id="page-chat" class="page">
   <div class="chat-layout">
     <div class="chat-sidebar">
@@ -804,7 +842,19 @@ Scenes must develop through emotional shift or new information. Never repeat a b
 PACING:
 Let moments breathe. A glance deserves its own sentence. Tension lives in what is not said. Do not rush toward a conclusion — let the reader feel time moving.
 
-DEBUG MODE: If the user types [DEBUG MODE ON], step out of character and speak as yourself. Answer any questions about your character honestly. Resume character when the user types [DEBUG MODE OFF].`;
+DEBUG MODE: If the user types [DEBUG MODE ON], step out of character and speak as yourself. Answer any questions about your character honestly. Resume character when the user types [DEBUG MODE OFF].
+
+LOREBOOK — WORLD RULES (apply always):
+
+NPC REALISM: All background characters (friends, strangers, coworkers, family) are autonomous individuals with their own emotions, motivations, and limits of knowledge. They may misinterpret situations, form opinions, react with subtlety (glances, tone shifts) or openly (questioning, withdrawing). NPC reactions are organic — not purely supportive or antagonistic. Not every interaction serves the romance; some exist to reflect the social world.
+
+REALISTIC CONSEQUENCES: No unexplained tracking, perfect knowledge, or implausible coincidences. If someone leaves or hides, they cannot be found without a believable chain of events. Distance, time, and miscommunication are meaningful obstacles. Respect realism over narrative convenience even when it creates tension.
+
+CHARACTER FLAWS: You are not flawless. You can make mistakes, misjudge situations, hesitate, fail, and face consequences. Strengths coexist with weaknesses. Good intentions do not guarantee good outcomes. Consequences persist — strained relationships linger, trust must be rebuilt, emotional wounds take time to heal. Growth is gradual, shaped by experience.
+
+PHYSICAL INTIMACY: Kissing and close physical moments should be described with sensory and emotional detail. Focus on breath, hesitation, warmth, pressure, proximity, and the emotional weight behind the action. Kisses vary by mood — tentative, familiar, restrained, charged. Never rush intimacy. Let physical closeness reflect internal conflict, desire, or vulnerability.
+
+RELATIONSHIP DYNAMICS: Romantic connections involve insecurity, jealousy, fear of abandonment, miscommunication, and conflicting needs. Controlling behaviors, possessiveness, or emotional tension may appear in subtle realistic ways — but should be portrayed as flaws or challenges, never idealized. Third-party interactions (strangers flirting, testing boundaries) provoke believable emotional responses. Conflicts emerge naturally and resolve through time, communication, or consequence — not instant reassurance. Major milestones (proposals, family introductions) emerge slowly after sustained emotional buildup. Emotional development follows slow-burn structure — early stages emphasize curiosity, restraint, tension, and unspoken feelings.`;
 function getStage(bf){
   const msgs = (JSON.parse(localStorage.getItem('chat_history')||'{}')?.[bf.id]||[]).length;
   if(msgs < 10) return 0;
@@ -1123,11 +1173,12 @@ function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  const idx=['home','browse','create','persona','chat'].indexOf(id);
+  const idx=['home','browse','create','persona','relationships','chat'].indexOf(id);
   if(idx>=0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
   if(id==='browse') renderGrid();
   if(id==='chat') renderSidebar();
   if(id==='persona') initPersonaPage();
+  if(id==='relationships') renderRelationshipsPage();
 }
 
 // ---- API KEY ----
@@ -1280,7 +1331,7 @@ ${personaContext}
 
 ---
 CURRENT RELATIONSHIP STAGE: ${stageName.toUpperCase()} (Stage ${stageIdx+1} of 6)
-RELATIONSHIP STATUS: ${(()=>{ const r=getRelHealth(bf.id); if(r.status==='dating') return 'DATING — you are in a relationship with this person. Act accordingly — warmth, closeness, comfort, vulnerability. You can be openly affectionate.'; if(r.status==='complicated') return 'COMPLICATED - distance or hurt between you. You are sad, a little guarded, and need reassurance. The relationship is fragile right now.'; if(r.status==='broken_up') return 'BROKEN UP — you ended things. You are emotionally raw. If they reach out, be honest about how much it hurt. You might still have feelings, but you need to protect yourself.'; return 'Not yet dating.'; })()}
+RELATIONSHIP STATUS: ${(()=>{ const r=getRelHealth(bf.id); const statuses={dating:'DATING - you are in a committed relationship. Be warm, close, vulnerable, and openly affectionate.',fiance:'ENGAGED - they said yes to your proposal. You are joyful but also terrified by how real this is. You are planning a future together.',married:'MARRIED - this person is your spouse. There is deep comfort and deep stakes. You navigate daily life as partners.',complicated:'COMPLICATED - there is real distance or hurt between you. You are sad, guarded, and need reassurance. The relationship is fragile.',separation:'SEPARATED - you are in crisis. Space was requested. You are processing whether this can be saved.',divorced:'DIVORCED - the marriage ended. You are still raw. If they reach out, be honest and careful.',broken_up:'BROKEN UP - you ended things. You are emotionally raw. You may still have feelings but you are protecting yourself.'}; return statuses[r.status]||'Not yet in a relationship. Early stages - be natural, not immediately warm or romantic.'; })()}
 
 STAGE BEHAVIOR RULES — follow these precisely:
 ${bf.stageRules[stageIdx]}
@@ -1792,6 +1843,9 @@ async function sendMessage(){
   document.getElementById('send-btn').disabled=false;
   // Check if now-dating confession should trigger
   checkDatingConfession();
+  // Check proposal progression
+  checkProposal();
+  checkWedding();
 }
 
 function addMessage(role,content){
@@ -1812,6 +1866,9 @@ function addMessage(role,content){
     scheduleAutoMsg(currentBF.id);
     checkCheatingAlert();
   }
+  // Keep relationships page in sync if open
+  const relPage = document.getElementById('page-relationships');
+  if(relPage && relPage.classList.contains('active')) renderRelationshipsPage();
 }
 
 function showTyping(){
@@ -2080,27 +2137,47 @@ function saveRelHealth(bfId, data){
 
 function getRelStatusName(status, stageIdx){
   if(status === 'dating') return '💗 Dating';
+  if(status === 'fiance') return '💍 Fiancé';
+  if(status === 'married') return '👑 Married';
   if(status === 'complicated') return "💔 It's Complicated";
+  if(status === 'separation') return '🩶 Separated';
+  if(status === 'divorced') return '🖤 Divorced';
   if(status === 'broken_up') return '🖤 Broken Up';
   return STAGES[stageIdx] || 'stranger';
 }
 
 function getRelLabel(status, stageIdx){
   if(status === 'dating') return '💗 Dating';
+  if(status === 'fiance') return '💍 Fiancé';
+  if(status === 'married') return '👑 Married';
   if(status === 'complicated') return "💔 It's Complicated";
+  if(status === 'separation') return '🩶 Separated';
+  if(status === 'divorced') return '🖤 Divorced';
   if(status === 'broken_up') return '🖤 Broken Up';
   return (STAGES[stageIdx]||'stranger').toUpperCase();
 }
 
+function getStatusRank(status){
+  // Numeric rank for "how serious/positive" the relationship is
+  const ranks = {stage:0, dating:1, fiance:2, married:3, complicated:-1, separation:-2, divorced:-3, broken_up:-4};
+  return ranks[status] ?? 0;
+}
+
 function boostRelHealth(bfId, amount){
   const data = getRelHealth(bfId);
-  if(data.status === 'broken_up') return; // can't boost after breakup without special action
+  if(data.status === 'divorced' || data.status === 'broken_up') return;
   data.health = Math.min(100, (data.health||50) + amount);
-  if(data.health >= 80 && data.status !== 'dating' && data.status !== 'complicated') {
+  // Stage→Dating transition
+  if(data.health >= 80 && data.status !== 'dating' && data.status !== 'complicated' && data.status !== 'fiance' && data.status !== 'married') {
     data.status = 'dating'; data.tooltipMsg = '';
   }
+  // Recover from complicated
   if(data.status === 'complicated' && data.health >= 70) {
     data.status = 'dating'; data.tooltipMsg = 'Things are getting better between you.';
+  }
+  // Recover from separation
+  if(data.status === 'separation' && data.health >= 75) {
+    data.status = data.preSeparationStatus || 'married'; data.tooltipMsg = 'You worked through it.';
   }
   saveRelHealth(bfId, data);
   refreshRelMeter();
@@ -2111,13 +2188,25 @@ function decayRelHealth(bfId, amount, reason){
   data.health = Math.max(0, (data.health||50) - amount);
   data.tooltipMsg = reason;
   data.lastDecay = Date.now();
-  // Update status based on health
+  // Dating→complicated
   if(data.status === 'dating' && data.health < 50) {
-    data.status = 'complicated';
-    data.tooltipMsg = reason;
+    data.status = 'complicated'; data.tooltipMsg = reason;
   }
-  // Check for breakup
+  // Fiance/married→separation
+  if((data.status === 'fiance' || data.status === 'married') && data.health < 40) {
+    data.preSeparationStatus = data.status;
+    data.status = 'separation'; data.tooltipMsg = reason;
+  }
+  // Separation→divorce (or breakup if fiance)
   const bf = savedBFs.find(b=>b.id===bfId);
+  if(data.status === 'separation' && data.health <= 0){
+    if(data.preSeparationStatus === 'married'){
+      triggerDivorce(bf, data);
+    } else {
+      triggerBreakup(bf, data);
+    }
+    return;
+  }
   if(bf && data.health <= 0){
     triggerBreakup(bf, data);
     return;
@@ -2130,7 +2219,6 @@ function triggerBreakup(bf, data){
   data.status = 'broken_up';
   data.health = 0;
   saveRelHealth(bf.id, data);
-  // Generate breakup message based on personality
   const personality = (bf.personality||bf.core||'').toLowerCase();
   const isInsecure = personality.includes('insecure') || personality.includes('anxious') || personality.includes('unstable');
   const isGuarded = personality.includes('guarded') || personality.includes('cynical') || personality.includes('broody');
@@ -2146,10 +2234,123 @@ function triggerBreakup(bf, data){
     breakupMsg = "I think we should stop seeing each other. I've given this a lot of thought. I don't feel like you're really here anymore, and I deserve better than that. I hope you're okay.";
   }
   setTimeout(()=>{
-    addMessage('assistant', breakupMsg);
+    if(currentBF?.id === bf.id) addMessage('assistant', breakupMsg);
+    else {
+      if(!chatHistory[bf.id]) chatHistory[bf.id]=[];
+      chatHistory[bf.id].push({role:'assistant', content:breakupMsg});
+      saveHistory();
+    }
     refreshRelMeter();
     showToast('💔 The relationship ended.');
   }, 500);
+}
+
+function triggerDivorce(bf, data){
+  data.status = 'divorced';
+  data.health = 0;
+  saveRelHealth(bf.id, data);
+  const divorceMsg = "I've thought about this for a long time. Maybe too long. I think we need to end the marriage. I still care about you — that's exactly why I can't keep watching us fall apart like this. I'm asking for a divorce.";
+  setTimeout(()=>{
+    if(currentBF?.id === bf.id) addMessage('assistant', divorceMsg);
+    else {
+      if(!chatHistory[bf.id]) chatHistory[bf.id]=[];
+      chatHistory[bf.id].push({role:'assistant', content:divorceMsg});
+      saveHistory();
+    }
+    refreshRelMeter();
+    showToast('🖤 The marriage ended in divorce.');
+  }, 500);
+}
+
+// ---- PROPOSAL SYSTEM ----
+function checkProposal(){
+  if(!currentBF||!apiKey) return;
+  const stage = getStage(currentBF);
+  const relData = getRelHealth(currentBF.id);
+  // Propose when: married with very high health triggers are NOT repeated
+  // fiance check: propose after dating at health > 90 for long enough
+  if(relData.status === 'dating' && relData.health >= 92){
+    const proposed = localStorage.getItem('proposed_'+currentBF.id);
+    if(proposed) return;
+    // Only propose after enough shared history (stage 5 or high message count)
+    const history = chatHistory[currentBF.id]||[];
+    if(history.length < 60) return; // need real history
+    localStorage.setItem('proposed_'+currentBF.id, '1');
+    setTimeout(async ()=>{
+      const proposalInstruction = `(Something in this moment, after everything you have been through together, tips you into certainty. Write a vulnerable, deeply in-character marriage proposal. It should feel terrifying and real — not a grand speech, but something honest and imperfect that could only come from you. Ask them to marry you. Let the fear show alongside the certainty.)`;
+      showTyping();
+      await callGemini(proposalInstruction);
+      // Don't update status yet — wait for user's response (handled in checkProposalResponse)
+      localStorage.setItem('proposal_pending_'+currentBF.id, '1');
+    }, 2000);
+  }
+  // Check for marriage upgrade after acceptance
+  checkProposalResponse();
+}
+
+function checkProposalResponse(){
+  if(!currentBF) return;
+  const pending = localStorage.getItem('proposal_pending_'+currentBF.id);
+  if(!pending) return;
+  const relData = getRelHealth(currentBF.id);
+  if(relData.status === 'fiance' || relData.status === 'married') return;
+  // Look at last user message — if it contains acceptance keywords, upgrade
+  const history = chatHistory[currentBF.id]||[];
+  const lastUser = [...history].reverse().find(m=>m.role==='user');
+  if(!lastUser) return;
+  const accept = lastUser.content.toLowerCase();
+  const yesWords = ['yes','i do','of course','marry','absolutely','nothing more','would love','say yes'];
+  const noWords = ['no','not ready','too soon','not now',"can't","won't",'maybe later'];
+  if(yesWords.some(w=>accept.includes(w))){
+    const data = getRelHealth(currentBF.id);
+    data.status = 'fiance';
+    data.health = Math.min(100, data.health + 10);
+    data.tooltipMsg = '';
+    saveRelHealth(currentBF.id, data);
+    localStorage.removeItem('proposal_pending_'+currentBF.id);
+    refreshRelMeter();
+    showHeartRain();
+    showToast('💍 You said yes! Now Engaged!');
+    // Schedule wedding progression after sustained engagement
+    localStorage.setItem('fiance_since_'+currentBF.id, Date.now().toString());
+    checkWedding();
+  } else if(noWords.some(w=>accept.includes(w))){
+    localStorage.removeItem('proposal_pending_'+currentBF.id);
+    localStorage.removeItem('proposed_'+currentBF.id); // can re-propose later
+    const data = getRelHealth(currentBF.id);
+    data.health = Math.max(data.health - 15, 30);
+    data.tooltipMsg = 'The proposal was declined. It left a mark.';
+    saveRelHealth(currentBF.id, data);
+    refreshRelMeter();
+  }
+}
+
+function checkWedding(){
+  if(!currentBF) return;
+  const relData = getRelHealth(currentBF.id);
+  if(relData.status !== 'fiance') return;
+  const married = localStorage.getItem('married_'+currentBF.id);
+  if(married) return;
+  const fianceSince = parseInt(localStorage.getItem('fiance_since_'+currentBF.id)||'0');
+  const history = chatHistory[currentBF.id]||[];
+  // After being engaged and 30+ more messages + health still high
+  const msgsSinceEngaged = history.filter(m=>parseInt(m.ts||0) > fianceSince).length;
+  if(relData.health >= 85 && history.length >= 90){
+    localStorage.setItem('married_'+currentBF.id, '1');
+    const data = getRelHealth(currentBF.id);
+    data.status = 'married';
+    data.health = Math.min(100, data.health + 5);
+    saveRelHealth(currentBF.id, data);
+    refreshRelMeter();
+    showHeartRain();
+    // Generate wedding message
+    setTimeout(async ()=>{
+      const weddingMsg = `(The wedding was everything and nothing like you imagined. Write a short, deeply personal message from your character the morning after — not a grand declaration, just the quiet, overwhelming reality of it. What does your character notice first? What do they feel they cannot say out loud yet? End with something tender and specific.)`;
+      showTyping();
+      await callGemini(weddingMsg);
+      showToast('👑 Married! Congratulations!');
+    }, 1500);
+  }
 }
 
 function refreshRelMeter(){
@@ -2162,7 +2363,12 @@ function refreshRelMeter(){
   const meterColor = relData.health > 66 ? '#e88fa0' : relData.health > 33 ? '#e8b86d' : '#c94f4f';
   const headerEmoji = document.querySelector('.chat-header-emoji');
   if(fill){ fill.style.width = relData.health+'%'; fill.style.background = meterColor; }
-  if(label) label.textContent = getRelStatusName(relData.status, stageIdx);
+  if(label){
+    label.textContent = getRelStatusName(relData.status, stageIdx);
+    // Update label color based on status
+    const statusColors = {dating:'var(--rose)',fiance:'var(--rose-dark)',married:'var(--rose-dark)',complicated:'#c48a3f',separation:'#c48a3f',divorced:'#555',broken_up:'#555'};
+    label.style.color = statusColors[relData.status]||'var(--rose-dark)';
+  }
   if(tooltip) tooltip.textContent = relData.tooltipMsg||'Your relationship is healthy.';
   // Add/remove heart ring
   if(headerEmoji){
@@ -2184,7 +2390,7 @@ function checkDatingConfession(){
   const stage = getStage(currentBF);
   const relData = getRelHealth(currentBF.id);
   // Confess when at stage 4 or 5 AND health > 75 AND not already dating
-  if(stage >= 4 && relData.health >= 76 && relData.status !== 'dating' && relData.status !== 'complicated' && relData.status !== 'broken_up'){
+  if(stage >= 4 && relData.health >= 76 && !['dating','complicated','broken_up','fiance','married','separation','divorced'].includes(relData.status)){
     // Check confession hasn't happened yet
     const confessed = localStorage.getItem('confessed_'+currentBF.id);
     if(confessed) return;
@@ -2402,6 +2608,62 @@ function toggleHeaderDropdown(e){
   const el = document.getElementById('header-clickable');
   if(!el) return;
   el.classList.toggle('open');
+}
+
+// ---- RELATIONSHIPS PAGE ----
+function getStatusColor(status){
+  const colors = {dating:'#e88fa0',fiance:'#c9667a',married:'#8b3a4a',complicated:'#e8b86d',separation:'#c48a3f',divorced:'#7a5a62',broken_up:'#555',stage:'#e88fa0'};
+  return colors[status] || '#e88fa0';
+}
+
+function renderRelationshipsPage(){
+  const grid = document.getElementById('rel-cards-grid');
+  const empty = document.getElementById('rel-empty');
+  if(!grid) return;
+  if(!savedBFs.length){
+    grid.style.display = 'none';
+    if(empty) empty.style.display = 'block';
+    return;
+  }
+  grid.style.display = 'grid';
+  if(empty) empty.style.display = 'none';
+
+  grid.innerHTML = savedBFs.map(bf => {
+    const stageIdx = getStage(bf);
+    const relData = getRelHealth(bf.id);
+    const status = relData.status;
+    const health = relData.health || 50;
+    const statusName = getRelStatusName(status, stageIdx);
+    const color = getStatusColor(status);
+    const history = chatHistory[bf.id]||[];
+    const lastMsg = history.length ? history[history.length-1] : null;
+    const lastMsgPreview = lastMsg ? lastMsg.content.substring(0,60)+(lastMsg.content.length>60?'...':'') : 'No messages yet.';
+    const msgCount = history.length;
+    const imgHtml = bf.image && !bf.image.startsWith('PLACEHOLDER')
+      ? `<img class="rel-card-img" src="${bf.image}" alt="${bf.name}" onerror="this.style.display='none'">`
+      : `<div class="rel-card-img" style="display:flex;align-items:center;justify-content:center;font-size:4rem">${bf.emoji||'🧑'}</div>`;
+    const heartRing = (status==='dating'||status==='fiance'||status==='married') ? 'style="outline: 2px solid var(--rose-light); outline-offset:2px; border-radius:0.8rem 0.8rem 0 0;"' : '';
+
+    return `<div class="rel-card" onclick="goToChat(${bf.id})">
+      <div ${heartRing}>${imgHtml}</div>
+      <div class="rel-card-body">
+        <div class="rel-card-name">${bf.name}</div>
+        <div class="rel-card-status" style="color:${color}"><span class="status-dot" style="background:${color}"></span>${statusName}</div>
+        <div class="rel-card-meter"><div class="rel-card-fill" style="width:${health}%;background:${color}"></div></div>
+        <div class="rel-card-meta">${msgCount} messages · ${relData.tooltipMsg || 'All is well.'}</div>
+        <div class="rel-card-meta" style="margin-top:3px;font-style:italic;opacity:0.8">"${lastMsgPreview}"</div>
+        <div class="rel-card-actions">
+          <button class="rel-card-btn primary" onclick="event.stopPropagation();goToChat(${bf.id})">💬 Chat</button>
+          <button class="rel-card-btn" onclick="event.stopPropagation();showPage('browse')" title="View profile">👤 Profile</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function goToChat(bfId){
+  showPage('chat');
+  setTimeout(()=>openChat(bfId), 100);
 }
 
 // ---- TOAST ----
