@@ -2402,8 +2402,8 @@ function renderPersonaSlots(){
         : `<span style="font-size:1.4rem">🧑</span>`;
       html += `<div class="persona-slot\${isActive?' active-slot':''}" onclick="selectPersonaSlot(\${i})" ondblclick="setActivePersona(\${i})" title="Click to edit • Double-click to activate">
         <div class="persona-slot-avatar">\${avatarHtml}</div>
-        <div class="persona-slot-name">\${p.name||'Unnamed'}</div>
-        <div class="persona-slot-sub">\${p.gender||''}${isActive?' · Active':''}</div>
+        <div class="persona-slot-name">Slot \${i+1}</div>
+        <div class="persona-slot-sub">\${p.name||'Unnamed'}\${isActive?' · Active':''}</div>
       </div>`;
     } else if(i < 10){
       html += `<div class="persona-slot persona-slot-add" onclick="selectPersonaSlot(\${i})" title="Add new persona">
@@ -2442,9 +2442,9 @@ function updateEditorTitle(){
   if(!t) return;
   const p = allPersonas[editingPersonaIndex];
   if(p){
-    t.textContent = `✏️ Editing: \${p.name || 'Persona '+(editingPersonaIndex+1)}`;
+    t.textContent = `✏️ Your Persona — Slot \${editingPersonaIndex+1}`;
   } else {
-    t.textContent = `✨ New Persona — Slot \${editingPersonaIndex+1}`;
+    t.textContent = `✨ Your Persona — Slot \${editingPersonaIndex+1}`;
   }
 }
 
@@ -2564,8 +2564,10 @@ function savePersona(){
   allPersonas[editingPersonaIndex] = newP;
   saveAllPersonas();
 
-  // Always set as active if it's the first persona or same slot
-  if(editingPersonaIndex === activePersonaIndex || allPersonas.length === 1){
+  // Auto-activate: if this is the very first persona ever created (slot 0, no others),
+  // or if saving into the currently active slot, keep it active.
+  const isFirstEver = allPersonas.filter(Boolean).length === 1;
+  if(isFirstEver || editingPersonaIndex === activePersonaIndex){
     activePersonaIndex = editingPersonaIndex;
     userPersona = newP;
     localStorage.setItem('active_persona_idx', activePersonaIndex);
@@ -3064,6 +3066,8 @@ async function sendMessage(){
   document.getElementById('send-btn').disabled=true;
   showTyping();
   const cutOffPrefix = wasCutOff ? getCutOffReaction(currentBF) + '\n\n' : '';
+  // Check explicit relationship intent BEFORE sending to AI
+  detectExplicitRelationshipIntent(text);
   await callGemini(text, cutOffPrefix);
   document.getElementById('send-btn').disabled=false;
   // Check if now-dating confession should trigger
@@ -3077,6 +3081,113 @@ async function sendMessage(){
   checkWedding();
   // Check pre-written story plot events
   checkPlotEvents();
+}
+
+// ---- EXPLICIT RELATIONSHIP INTENT DETECTION ----
+// Fires when the user directly states a relationship status they want.
+// Immediately updates the relationship meter without waiting for gates.
+function detectExplicitRelationshipIntent(msg){
+  if(!currentBF) return;
+  const m = msg.toLowerCase();
+  const relData = getRelHealth(currentBF.id);
+  const current = relData.status;
+
+  // ---- DATING ----
+  const datingTriggers = [
+    "let's date","let's be together","i want to date","want to date you",
+    "be my boyfriend","be my girlfriend","be my partner","go out with me",
+    "we're dating","we are dating","officially dating","start dating",
+    "in a relationship with you","be in a relationship"
+  ];
+  // ---- MARRIED ----
+  const marriedTriggers = [
+    "marry me","will you marry","let's get married","we're married","we are married",
+    "i do","i want to marry you","be my wife","be my husband","be my spouse"
+  ];
+  // ---- ENGAGED ----
+  const engagedTriggers = [
+    "engaged","get engaged","will you be my fiance","be my fiancé","be my fiance"
+  ];
+  // ---- BREAK UP ----
+  const breakupTriggers = [
+    "break up","breaking up","we're done","we are done","it's over","it is over",
+    "let's end this","end things","don't want to be with you","want to break up",
+    "we should split","split up"
+  ];
+  // ---- JUST FRIENDS ----
+  const friendsTriggers = [
+    "just friends","only friends","want to be friends","let's be friends",
+    "friend zone","friendzone","stay friends","remain friends","go back to being friends"
+  ];
+
+  if(marriedTriggers.some(t => m.includes(t)) && !['married','fiance'].includes(current)){
+    const data = getRelHealth(currentBF.id);
+    data.status = 'married';
+    data.health = Math.max(data.health, 80);
+    data.tooltipMsg = 'You chose to be married.';
+    saveRelHealth(currentBF.id, data);
+    localStorage.setItem('married_'+currentBF.id, '1');
+    localStorage.setItem('proposed_'+currentBF.id, '1');
+    if(!localStorage.getItem('dating_since_msgs_'+currentBF.id))
+      localStorage.setItem('dating_since_msgs_'+currentBF.id, (chatHistory[currentBF.id]||[]).length.toString());
+    refreshRelMeter();
+    showHeartRain();
+    showToast('👑 You are now married!');
+    addMilestone(currentBF.id, 'You and '+currentBF.name.split(' ')[0]+' decided to get married.');
+    return;
+  }
+  if(engagedTriggers.some(t => m.includes(t)) && !['fiance','married'].includes(current)){
+    const data = getRelHealth(currentBF.id);
+    data.status = 'fiance';
+    data.health = Math.max(data.health, 75);
+    data.tooltipMsg = 'You got engaged.';
+    saveRelHealth(currentBF.id, data);
+    if(!localStorage.getItem('dating_since_msgs_'+currentBF.id))
+      localStorage.setItem('dating_since_msgs_'+currentBF.id, (chatHistory[currentBF.id]||[]).length.toString());
+    localStorage.setItem('proposed_'+currentBF.id, '1');
+    localStorage.setItem('engaged_since_msgs_'+currentBF.id, (chatHistory[currentBF.id]||[]).length.toString());
+    refreshRelMeter();
+    showHeartRain();
+    showToast('💍 You are now engaged!');
+    addMilestone(currentBF.id, 'You and '+currentBF.name.split(' ')[0]+' got engaged.');
+    return;
+  }
+  if(datingTriggers.some(t => m.includes(t)) && !['dating','fiance','married','complicated'].includes(current)){
+    const data = getRelHealth(currentBF.id);
+    data.status = 'dating';
+    data.health = Math.max(data.health, 65);
+    data.tooltipMsg = '';
+    saveRelHealth(currentBF.id, data);
+    localStorage.setItem('dating_since_msgs_'+currentBF.id, (chatHistory[currentBF.id]||[]).length.toString());
+    refreshRelMeter();
+    showHeartRain();
+    showToast('💗 You are now dating!');
+    addMilestone(currentBF.id, 'You and '+currentBF.name.split(' ')[0]+' started dating.');
+    return;
+  }
+  if(breakupTriggers.some(t => m.includes(t)) && ['dating','fiance','married','complicated'].includes(current)){
+    const data = getRelHealth(currentBF.id);
+    data.status = 'broken_up';
+    data.health = Math.max(10, data.health - 30);
+    data.tooltipMsg = 'You broke up. The wound is fresh.';
+    saveRelHealth(currentBF.id, data);
+    refreshRelMeter();
+    showBrokenHeartRain();
+    showToast('💔 You broke up.');
+    addMilestone(currentBF.id, 'You and '+currentBF.name.split(' ')[0]+' broke up.');
+    return;
+  }
+  if(friendsTriggers.some(t => m.includes(t)) && ['dating','fiance','married','complicated','broken_up'].includes(current)){
+    const data = getRelHealth(currentBF.id);
+    data.status = null; // back to pre-dating stage-based status
+    data.health = Math.max(20, data.health - 20);
+    data.tooltipMsg = 'You decided to just be friends. It is awkward.';
+    saveRelHealth(currentBF.id, data);
+    refreshRelMeter();
+    showToast('🤝 Back to being friends.');
+    addMilestone(currentBF.id, 'You and '+currentBF.name.split(' ')[0]+' decided to be just friends.');
+    return;
+  }
 }
 
 function addMessage(role,content){
