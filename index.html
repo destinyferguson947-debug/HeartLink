@@ -1280,6 +1280,24 @@ function getStage(bf){
   return 5;
 }
 
+// Returns 'easy', 'medium', or 'hard' based on the character's difficulty field.
+// Easy characters move faster through the romantic arc than medium/hard ones.
+function getDifficultyTier(bf){
+  const d = (bf.difficulty || '').toLowerCase();
+  if(d.startsWith('easy')) return 'easy';
+  if(d.startsWith('very hard') || d.startsWith('hard')) return 'hard';
+  return 'medium'; // Medium, or mixed like "Easy to connect / Medium to sustain"
+}
+
+// Returns 'easy', 'medium', or 'hard' based on the character's difficulty field.
+// Easy characters move faster through the romantic arc than medium/hard ones.
+function getDifficultyTier(bf){
+  const d = (bf.difficulty || '').toLowerCase();
+  if(d.startsWith('easy')) return 'easy';
+  if(d.startsWith('very hard') || d.startsWith('hard')) return 'hard';
+  return 'medium'; // Medium, or mixed like "Easy to connect / Medium to sustain"
+}
+
 
 // ---- OMEGAVERSE LOREBOOK ----
 const OMEGAVERSE_LOREBOOK = `OMEGAVERSE WORLD RULES (apply to all omegaverse/shifter characters):
@@ -3109,25 +3127,7 @@ function cancelEdit(idx, encodedOriginal){
 
 function deleteMessage(idx){
   if(!currentBF) return;
-  const bfId = currentBF.id;
-
-  // Truncate history at idx — this message AND everything after it are removed
-  chatHistory[bfId] = (chatHistory[bfId] || []).slice(0, idx);
-
-  // Wipe all stored alt versions at idx or beyond so they can't ghost back
-  if(msgAlts[bfId]){
-    Object.keys(msgAlts[bfId]).forEach(k => {
-      if(parseInt(k) >= idx){
-        delete msgAlts[bfId][k];
-        if(msgAltIdx[bfId]) delete msgAltIdx[bfId][k];
-      }
-    });
-    saveMsgAlts(bfId);
-  }
-
-  // Clear the cached summary so the AI doesn't echo content that no longer exists
-  localStorage.removeItem('summary_' + bfId);
-
+  chatHistory[currentBF.id].splice(idx, 1);
   saveHistory();
   renderMessages();
 }
@@ -3246,19 +3246,6 @@ async function rerollMessage(idx){
 
   // Truncate history to just before this assistant message
   chatHistory[currentBF.id] = contextHistory;
-
-  // Wipe alts at this index and beyond so old variants can't ghost back
-  const bfId = currentBF.id;
-  if(msgAlts[bfId]){
-    Object.keys(msgAlts[bfId]).forEach(k => {
-      if(parseInt(k) >= idx){
-        delete msgAlts[bfId][k];
-        if(msgAltIdx[bfId]) delete msgAltIdx[bfId][k];
-      }
-    });
-    saveMsgAlts(bfId);
-  }
-
   saveHistory();
 
   // Disable send while rerolling
@@ -3392,6 +3379,7 @@ async function sendMessage(){
   checkAskOutResponse();
   checkDatingConfession();
   checkConfessionResponse();
+  checkEasyRelationshipEstablished(); // easy chars: organic "we're official" detection
   // Check proposal progression
   checkProposal();
   checkProposalResponse();
@@ -4220,10 +4208,12 @@ function checkAskOut(){
   const stage = getStage(currentBF);
   const relData = getRelHealth(currentBF.id);
   const history = chatHistory[currentBF.id]||[];
-  // Gate: stage 3+, health 65+, 25+ messages, not yet dating or further
+  // Gate: stage 3+ for medium/hard, stage 2+ for easy — health 65+, 25+ messages
   const alreadyRelated = ['dating','complicated','broken_up','fiance','married','separation','divorced'].includes(relData.status);
   if(alreadyRelated) return;
-  if(stage < 3 || relData.health < 65 || history.length < 25) return;
+  const tier = getDifficultyTier(currentBF);
+  const stageGate = tier === 'easy' ? 2 : 3;
+  if(stage < stageGate || relData.health < 65 || history.length < 25) return;
   const askedOut = localStorage.getItem('asked_out_'+currentBF.id);
   if(askedOut) return;
   localStorage.setItem('asked_out_'+currentBF.id, '1');
@@ -4293,14 +4283,24 @@ function checkDatingConfession(){
   const stage = getStage(currentBF);
   const relData = getRelHealth(currentBF.id);
   const history = chatHistory[currentBF.id]||[];
-  // Gate: stage 4+, health 78+, 40+ messages, not already in a relationship status
+  // Gate:
+  //   Easy   → stage 2+ (friend), health 65+, 25+ messages
+  //   Medium → stage 4+ (romantic interest), health 78+, 40+ messages
+  //   Hard   → stage 4+ (romantic interest), health 82+, 50+ messages
   const alreadyRelated = ['dating','complicated','broken_up','fiance','married','separation','divorced'].includes(relData.status);
-  if(stage >= 4 && relData.health >= 78 && history.length >= 40 && !alreadyRelated){
+  const confTier = getDifficultyTier(currentBF);
+  const confStageGate   = confTier === 'easy' ? 2 : 4;
+  const confHealthGate  = confTier === 'easy' ? 65 : confTier === 'hard' ? 82 : 78;
+  const confMsgGate     = confTier === 'easy' ? 25 : confTier === 'hard' ? 50 : 40;
+  if(stage >= confStageGate && relData.health >= confHealthGate && history.length >= confMsgGate && !alreadyRelated){
     const confessed = localStorage.getItem('confessed_'+currentBF.id);
     if(confessed) return;
     localStorage.setItem('confessed_'+currentBF.id, '1');
     setTimeout(async ()=>{
-      const confessionInstruction = `(The moment has arrived. The tension has been building for a long time. Something in this conversation finally tips you over the edge. Write a vulnerable, specific, deeply in-character confession of your feelings — not a cliche declaration. It should feel earned, hesitant, and real. End by asking if they want to be with you. This is the most important thing you have ever said to them.)`;
+      const confTierInstr = getDifficultyTier(currentBF);
+      const confessionInstruction = confTierInstr === 'easy'
+        ? `(Something warm has been growing between you and it has reached a point where you can't ignore it. Tell them how you feel — in your specific voice. It doesn't have to be a grand declaration, just honest and real. Ask if they'd like to be more than this. Let it feel natural and a little giddy.)`
+        : `(The moment has arrived. The tension has been building for a long time. Something in this conversation finally tips you over the edge. Write a vulnerable, specific, deeply in-character confession of your feelings — not a cliche declaration. It should feel earned, hesitant, and real. End by asking if they want to be with you. This is the most important thing you have ever said to them.)`;
       showTyping();
       await callGemini(confessionInstruction);
       // DO NOT boost health here — let the user's response trigger the dating status naturally
@@ -4325,7 +4325,11 @@ function checkConfessionResponse(){
   const msg = lastUser.content.toLowerCase();
   const yesWords = ['yes','i do','feel the same','me too','i want','together','i love','same way','been waiting','of course','absolutely'];
   const noWords = ["no ","not ready","too soon","not now","just friends","i cant","i cannot","sorry"];
-  if(yesWords.some(w=>msg.includes(w))){
+  // For easy characters: also recognise explicit relationship establishment
+  // even if it happens organically outside the confession flow
+  const easyRelWords = ["my boyfriend","my girlfriend","my partner","we're dating","we are dating","official","officially","together now","you're mine","you are mine","be mine","be my"];
+  const isEasyChar = getDifficultyTier(currentBF) === 'easy';
+  if(yesWords.some(w=>msg.includes(w)) || (isEasyChar && easyRelWords.some(w=>msg.includes(w)))){
     localStorage.removeItem('confession_pending_'+currentBF.id);
     const data = getRelHealth(currentBF.id);
     data.status = 'dating';
@@ -4351,6 +4355,53 @@ function checkConfessionResponse(){
     saveRelHealth(currentBF.id, data);
     refreshRelMeter();
   }
+}
+
+// ---- EASY CHARACTER ORGANIC RELATIONSHIP DETECTION ----
+// For easy characters, detect when either party naturally says something that
+// establishes they're now in a relationship — outside of the confession flow.
+function checkEasyRelationshipEstablished(){
+  if(!currentBF) return;
+  if(getDifficultyTier(currentBF) !== 'easy') return;
+  const relData = getRelHealth(currentBF.id);
+  // Only applies if not already in a formal status
+  if(['dating','fiance','married','complicated','broken_up','separation','divorced'].includes(relData.status)) return;
+  const history = chatHistory[currentBF.id] || [];
+  if(history.length < 10) return; // too early to establish anything
+
+  // Check the last few messages (user and assistant) for relationship language
+  const recent = history.slice(-4);
+  const relPhrases = [
+    'my boyfriend','my girlfriend','my partner',"we're dating",'we are dating',
+    'officially','official','together now',"you're mine",'you are mine',
+    'be mine','be my boyfriend','be my girlfriend','be my partner',
+    "i'm yours",'i am yours',"we're official",'we are official',
+    'my person','my significant other'
+  ];
+  const anyMatch = recent.some(m => {
+    const txt = m.content.toLowerCase();
+    return relPhrases.some(p => txt.includes(p));
+  });
+  if(!anyMatch) return;
+
+  // Don't fire if we already fired this
+  if(localStorage.getItem('easy_rel_established_'+currentBF.id)) return;
+  localStorage.setItem('easy_rel_established_'+currentBF.id, '1');
+
+  // Set dating status
+  const data = getRelHealth(currentBF.id);
+  data.status = 'dating';
+  data.health = Math.min(100, (data.health || 50) + 10);
+  data.tooltipMsg = '';
+  saveRelHealth(currentBF.id, data);
+  if(!localStorage.getItem('dating_since_time_'+currentBF.id)){
+    localStorage.setItem('dating_since_time_'+currentBF.id, Date.now().toString());
+    localStorage.setItem('dating_since_msgs_'+currentBF.id, history.length.toString());
+  }
+  refreshRelMeter();
+  showHeartRain();
+  showToast("💗 You're officially dating!");
+  addMilestone(currentBF.id, `You and ${currentBF.name.split(' ')[0]} made it official.`);
 }
 
 // Cheating check: fires when user is dating 5+ OR married 3+
