@@ -2928,7 +2928,7 @@ function openChat(id){
       <div class="chat-header-clickable" id="header-clickable" onclick="toggleHeaderDropdown(event)">
         <div class="chat-header-emoji ${avatarWrapClass}" style="overflow:hidden">${avatarHtml}</div>
         <div>
-          <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" style="font-size:0.65rem;font-weight:400;color:var(--rose);margin-left:8px;opacity:0.85;">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
+          <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" style="font-size:0.78rem;font-weight:500;color:var(--rose);margin-left:10px;letter-spacing:0.01em;">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
           <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx, relData.health)} · ${bf.difficulty||bf.tag}</div>
         </div>
         <div class="chat-header-dropdown" id="header-dropdown">
@@ -3916,9 +3916,15 @@ function getDatingDuration(bfId){
   if(!startTime) return '';
   const realMs = Date.now() - startTime;
   const realDays = realMs / (1000*60*60*24);
-  // 1 real day = 1 in-game month
+  // 1 real day = 1 in-game month; 1 real hour ≈ 1.25 in-game days
   const totalMonths = Math.floor(realDays);
-  if(totalMonths < 1) return '< 1 month';
+  if(totalMonths < 1){
+    // Show in-game days: 1 real day has 30 in-game days, so scale hours → days
+    const realHours = realMs / (1000*60*60);
+    const inGameDays = Math.floor(realHours * (30/24));
+    if(inGameDays < 1) return 'day 1';
+    return inGameDays === 1 ? '1 day' : inGameDays + ' days';
+  }
   const years = Math.floor(totalMonths/12);
   const months = totalMonths % 12;
   if(years === 0) return totalMonths === 1 ? '1 month' : totalMonths+' months';
@@ -4434,15 +4440,15 @@ function scheduleAutoMsg(bfId){
     const stage = getStage(bf);
     const stageCtx = STAGES[stage];
     const instruction = `(The user has been away for about an hour. Pick up the scene creatively — do a small time-skip or show what you've been doing. Don't ask where they went. Just continue naturally in a way that invites them back into the moment. Your relationship stage is: ${stageCtx}. Make it feel real and lived-in.)`;
-    if(bfId === currentBF?.id){
-      showTyping();
-      // Temporarily switch currentBF context
-      const savedCurrent = currentBF;
-      await callGeminiForBF(bf, instruction);
-    } else {
-      // Off-screen: generate and save, then notify
-      await generateAndSaveAutoMsg(bf, instruction);
-      sendBrowserNotif(bf.name.split(' ')[0], `${bf.name.split(' ')[0]} continued the story while you were away...`, bf.id);
+    // Always use generateAndSaveAutoMsg — never mutate currentBF via callGeminiForBF
+    // to avoid race conditions when multiple timers fire around the same time.
+    const firstName = bf.name.split(' ')[0];
+    if(bfId === currentBF?.id) showTyping();
+    await generateAndSaveAutoMsg(bf, instruction);
+    if(bfId === currentBF?.id) hideTyping();
+    // Only send notification if user is NOT currently looking at this character
+    if(bfId !== currentBF?.id || !document.hasFocus()){
+      sendBrowserNotif(firstName, `${firstName} continued the story while you were away...`, bf.id);
     }
     // Schedule 2hr timer after 1hr fires
     scheduleAutoMsg2hr(bfId);
@@ -4569,12 +4575,12 @@ function scheduleAwayMsg(bfId){
 
     const prompt = awayPrompts[stage] ?? awayPrompts[2];
 
-    if(bfId === currentBF?.id){
-      showTyping();
-      await callGeminiForBF(bf, prompt);
-    } else {
-      await generateAndSaveAutoMsg(bf, prompt);
-      const firstName = bf.name.split(' ')[0];
+    // Always use generateAndSaveAutoMsg to avoid currentBF race conditions
+    const firstName = bf.name.split(' ')[0];
+    if(bfId === currentBF?.id) showTyping();
+    await generateAndSaveAutoMsg(bf, prompt);
+    if(bfId === currentBF?.id) hideTyping();
+    if(bfId !== currentBF?.id || !document.hasFocus()){
       sendBrowserNotif(firstName, `${firstName} is thinking about you 💭`, bfId);
     }
 
