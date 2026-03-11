@@ -2836,6 +2836,9 @@ function confirmNewChat(bfId){
   localStorage.removeItem('bday_wait_start_msgs_'+bfId);
   localStorage.removeItem('cal_dates_'+bfId);
   localStorage.removeItem('msg_alts_'+bfId);
+  localStorage.removeItem('last_plot_msg_'+bfId);
+  localStorage.removeItem('stag_thresh_'+bfId);
+  localStorage.removeItem('dyn_scene_last_'+bfId);
   if(msgAlts[bfId]) { msgAlts[bfId]={}; msgAltIdx[bfId]={}; }
   // Clear all fired plot events for this character
   const allPlotKeys = Object.keys(localStorage).filter(k => k.startsWith('plot_'));
@@ -6137,6 +6140,66 @@ function getPendingPlot(bfId){ return localStorage.getItem('pending_plot_'+bfId)
 function setPendingPlot(bfId, evId){ localStorage.setItem('pending_plot_'+bfId, evId); }
 function clearPendingPlot(bfId){ localStorage.removeItem('pending_plot_'+bfId); }
 
+// ── Stagnation tracking ──────────────────────────────────────────────────
+// Records the message count when the last plot event fired for this character.
+// Used to detect when the story hasn't moved in 15-20 messages.
+function getLastPlotMsg(bfId){ return parseInt(localStorage.getItem('last_plot_msg_'+bfId)||'0'); }
+function setLastPlotMsg(bfId, msgCount){ localStorage.setItem('last_plot_msg_'+bfId, msgCount.toString()); }
+// Randomized stagnation threshold: 15-20 messages between events
+function getStagnationThreshold(bfId){
+  const key = 'stag_thresh_'+bfId;
+  const stored = parseInt(localStorage.getItem(key)||'0');
+  if(stored >= 15 && stored <= 20) return stored;
+  const t = 15 + Math.floor(Math.random()*6); // 15-20
+  localStorage.setItem(key, t.toString());
+  return t;
+}
+function resetStagnationThreshold(bfId){
+  const t = 15 + Math.floor(Math.random()*6);
+  localStorage.setItem('stag_thresh_'+bfId, t.toString());
+  return t;
+}
+
+// Generate a dynamic story scene when no pre-written events remain.
+// Asks the AI to produce a scene appropriate for the current status + mood.
+async function generateDynamicScene(bfId, status, stage, recentExchange){
+  const bf = savedBFs.find(b=>b.id===bfId) || BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return null;
+  const firstName = bf.name.split(' ')[0];
+  const relData = getRelHealth(bfId);
+  const mood = getMood(bfId) || 'baseline';
+  const statusLabel = {
+    dating:'in a committed relationship',
+    fiance:'engaged to be married',
+    married:'married',
+    complicated:'in a complicated situation',
+  }[status] || 'together';
+
+  const genPrompt = `You are writing a story scene for a roleplay between ${firstName} and their partner. They are currently ${statusLabel}. ${firstName}'s mood right now is: ${mood}.
+
+RECENT CONVERSATION:
+${recentExchange}
+
+The story has been in the same place for a while and needs to move forward. Write a BRIEF story director note (in parentheses, written as an instruction to ${firstName}) for a NEW scene or moment that:
+- Feels completely natural given what they were just talking about
+- Introduces a meaningful development, complication, tender moment, or surprise
+- Is specific to ${firstName}'s personality and their relationship stage
+- Can be a time-skip into a new scene, an unexpected visitor, a piece of news, a confession, a conflict, a small intimate moment, or anything that creates narrative momentum
+- Is NOT a generic scene — it must feel earned by this specific relationship
+
+Reply ONLY with the parenthetical instruction, nothing else. Example format:
+(STORY EVENT — [TITLE]: [Scene description in second person, 3-5 sentences, telling ${firstName} what to do and how to feel.])`;
+
+  try{
+    const result = await callAnyAPI(
+      `You are a creative writing director for a romantic story involving ${firstName}.`,
+      [{role:'user', content:genPrompt}],
+      400, 1.0
+    );
+    return result.trim();
+  } catch(e){ return null; }
+}
+
 async function checkPlotEvents(){
   if(!currentBF || (!apiKey && !proxyMode)) return;
   const bfId = currentBF.id;
@@ -6146,14 +6209,23 @@ async function checkPlotEvents(){
   const history = chatHistory[bfId] || [];
   const totalMsgs = history.length;
 
-  // Find eligible events for this character that haven't fired yet
+  // ── Stagnation check ─────────────────────────────────────────────────────
+  // If 15-20 messages have passed since the last plot event, force one through
+  // regardless of context gate. This prevents the story getting stuck in one scene.
+  const lastPlotMsg = getLastPlotMsg(bfId);
+  const msgsSinceLastEvent = totalMsgs - lastPlotMsg;
+  const stagnationThreshold = getStagnationThreshold(bfId);
+  const isStagnant = lastPlotMsg > 0
+    ? msgsSinceLastEvent >= stagnationThreshold
+    : totalMsgs >= stagnationThreshold; // no event ever fired — use absolute count
+
+  // Find eligible pre-written events for this character that haven't fired yet
   const eligible = PLOT_EVENTS.filter(ev => {
     if(ev.bfId !== bfId) return false;
     if(getPlotFired(ev.id)) return false;
     // Stage-based events
     if(ev.stage !== undefined){
       if(stage !== ev.stage) return false;
-      // Count messages at this stage (approximate: use stage thresholds)
       const stageThresholds = [0,10,30,60,100,160];
       const stageStart = stageThresholds[ev.stage] || 0;
       const msgsInStage = totalMsgs - stageStart;
@@ -6167,26 +6239,52 @@ async function checkPlotEvents(){
     return true;
   });
 
-  if(eligible.length === 0) return;
-
-  // Resolve which event to consider: prefer a previously-deferred one if still eligible
-  const pendingId = getPendingPlot(bfId);
-  let candidate = null;
-  if(pendingId){
-    candidate = eligible.find(ev => ev.id === pendingId) || null;
-  }
-  if(!candidate) candidate = eligible[0];
-
-  // ── CONTEXT GATE ─────────────────────────────────────────────────────────
-  // Ask the AI silently: is this a natural moment to transition into a new scene?
-  // We give it the last 3 exchanges and a yes/no prompt.
-  // If it says no, we defer and check again next message.
+  // Build the recent exchange string (used by both context gate and dynamic gen)
   const recentHistory = history.slice(-6);
   const lastExchange = recentHistory
     .map(m => (m.role === 'user' ? 'Them' : 'You') + ': ' + m.content.substring(0,150))
     .join('\n');
 
-  const contextCheckPrompt = `You are a story director reviewing a conversation. Your job is to decide whether NOW is a good moment to introduce a pre-written story scene, or whether the conversation is in the middle of something that would make a scene transition feel jarring and confusing.
+  // ── No pre-written events left — generate a dynamic scene if stagnant ────
+  if(eligible.length === 0){
+    if(!isStagnant) return; // not stagnant yet, nothing to do
+    // Only fire dynamic scenes for romantic/active statuses
+    if(!['dating','fiance','married','close','partner'].includes(status) && stage < 3) return;
+    // Rate-limit dynamic scenes: don't fire more than once per stagnation window
+    const dynKey = 'dyn_scene_last_'+bfId;
+    const lastDyn = parseInt(localStorage.getItem(dynKey)||'0');
+    if(totalMsgs - lastDyn < stagnationThreshold) return;
+
+    localStorage.setItem(dynKey, totalMsgs.toString());
+    resetStagnationThreshold(bfId);
+    setLastPlotMsg(bfId, totalMsgs);
+
+    setTimeout(async () => {
+      if(currentBF?.id !== bfId) return;
+      showTyping();
+      const dynScene = await generateDynamicScene(bfId, status, stage, lastExchange);
+      if(!dynScene){ hideTyping(); return; }
+      const freshHistory = (chatHistory[bfId] || []).slice(-4);
+      const freshExchange = freshHistory.map(m => (m.role === 'user' ? 'Them: ' : 'You: ') + m.content.substring(0,120)).join('\n');
+      const bridgePrompt = `(IMPORTANT TRANSITION INSTRUCTION: Before launching into the story scene below, write a natural bridge — 1-3 sentences — that transitions smoothly from what you were just discussing. Use a brief time-skip or scene change if needed. Here is the recent context:\n${freshExchange}\n\nNow bridge into this scene:)\n\n${dynScene}`;
+      await callGemini(bridgePrompt);
+      addMilestone(bfId, 'The story moved forward in an unexpected direction.');
+      boostRelHealth(bfId, 4);
+      forceMood(bfId, pickMood(bfId, 65));
+    }, 2500);
+    return;
+  }
+
+  // Resolve which pre-written event to consider
+  const pendingId = getPendingPlot(bfId);
+  let candidate = null;
+  if(pendingId) candidate = eligible.find(ev => ev.id === pendingId) || null;
+  if(!candidate) candidate = eligible[0];
+
+  // ── CONTEXT GATE — skipped entirely if story is stagnant ─────────────────
+  let contextOk = true;
+  if(!isStagnant){
+    const contextCheckPrompt = `You are a story director reviewing a conversation. Your job is to decide whether NOW is a good moment to introduce a pre-written story scene, or whether the conversation is in the middle of something that would make a scene transition feel jarring and confusing.
 
 RECENT CONVERSATION:
 ${lastExchange}
@@ -6197,37 +6295,40 @@ QUESTION: Is the conversation currently at a natural pause, resolution, or trans
 
 Reply with ONLY one word: YES (good moment to introduce the scene) or NO (conversation is still going somewhere, defer the scene).`;
 
-  let contextOk = true; // default to allowing if check fails
-  try {
-    const answer = (await callAnyAPI('You are a story director.', [{role:'user',content:contextCheckPrompt}], 5, 0.0)).trim().toUpperCase();
-    contextOk = answer.startsWith('Y');
-  } catch(e){ contextOk = true; } // on error, allow
+    try {
+      const answer = (await callAnyAPI('You are a story director.', [{role:'user',content:contextCheckPrompt}], 5, 0.0)).trim().toUpperCase();
+      contextOk = answer.startsWith('Y');
+    } catch(e){ contextOk = true; }
+  }
+  // If stagnant, always fire — story must move forward
+  // (bridge prompt will handle the transition gracefully)
 
   if(!contextOk){
-    // Defer: remember this event is waiting, try again next message
     setPendingPlot(bfId, candidate.id);
     return;
   }
 
-  // Context is good — fire the event
+  // ── Fire the event ────────────────────────────────────────────────────────
   clearPendingPlot(bfId);
   markPlotFired(candidate.id);
+  setLastPlotMsg(bfId, totalMsgs);
+  resetStagnationThreshold(bfId); // pick a new random window for next event
 
-  // Small delay so it feels natural after the conversation
   setTimeout(async () => {
-    if(currentBF?.id !== bfId) return; // user switched characters
+    if(currentBF?.id !== bfId) return;
     showTyping();
-    // Build a context-bridging prompt that wraps the plot event
     const freshHistory = (chatHistory[bfId] || []).slice(-4);
     const freshExchange = freshHistory.map(m => (m.role === 'user' ? 'Them: ' : 'You: ') + m.content.substring(0, 120)).join('\n');
-    const bridgePrompt = `(IMPORTANT TRANSITION INSTRUCTION: Before launching into the story scene below, you must first write a natural bridge — 1 to 3 sentences — that acknowledges what you were just talking about and transitions gracefully into the story event. This might be a brief time-skip ("A few days later..." or "The following week..."), a scene change ("You meet up the next afternoon..."), or simply a natural conversational moment that flows into the new scene. The bridge must make the story event feel like it belongs in the continuous story, not like a random interruption. Never start the scene abruptly. Here is what you were just discussing for context:\n${freshExchange}\n\nNow write your bridge, then deliver the full story scene:)\n\n${candidate.prompt}`;
+    // If stagnant, use a stronger time-skip bridge instruction
+    const bridgeInstruction = isStagnant
+      ? `(STORY PROGRESSION — the conversation has been in the same place for a while. You MUST move the story forward now. Write a brief time-skip or scene transition first (e.g. "A few days later...", "That evening...", "The following week..."), then deliver the scene below with your full personality and presence. Here is what was last discussed:\n${freshExchange}\n\nNow move the story forward into this scene:)`
+      : `(IMPORTANT TRANSITION INSTRUCTION: Before launching into the story scene below, you must first write a natural bridge — 1 to 3 sentences — that acknowledges what you were just talking about and transitions gracefully into the story event. This might be a brief time-skip ("A few days later..." or "The following week..."), a scene change ("You meet up the next afternoon..."), or simply a natural conversational moment that flows into the new scene. The bridge must make the story event feel like it belongs in the continuous story, not like a random interruption. Never start the scene abruptly. Here is what you were just discussing for context:\n${freshExchange}\n\nNow write your bridge, then deliver the full story scene:)`;
+    const bridgePrompt = bridgeInstruction + '\n\n' + candidate.prompt;
     await callGemini(bridgePrompt);
-    // Record as a milestone
     const typeLabel = candidate.type === 'together' ? 'A moment drew you closer.' :
                       candidate.type === 'sweet'    ? 'A tender moment you will not forget.' :
                                                       'Something happened that complicated everything.';
     addMilestone(bfId, typeLabel);
-    // Relationship effect + mood shift
     if(candidate.type === 'together'){ boostRelHealth(bfId, 6); forceMood(bfId, pickMood(bfId, 80)); }
     else if(candidate.type === 'sweet'){ boostRelHealth(bfId, 8); forceMood(bfId, 'tender'); }
     else if(candidate.type === 'complicate'){
