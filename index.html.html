@@ -3019,7 +3019,7 @@ async function sendGreeting(){
 
   // If character has a preset first message, use it directly (no API call)
   if(bf.firstMessage && bf.firstMessage.trim()){
-    addMessage('assistant', bf.firstMessage.trim());
+    addMessage('assistant', bf.firstMessage.trim(), true);
     return;
   }
 
@@ -3027,7 +3027,7 @@ async function sendGreeting(){
   const greetingInstruction = bf.stageRules
     ? `(This is the very first moment you encounter the user in your scenario. Open exactly as your Stage 1 behavior describes — stay true to your character's personality and the scenario. Do not be generically warm if your character wouldn't be. Begin the scene naturally and specifically. Write 3-5 sentences. Use sensory detail and atmosphere. The user's name is ${userName}.)`
     : `(Open the conversation naturally as your character based on the scenario. Write 3-5 sentences. Be specific and atmospheric — no generic greetings. The user's name is ${userName}.)`;
-  await callGemini(greetingInstruction);
+  await callGemini(greetingInstruction, '', true);
 }
 
 function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMessage(); } }
@@ -3138,14 +3138,15 @@ async function sendMessage(){
   await checkPlotEvents();
 }
 
-function addMessage(role,content){
+function addMessage(role,content,isGreeting=false){
   if(!currentBF) return;
   if(!chatHistory[currentBF.id]) chatHistory[currentBF.id]=[];
   chatHistory[currentBF.id].push({role,content});
   saveHistory();
   renderMessages();
   // Boost health when assistant sends a meaningful message (engagement)
-  if(role === 'assistant'){
+  // Skip on the opening greeting — it fires on a fresh/reset chat before any real interaction
+  if(role === 'assistant' && !isGreeting){
     onAssistantMessageSent();
     maybeShiftMood();
     // Restart auto-msg timer — they just got a response, clock resets
@@ -3184,7 +3185,7 @@ function showTyping(){
 }
 function hideTyping(){ document.getElementById('typing-msg')?.remove(); }
 
-async function callGemini(userMessage, responsePrefix=''){
+async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   if(!currentBF) return;
   // Regenerate system prompt fresh (picks up latest stage + persona)
   const systemPrompt = generateSystemPrompt(currentBF);
@@ -3243,7 +3244,7 @@ async function callGemini(userMessage, responsePrefix=''){
       return;
     }
     const reply=data.candidates?.[0]?.content?.parts?.[0]?.text||'...';
-    addMessage('assistant', responsePrefix + reply);
+    addMessage('assistant', responsePrefix + reply, isGreeting);
 
     // Detect happy/positive responses → trigger heart rain briefly
     const lowerReply = reply.toLowerCase();
