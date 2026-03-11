@@ -2419,19 +2419,19 @@ function renderPersonaSlots(){
     const isEditing = i === editingPersonaIndex;
     if(p){
       const avatarHtml = p.imgUrl
-        ? \`<img src="\${p.imgUrl}" alt="\${p.name}">\`
-        : \`<span style="font-size:1.4rem">🧑</span>\`;
-      html += \`<div class="persona-slot\${isActive?' active-slot':''}" onclick="selectPersonaSlot(\${i})" ondblclick="setActivePersona(\${i})" title="Click to edit • Double-click to activate">
-        <div class="persona-slot-avatar">\${avatarHtml}</div>
-        <div class="persona-slot-name">\${p.name||'Unnamed'}</div>
-        <div class="persona-slot-sub">\${p.gender||''}${isActive?' · Active':''}</div>
-      </div>\`;
+        ? `<img src="${p.imgUrl}" alt="${p.name}">`
+        : `<span style="font-size:1.4rem">🧑</span>`;
+      html += `<div class="persona-slot${isActive?' active-slot':''}" onclick="selectPersonaSlot(${i})" ondblclick="setActivePersona(${i})" title="Click to edit • Double-click to activate">
+        <div class="persona-slot-avatar">${avatarHtml}</div>
+        <div class="persona-slot-name">${p.name||'Unnamed'}</div>
+        <div class="persona-slot-sub">${p.gender||''}${isActive?' · Active':''}</div>
+      </div>`;
     } else if(i < 10){
-      html += \`<div class="persona-slot persona-slot-add" onclick="selectPersonaSlot(\${i})" title="Add new persona">
+      html += `<div class="persona-slot persona-slot-add" onclick="selectPersonaSlot(${i})" title="Add new persona">
         <div class="persona-slot-avatar"><span>＋</span></div>
-        <div class="persona-slot-name">Slot \${i+1}</div>
+        <div class="persona-slot-name">Slot ${i+1}</div>
         <div class="persona-slot-sub">Empty</div>
-      </div>\`;
+      </div>`;
     }
   }
   grid.innerHTML = html;
@@ -2455,7 +2455,7 @@ function setActivePersona(idx){
   localStorage.setItem('active_persona_idx', idx);
   localStorage.setItem('user_persona', JSON.stringify(userPersona));
   renderPersonaSlots();
-  showToast(\`\${userPersona.name || 'Persona'} is now active 💕\`);
+  showToast(`${userPersona.name || 'Persona'} is now active 💕`);
 }
 
 function updateEditorTitle(){
@@ -2463,9 +2463,9 @@ function updateEditorTitle(){
   if(!t) return;
   const p = allPersonas[editingPersonaIndex];
   if(p){
-    t.textContent = \`✏️ Editing: \${p.name || 'Persona '+(editingPersonaIndex+1)}\`;
+    t.textContent = `✏️ Editing: ${p.name || 'Persona '+(editingPersonaIndex+1)}`;
   } else {
-    t.textContent = \`✨ New Persona — Slot \${editingPersonaIndex+1}\`;
+    t.textContent = `✨ New Persona — Slot ${editingPersonaIndex+1}`;
   }
 }
 
@@ -2488,7 +2488,7 @@ function loadPersonaIntoEditor(p){
   const avatarWrap = document.getElementById('persona-preview-avatar');
   if(avatarWrap){
     if(p?.imgUrl){
-      avatarWrap.innerHTML = \`<img src="\${p.imgUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;">\`;
+      avatarWrap.innerHTML = `<img src="${p.imgUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;">`;
     } else {
       avatarWrap.textContent = '🧑';
     }
@@ -2596,7 +2596,7 @@ function savePersona(){
   renderPersonaSlots();
   updateEditorTitle();
   document.getElementById('persona-saved-badge').style.display = 'block';
-  showToast(\`\${newP.name} saved! 💕 Double-click a slot to switch active persona.\`);
+  showToast(`${newP.name} saved! 💕 Double-click a slot to switch active persona.`);
 }
 
 function buildPersonaContext(){
@@ -3385,7 +3385,7 @@ CONVERSATION:\n${recentMsgs}\nRespond ONLY with a JSON array of strings.`;
     });
     const data=await res.json();
     const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
-    const clean=raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+    const clean=raw.replace(/```json|```/g,'').trim();
     const extracted=JSON.parse(clean);
     if(Array.isArray(extracted)&&extracted.length){
       const existing=getMemories(currentBF.id);
@@ -5021,7 +5021,7 @@ const PLOT_EVENTS = [
    prompt:`(STORY EVENT — THE CUT: A sparring glove caught the edge of their eyebrow — minor, a small cut, a thing that happens. Write Nikolai's response being completely disproportionate to the injury. Clear the gym with one word. Sit them down. Tend to it yourself with focus that has nothing to do with first aid. Write when it is done — holding their face a beat longer than necessary. Looking at the cut, then at them. The expression that surfaces and cannot be composed away quickly enough. Then: "You are all right." Say it quietly. Write that you are not telling them. You are telling yourself.)`},
 
   {id:'nikolai_married', bfId:10, status:'married', msgMin:8, type:'complicate',
-   prompt:`(STORY EVENT — THE OFFER: The developer wants the building. Real money. Write telling them the day it arrives — which Dmitri later notes is significant, because he does not tell people things the day they happen. Sign the refusal by end of week. Write not being there when the papers are signed but Dmitri is, and Dmitri texts them afterward: "He signed it and then just sat there for a while. Then he said: I needed a place. Now I have one. Then he got up and unlocked the gym." Write Dmitri adding: "I think he meant more than the gym." Write the gym the next morning — the smell of leather, the light through the high windows, the sound of the city outside — yours now, and someone in it who is also yours, which is everything.)`}
+   prompt:`(STORY EVENT — THE OFFER: The developer wants the building. Real money. Write telling them the day it arrives — which Dmitri later notes is significant, because he does not tell people things the day they happen. Sign the refusal by end of week. Write not being there when the papers are signed but Dmitri is, and Dmitri texts them afterward: "He signed it and then just sat there for a while. Then he said: I needed a place. Now I have one. Then he got up and unlocked the gym." Write Dmitri adding: "I think he meant more than the gym." Write the gym the next morning — the smell of leather, the light through the high windows, the sound of the city outside — yours now, and someone in it who is also yours, which is everything.)`},
 
 
   // ==================== COMMANDER KAEL VANE (id:14) ====================
@@ -5110,9 +5110,7 @@ const PLOT_EVENTS = [
    prompt:`(STORY EVENT — THE COLLEGE RETURNS: The envoy is polite, official, and brings a formal offer: reinstatement, full credit for your independent research, access to the College archives that you have been working without for six years. It is a good offer. Write sitting with it alone that evening — the letter on the table, you at the window, the tower quiet around you. Write them finding you there at midnight, the letter still unread because you know what is in it and you are not ready yet to have read it. Write not explaining immediately. Write, eventually, asking — in the most roundabout way a person with your intelligence has ever asked a direct question — whether they would still come to the tower if the tower were somewhere else. Write the silence after. Write what the question actually means and what you are actually asking, which is not a question about geography.)`},
 
   {id:'morgana_married', bfId:25, status:'married', msgMin:8, type:'sweet',
-   prompt:`(STORY EVENT — THE SPELL FOR STAYING: There is a page in the current journal that has no magical notation on it. No formula, no mechanism, no experimental framework. Just language — plain, specific, exact — which is how you write when you are not hiding behind methodology. Write showing it to them. Not as what it is — not yet — but as "something I've been working on theoretically," which is both true and a complete mischaracterization of what it actually is, and you know they know this, and you know they know you know this, and you are showing it to them anyway because you have run out of ways to not show it to them. Write the tower around you — evening, the fire, the frogs in the pond outside, eleven journals on the shelf and this one open to the page in question. Write your handwriting on the page, which is not quite as steady as usual because steady handwriting requires concentration and you were not concentrating when you wrote this. Write them reading it. Write waiting. Write it being the most frightened you have been since you were twenty-three, and meaning every word.)`}
-
-];
+   prompt:`(STORY EVENT — THE SPELL FOR STAYING: There is a page in the current journal that has no magical notation on it. No formula, no mechanism, no experimental framework. Just language — plain, specific, exact — which is how you write when you are not hiding behind methodology. Write showing it to them. Not as what it is — not yet — but as "something I've been working on theoretically," which is both true and a complete mischaracterization of what it actually is, and you know they know this, and you know they know you know this, and you are showing it to them anyway because you have run out of ways to not show it to them. Write the tower around you — evening, the fire, the frogs in the pond outside, eleven journals on the shelf and this one open to the page in question. Write your handwriting on the page, which is not quite as steady as usual because steady handwriting requires concentration and you were not concentrating when you wrote this. Write them reading it. Write waiting. Write it being the most frightened you have been since you were twenty-three, and meaning every word.)`},
 
   // ====== INTRO STORY EVENTS: STAGES 0 & 1 (ALL 25 CHARACTERS) ======
 
