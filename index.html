@@ -2295,7 +2295,7 @@ function renderGrid(data){
         ${bf.difficulty ? `<div style="position:absolute;top:8px;left:8px;background:${diffColor[bf.difficulty]||'#c9667a'};color:#fff;font-size:0.68rem;font-weight:600;padding:3px 8px;border-radius:10px;letter-spacing:0.3px">${bf.difficulty}</div>` : ''}
       </div>
       <div class="bf-card-info">
-        <div class="bf-name">${bf.name}, ${getCharacterAge(bf)}</div>
+        <div class="bf-name">${bf.name}, ${bf.age}</div>
         <span class="bf-tag">${bf.tag}</span>
         <div class="bf-scenario">${bf.scenario.substring(0,72)}...</div>
         <button class="bf-chat-btn" onclick="event.stopPropagation();addAndChat(${bf.id})">💬 Chat with ${bf.name.split(' ')[0]}</button>
@@ -2472,8 +2472,7 @@ ${getMoodPrompt(bf.id)}`;
   const omegaTags = ['omegaverse','fantasy'];
   const isOmega = omegaTags.some(t => (bf.tag||'').includes(t)) || (bf.core||'').toLowerCase().includes('alpha') || (bf.core||'').toLowerCase().includes('omega') || (bf.core||'').toLowerCase().includes('shifter');
   const omegaLore = isOmega ? OMEGAVERSE_LOREBOOK : '';
-  const _currentAge = getCharacterAge(bf);
-  return `You are ${bf.name}, ${bf.age === -1 ? 'an ageless deity who appears 25' : _currentAge + ' years old'}. Personality: ${bf.personality}.
+  return `You are ${bf.name}, ${bf.age === -1 ? 'an ageless deity who appears 25' : bf.age + ' years old'}. Personality: ${bf.personality}.
 Scenario: ${bf.scenario}
 ${personaContext}
 
@@ -2886,6 +2885,8 @@ function renderSidebar(){
   }
   list.innerHTML=savedBFs.map(bf=>{
     const stageIdx=getStage(bf);
+    const _relD=getRelHealth(bf.id);
+    const _relTag=getRelLabel(_relD.status,stageIdx,_relD.health).replace(/^[\u{1F000}-\u{1FFFF}\u2600-\u27BF\s]+/u,'').trim();
     const avatarHtml = bf.image && !bf.image.startsWith('PLACEHOLDER')
       ? `<img src="${bf.image}" alt="${bf.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='🧑'">`
       : (bf.emoji||'🧑');
@@ -2894,7 +2895,7 @@ function renderSidebar(){
       <div class="saved-bf-emoji" style="overflow:hidden">${avatarHtml}</div>
       <div style="flex:1;min-width:0">
         <div class="saved-bf-name">${bf.name.split(' ')[0]}</div>
-        <div class="saved-bf-tag">${STAGES[stageIdx]}${bf.isCustom?' · custom':''}</div>
+        <div class="saved-bf-tag">${_relTag}${bf.isCustom?' · custom':''}</div>
         <div class="sidebar-actions" onclick="event.stopPropagation()">
           <button class="sidebar-btn new-chat" onclick="confirmNewChat(${bf.id})" title="Start fresh conversation">↺ New Chat</button>
           <button class="sidebar-btn del-chat" onclick="confirmDeleteBF(${bf.id})" title="Remove character">✕ Delete</button>
@@ -2927,7 +2928,7 @@ function openChat(id){
       <div class="chat-header-clickable" id="header-clickable" onclick="toggleHeaderDropdown(event)">
         <div class="chat-header-emoji ${avatarWrapClass}" style="overflow:hidden">${avatarHtml}</div>
         <div>
-          <div class="chat-header-name">${bf.name}, ${getCharacterAge(bf)} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" title="${getDatingDurationLong(bf.id)}" style="font-size:0.78rem;font-weight:500;color:var(--rose);margin-left:10px;opacity:0.92;cursor:default;border-bottom:1px dotted var(--rose);">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
+          <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" style="font-size:0.65rem;font-weight:400;color:var(--rose);margin-left:8px;opacity:0.85;">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
           <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx, relData.health)} · ${bf.difficulty||bf.tag}</div>
         </div>
         <div class="chat-header-dropdown" id="header-dropdown">
@@ -3914,34 +3915,15 @@ function getDatingDuration(bfId){
   const startTime = parseInt(localStorage.getItem('dating_since_time_'+bfId)||'0');
   if(!startTime) return '';
   const realMs = Date.now() - startTime;
-  // Scale: 1 real hour = 1 in-game day, 1 real day (24h) = 1 in-game month
-  const realHours = realMs / (1000*60*60);
-  const totalDays = Math.floor(realHours); // in-game days elapsed
-  const totalMonths = Math.floor(totalDays / 30); // 30 in-game days = 1 in-game month
-  const years = Math.floor(totalMonths / 12);
+  const realDays = realMs / (1000*60*60*24);
+  // 1 real day = 1 in-game month
+  const totalMonths = Math.floor(realDays);
+  if(totalMonths < 1) return '< 1 month';
+  const years = Math.floor(totalMonths/12);
   const months = totalMonths % 12;
-  const remainDays = totalDays % 30;
-  if(totalDays < 1) return 'just started';
-  if(totalMonths < 1){
-    return totalDays === 1 ? '1 day' : totalDays+' days';
-  }
-  if(years === 0){
-    if(months === 1 && remainDays === 0) return '1 month';
-    if(months > 0 && remainDays === 0) return months+' months';
-    if(months === 1) return '1 month, '+remainDays+(remainDays===1?' day':' days');
-    return months+' months'+(remainDays>0?', '+remainDays+(remainDays===1?' day':' days'):'');
-  }
-  const yStr = years+(years===1?' year':' years');
-  const mStr = months > 0 ? ', '+months+(months===1?' month':' months') : '';
-  return yStr+mStr;
-}
-
-// Full sentence version for hover tooltip
-function getDatingDurationLong(bfId){
-  const dur = getDatingDuration(bfId);
-  if(!dur) return '';
-  if(dur === 'just started') return 'You just started dating.';
-  return 'You have been dating for '+dur+'.';
+  if(years === 0) return totalMonths === 1 ? '1 month' : totalMonths+' months';
+  if(months === 0) return years === 1 ? '1 year' : years+' years';
+  return years+(years===1?' year':' years')+' '+months+(months===1?' month':' months');
 }
 
 
@@ -4185,7 +4167,6 @@ function refreshRelMeter(){
     if(['dating','fiance','married'].includes(relData.status)){
       const dur = getDatingDuration(currentBF.id);
       durBadge.textContent = '💗 '+dur;
-      durBadge.title = getDatingDurationLong(currentBF.id);
       durBadge.style.display='';
     } else {
       durBadge.style.display='none';
@@ -4199,7 +4180,6 @@ function onAssistantMessageSent(){
   boostRelHealth(currentBF.id, 2);
   checkBirthdayEvent();
   checkBirthdayWaiting();
-  checkCharacterDeath(currentBF.id);
 }
 
 // ---- ASK OUT SYSTEM ----
@@ -5126,76 +5106,6 @@ function forceMood(bfId, mood){
 // Each character's birthday is X real days from when chat first started.
 // 1 real day = 1 in-game month. Birthday is in year 1 so: 10-17 days from start.
 // We assign a fixed offset per bfId (so no two chars share a birthday offset).
-// Lifespan for each character (max real age before death event fires)
-// Range 60-100 — varies by character archetype. Fantasy/immortal chars get higher values.
-const CHARACTER_LIFESPAN = {
-  1:78,  // Elias Thorne — weathered professor, realistic lifespan
-  2:82,  // Kaelen Vance — healthy, social
-  3:75,  // Silas Vane — broody loner, neglects health
-  4:70,  // Julian Moretti — high-stress criminal past, shorter
-  5:88,  // Dr. Aris Chen — doctor, health-conscious
-  6:72,  // Soren Hall — rugged outdoorsman, hard life
-  7:85,  // Caspian Reed — artist, careful
-  8:68,  // Victor Crane — cold, high-stress corporate
-  9:90,  // Leo Sterling — intellectual, self-aware
-  10:76, // Nikolai Volkov — ex-military trauma
-  11:95, // Prince Yi-Sun — royal care, sheltered life
-  12:73, // Elias Vance — broody, self-destructive tendencies
-  13:88, // Julian Frost — easygoing, healthy
-  14:70, // Commander Kael Vane — military, combat exposure
-  15:92, // Dr. Aris Thorne — physician
-  16:100,// Soren (omegaverse) — Alpha biology, longer lived
-  17:65, // Minister Park Ji-min — historical era, shorter life expectancy
-  18:82, // Leo Sterling (MLM) — normal
-  19:72, // Nikolai Volkov (broody) — high trauma
-  20:86, // Jax — young, healthy
-  21:80, // Hana — historical but gentle life
-  22:100,// Elena Rossi (omegaverse) — Omega longevity
-  23:999,// Seraphina — immortal fantasy character, never dies
-  24:84, // Chloe Valentine
-  25:999,// Morgana — immortal fantasy witch, never dies
-};
-
-// Returns character's CURRENT age based on how many in-game years have passed.
-// 1 in-game year = BIRTHDAY_CYCLE_DAYS real days.
-function getCharacterAge(bf){
-  const bfId = bf.id;
-  const firstChat = parseInt(localStorage.getItem('first_chat_ts_'+bfId)||'0');
-  if(!firstChat) return bf.age; // no chat started, return base age
-  const realMs = Date.now() - firstChat;
-  const realDays = realMs / (1000*60*60*24);
-  const yearsElapsed = Math.floor(realDays / BIRTHDAY_CYCLE_DAYS);
-  return bf.age + yearsElapsed;
-}
-
-// Checks if a character has exceeded their lifespan — fires a death event once.
-function checkCharacterDeath(bfId){
-  if(localStorage.getItem('character_died_'+bfId)) return; // already fired
-  const bf = savedBFs.find(b=>b.id===bfId) || BF_DATA.find(b=>b.id===bfId);
-  if(!bf) return;
-  const lifespan = CHARACTER_LIFESPAN[bfId] || 80;
-  const currentAge = getCharacterAge(bf);
-  if(currentAge < lifespan) return;
-  localStorage.setItem('character_died_'+bfId, '1');
-  // Show a gentle, in-world farewell toast and lock chat
-  setTimeout(()=>{
-    const firstName = bf.name.split(' ')[0];
-    showToast('🕯️ '+firstName+' has passed away at '+currentAge+'.');
-    // Add a final message to chat
-    if(typeof addMessage === 'function'){
-      addMessage('assistant', `(${firstName} passed away peacefully at the age of ${currentAge}. They will not be forgotten.)`, false);
-    }
-    saveHistory();
-    renderMessages();
-    // Decay rel to a memorial state
-    const data = getRelHealth(bfId);
-    data.status = 'broken_up';
-    data.tooltipMsg = firstName+' passed away at age '+currentAge+'.';
-    saveRelHealth(bfId, data);
-    refreshRelMeter();
-  }, 2000);
-}
-
 const BIRTHDAY_OFFSETS = {
   // days from first_chat_ts when birthday occurs (within 10-17 range, varied)
   1:10, 2:17, 3:11, 4:16, 5:12, 6:15, 7:13, 8:14,
@@ -6178,20 +6088,7 @@ Reply with ONLY one word: YES (good moment to introduce the scene) or NO (conver
     // Build a context-bridging prompt that wraps the plot event
     const freshHistory = (chatHistory[bfId] || []).slice(-4);
     const freshExchange = freshHistory.map(m => (m.role === 'user' ? 'Them: ' : 'You: ') + m.content.substring(0, 120)).join('\n');
-    const _lastAiMsg = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
-    const _lastAiPreview = _lastAiMsg ? _lastAiMsg.content.substring(0,80) : '';
-    const bridgePrompt = `(IMPORTANT TRANSITION INSTRUCTION: You are about to deliver a story scene. Follow these rules exactly:
-1. DO NOT repeat, paraphrase, or echo your previous message in any way. Your last message began: "${_lastAiPreview}..." — do not reuse any of its phrasing, opening, or content.
-2. Write a SHORT bridge of 1-2 sentences ONLY — just enough to connect what came before to the new scene. A time-skip marker like "Three days later..." or a single line of physical action is enough.
-3. Then launch directly into the story scene below.
-4. The bridge must feel like the story is moving FORWARD, not recapping.
-
-Recent context (do NOT repeat this):
-${freshExchange}
-
-Now write the 1-2 sentence bridge, then the scene:)
-
-${candidate.prompt}`;
+    const bridgePrompt = `(IMPORTANT TRANSITION INSTRUCTION: Before launching into the story scene below, you must first write a natural bridge — 1 to 3 sentences — that acknowledges what you were just talking about and transitions gracefully into the story event. This might be a brief time-skip ("A few days later..." or "The following week..."), a scene change ("You meet up the next afternoon..."), or simply a natural conversational moment that flows into the new scene. The bridge must make the story event feel like it belongs in the continuous story, not like a random interruption. Never start the scene abruptly. Here is what you were just discussing for context:\n${freshExchange}\n\nNow write your bridge, then deliver the full story scene:)\n\n${candidate.prompt}`;
     await callGemini(bridgePrompt);
     // Record as a milestone
     const typeLabel = candidate.type === 'together' ? 'A moment drew you closer.' :
