@@ -2696,13 +2696,31 @@ function saveHistory(){ localStorage.setItem('chat_history',JSON.stringify(chatH
 function confirmNewChat(bfId){
   const bf = savedBFs.find(b=>b.id===bfId);
   if(!bf) return;
-  if(!confirm(`Start a fresh conversation with ${bf.name.split(' ')[0]}? This will clear your chat history and reset the relationship stage.`)) return;
+  if(!confirm(`Start a fresh conversation with ${bf.name.split(' ')[0]}? This will clear your chat history and reset the relationship.`)) return;
   chatHistory[bfId] = [];
   saveHistory();
-  // Reset summary & memories for clean slate
+  // Reset all relationship state to default
   localStorage.removeItem(`summary_${bfId}`);
-  // Keep memories (user may want them) — only reset chat
+  localStorage.removeItem('rel_health_'+bfId);
+  localStorage.removeItem('mood_'+bfId);
+  localStorage.removeItem('mood_just_shifted_'+bfId);
+  localStorage.removeItem('dating_since_time_'+bfId);
+  localStorage.removeItem('pending_plot_'+bfId);
+  localStorage.removeItem('first_chat_ts_'+bfId);
+  localStorage.removeItem('bday_fired_'+bfId);
+  localStorage.removeItem('bday_waiting_'+bfId);
+  localStorage.removeItem('bday_wait_start_msgs_'+bfId);
+  localStorage.removeItem('cal_dates_'+bfId);
+  // Clear all fired plot events for this character
+  const allPlotKeys = Object.keys(localStorage).filter(k => k.startsWith('plot_'));
+  allPlotKeys.forEach(k => {
+    // Only remove plot events belonging to this character
+    const evId = k.replace('plot_','');
+    const ev = PLOT_EVENTS.find(e => e.id === evId);
+    if(ev && ev.bfId === bfId) localStorage.removeItem(k);
+  });
   if(currentBF?.id === bfId){
+    refreshRelMeter(bfId);
     openChat(bfId);
   } else {
     renderSidebar();
@@ -2720,6 +2738,22 @@ function confirmDeleteBF(bfId){
   saveHistory();
   localStorage.removeItem(`summary_${bfId}`);
   localStorage.removeItem(`memories_${bfId}`);
+  localStorage.removeItem('rel_health_'+bfId);
+  localStorage.removeItem('mood_'+bfId);
+  localStorage.removeItem('mood_just_shifted_'+bfId);
+  localStorage.removeItem('dating_since_time_'+bfId);
+  localStorage.removeItem('pending_plot_'+bfId);
+  localStorage.removeItem('first_chat_ts_'+bfId);
+  localStorage.removeItem('bday_fired_'+bfId);
+  localStorage.removeItem('bday_waiting_'+bfId);
+  localStorage.removeItem('bday_wait_start_msgs_'+bfId);
+  localStorage.removeItem('cal_dates_'+bfId);
+  const allPlotKeys2 = Object.keys(localStorage).filter(k => k.startsWith('plot_'));
+  allPlotKeys2.forEach(k => {
+    const evId = k.replace('plot_','');
+    const ev = PLOT_EVENTS.find(e => e.id === evId);
+    if(ev && ev.bfId === bfId) localStorage.removeItem(k);
+  });
   if(currentBF?.id === bfId){
     currentBF = null;
     const main = document.getElementById('chat-main');
