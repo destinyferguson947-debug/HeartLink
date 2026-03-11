@@ -704,6 +704,12 @@
         <label style="white-space:nowrap;">🤖 Model Name</label>
         <input type="text" id="proxy-model-input" placeholder="e.g. mistralai/mixtral-8x7b or llama3" style="flex:1;min-width:220px;" />
       </div>
+      <div style="display:flex;flex-direction:column;gap:0.4rem;">
+        <label style="white-space:nowrap;">📝 Custom System Prompt <span style="font-size:0.75rem;color:var(--text-muted);font-weight:400;">(optional — appended to every character's prompt)</span></label>
+        <textarea id="proxy-prompt-input" rows="4"
+          placeholder="Add extra instructions for your model here — e.g. 'Always respond in French.' or 'Keep replies under 3 sentences.' Leave blank to use the default character prompts."
+          style="width:100%;border:1.5px solid var(--border);border-radius:0.5rem;padding:0.6rem 0.8rem;font-family:'DM Sans',sans-serif;font-size:0.83rem;background:var(--card);color:var(--text);outline:none;resize:vertical;line-height:1.5;"></textarea>
+      </div>
       <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
         <button class="api-save-btn" onclick="saveProxySettings()">Save Proxy</button>
         <span class="api-status" id="proxy-status">✓ Saved!</span>
@@ -934,7 +940,7 @@
   </div>
   <!-- PROFILE PANEL OVERLAY -->
   <div id="rel-profile-overlay" style="display:none;position:fixed;inset:0;background:rgba(42,26,31,0.6);z-index:500;backdrop-filter:blur(4px)" onclick="closeRelProfile(event)">
-    <div id="rel-profile-panel" style="position:absolute;right:0;top:0;bottom:0;width:min(680px,100vw);background:var(--card);overflow-y:auto;box-shadow:-8px 0 40px rgba(0,0,0,0.2);display:flex;flex-direction:column">
+    <div id="rel-profile-panel" style="position:absolute;right:0;top:0;bottom:0;width:min(680px,100vw);background:var(--card);overflow-y:auto;box-shadow:-8px 0 40px rgba(0,0,0,0.2);display:flex;flex-direction:column" onclick="event.stopPropagation()">
       <div id="rel-profile-inner"></div>
     </div>
   </div>
@@ -1069,7 +1075,8 @@ let selectedModel = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
 let proxyMode = localStorage.getItem('proxy_mode') === 'true';
 let proxyUrl  = localStorage.getItem('proxy_url')  || '';
 let proxyKey  = localStorage.getItem('proxy_key')  || '';
-let proxyModel= localStorage.getItem('proxy_model')|| '';
+let proxyModel = localStorage.getItem('proxy_model')  || '';
+let proxyPrompt= localStorage.getItem('proxy_prompt') || '';
 let savedBFs = JSON.parse(localStorage.getItem('saved_bfs') || '[]');
 let currentBF = null;
 let chatHistory = JSON.parse(localStorage.getItem('chat_history') || '{}');
@@ -3294,10 +3301,12 @@ function saveProxySettings(){
   const key   = document.getElementById('proxy-key-input')?.value.trim() || '';
   const model = document.getElementById('proxy-model-input')?.value.trim() || '';
   if(!url){ showToast('Please enter a proxy URL! 🔗'); return; }
-  proxyUrl = url; proxyKey = key; proxyModel = model;
-  localStorage.setItem('proxy_url',   url);
-  localStorage.setItem('proxy_key',   key);
-  localStorage.setItem('proxy_model', model);
+  const prompt = document.getElementById('proxy-prompt-input')?.value.trim() || '';
+  proxyUrl = url; proxyKey = key; proxyModel = model; proxyPrompt = prompt;
+  localStorage.setItem('proxy_url',    url);
+  localStorage.setItem('proxy_key',    key);
+  localStorage.setItem('proxy_model',  model);
+  localStorage.setItem('proxy_prompt', prompt);
   const s = document.getElementById('proxy-status');
   if(s){ s.classList.add('show'); setTimeout(()=>s.classList.remove('show'), 2500); }
   showToast('Proxy saved! 🔗');
@@ -3320,6 +3329,9 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   }
   if(summary){
     fullSystem += `\n\n--- CONVERSATION SUMMARY (earlier chats) ---\n${summary}\n(Use this as background context. The recent messages below are the live conversation.)`;
+  }
+  if(proxyMode && proxyPrompt){
+    fullSystem += `\n\n--- PROXY SYSTEM PROMPT (user-defined, applies to all responses) ---\n${proxyPrompt}\n--- END PROXY SYSTEM PROMPT ---`;
   }
   if(extraPrompt){
     fullSystem += `\n\n--- MANDATORY CUSTOM INSTRUCTIONS (from user — you MUST follow these exactly, they override everything else) ---\n${extraPrompt}\n--- END CUSTOM INSTRUCTIONS ---`;
@@ -4595,6 +4607,8 @@ function saveMilestones(bfId, arr){
 }
 function addMilestone(bfId, text){
   const arr = getMilestones(bfId);
+  // Deduplicate: don't add the same text twice in a row
+  if(arr.length && arr[arr.length-1].text === text) return;
   arr.push({id: Date.now(), text, ts: Date.now()});
   saveMilestones(bfId, arr);
 }
@@ -4731,7 +4745,9 @@ function openRelProfile(bfId){
 }
 
 function closeRelProfile(e){
-  if(e.target.id === 'rel-profile-overlay') closeRelProfileBtn();
+  // Fires on the overlay itself — panel has stopPropagation so this only
+  // triggers when the user clicks the dark backdrop outside the panel.
+  closeRelProfileBtn();
 }
 function closeRelProfileBtn(){
   const overlay = document.getElementById('rel-profile-overlay');
@@ -5942,7 +5958,8 @@ if(modelSel) modelSel.value=selectedModel;
 // Restore proxy state
 if(proxyUrl)   { const el=document.getElementById('proxy-url-input');   if(el) el.value=proxyUrl; }
 if(proxyKey)   { const el=document.getElementById('proxy-key-input');   if(el) el.value=proxyKey; }
-if(proxyModel) { const el=document.getElementById('proxy-model-input'); if(el) el.value=proxyModel; }
+if(proxyModel)  { const el=document.getElementById('proxy-model-input');  if(el) el.value=proxyModel; }
+if(proxyPrompt) { const el=document.getElementById('proxy-prompt-input'); if(el) el.value=proxyPrompt; }
 // Apply saved mode (must run after DOM ready)
 setApiMode(proxyMode ? 'proxy' : 'gemini');
 // Restore persona state
