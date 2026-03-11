@@ -650,26 +650,69 @@
       <button class="btn-secondary" onclick="showPage('create')">✨ Create Your Own</button>
     </div>
   </div>
-  <div class="api-banner">
-    <label>🔑 Gemini API Key</label>
-    <input type="password" id="api-key-input" placeholder="Paste your free Gemini API key here..." />
-    <button class="api-save-btn" onclick="saveApiKey()">Save</button>
-    <span class="api-status" id="api-status">✓ Saved!</span>
+  <!-- MODE TOGGLE -->
+  <div class="api-banner" style="justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+    <span style="font-size:0.85rem;font-weight:500;color:var(--text-muted);">🔌 Connection Mode</span>
+    <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+      <button id="mode-btn-gemini" onclick="setApiMode('gemini')"
+        style="padding:0.45rem 1rem;border-radius:2rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;border:1.5px solid var(--rose);background:var(--rose);color:#fff;transition:all 0.2s;">
+        ✨ Gemini (default)
+      </button>
+      <button id="mode-btn-proxy" onclick="setApiMode('proxy')"
+        style="padding:0.45rem 1rem;border-radius:2rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);transition:all 0.2s;">
+        🔗 Custom Proxy
+      </button>
+    </div>
   </div>
-  <div class="api-banner" style="margin-top:-0.5rem;">
-    <label>🤖 AI Model</label>
-    <select id="model-select" onchange="saveModel()" id="model-select-el" style="flex:1;min-width:200px;border:1.5px solid var(--border);border-radius:0.5rem;padding:0.5rem 0.8rem;font-family:'DM Sans',sans-serif;font-size:0.85rem;background:var(--card);color:var(--text);outline:none;cursor:pointer;">
-      <option value="gemini-2.5-flash" selected>🔥 Gemini 2.5 Flash — Recommended (free, fast)</option>
-      <option value="gemini-2.5-flash-lite">⚡ Gemini 2.5 Flash-Lite — Lightest &amp; free</option>
-      <option value="gemini-3-flash-preview">✨ Gemini 3 Flash Preview — Most powerful (free preview)</option>
-      <option value="gemini-3.1-flash-lite-preview">💫 Gemini 3.1 Flash-Lite Preview — Newest &amp; free</option>
-      <option value="gemini-2.0-flash">📦 Gemini 2.0 Flash — Classic fallback</option>
-    </select>
-    <span id="model-status" class="api-status" style="display:none;">✓ Saved!</span>
+
+  <!-- GEMINI PANEL -->
+  <div id="gemini-panel">
+    <div class="api-banner" style="margin-top:-0.5rem;">
+      <label>🔑 Gemini API Key</label>
+      <input type="password" id="api-key-input" placeholder="Paste your free Gemini API key here..." />
+      <button class="api-save-btn" onclick="saveApiKey()">Save</button>
+      <span class="api-status" id="api-status">✓ Saved!</span>
+    </div>
+    <div class="api-banner" style="margin-top:-0.5rem;">
+      <label>🤖 AI Model</label>
+      <select id="model-select" onchange="saveModel()" style="flex:1;min-width:200px;border:1.5px solid var(--border);border-radius:0.5rem;padding:0.5rem 0.8rem;font-family:'DM Sans',sans-serif;font-size:0.85rem;background:var(--card);color:var(--text);outline:none;cursor:pointer;">
+        <option value="gemini-2.5-flash" selected>🔥 Gemini 2.5 Flash — Recommended (free, fast)</option>
+        <option value="gemini-2.5-flash-lite">⚡ Gemini 2.5 Flash-Lite — Lightest &amp; free</option>
+        <option value="gemini-3-flash-preview">✨ Gemini 3 Flash Preview — Most powerful (free preview)</option>
+        <option value="gemini-3.1-flash-lite-preview">💫 Gemini 3.1 Flash-Lite Preview — Newest &amp; free</option>
+        <option value="gemini-2.0-flash">📦 Gemini 2.0 Flash — Classic fallback</option>
+      </select>
+      <span id="model-status" class="api-status" style="display:none;">✓ Saved!</span>
+    </div>
+    <p style="text-align:center;font-size:0.78rem;color:var(--text-muted);margin-top:-0.5rem;margin-bottom:2rem;">
+      Get your free key at <strong>aistudio.google.com</strong> → click <em>Get API Key</em> &nbsp;|&nbsp; All models above have a free tier ✨
+    </p>
   </div>
-  <p style="text-align:center;font-size:0.78rem;color:var(--text-muted);margin-top:-0.5rem;margin-bottom:2rem;">
-    Get your free key at <strong>aistudio.google.com</strong> → click <em>Get API Key</em> &nbsp;|&nbsp; All models above have a free tier ✨
-  </p>
+
+  <!-- PROXY PANEL -->
+  <div id="proxy-panel" style="display:none;">
+    <div class="api-banner" style="margin-top:-0.5rem;flex-direction:column;align-items:stretch;gap:0.75rem;">
+      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <label style="white-space:nowrap;">🌐 Proxy URL</label>
+        <input type="text" id="proxy-url-input" placeholder="https://openrouter.ai/api/v1/chat/completions" style="flex:1;min-width:220px;" />
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <label style="white-space:nowrap;">🔑 API Key</label>
+        <input type="password" id="proxy-key-input" placeholder="sk-... or leave blank for local" style="flex:1;min-width:220px;" />
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <label style="white-space:nowrap;">🤖 Model Name</label>
+        <input type="text" id="proxy-model-input" placeholder="e.g. mistralai/mixtral-8x7b or llama3" style="flex:1;min-width:220px;" />
+      </div>
+      <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+        <button class="api-save-btn" onclick="saveProxySettings()">Save Proxy</button>
+        <span class="api-status" id="proxy-status">✓ Saved!</span>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:0.78rem;color:var(--text-muted);margin-top:-0.5rem;margin-bottom:2rem;">
+      Works with any <strong>OpenAI-compatible</strong> endpoint — OpenRouter, LiteLLM, Ollama, Jan, or your own server. The URL must accept <code>POST /v1/chat/completions</code> with a standard <code>messages</code> array.
+    </p>
+  </div>
 </div>
 
 <!-- BROWSE -->
@@ -1022,6 +1065,11 @@
 <script>
 let apiKey = localStorage.getItem('gemini_api_key') || '';
 let selectedModel = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+// Proxy mode
+let proxyMode = localStorage.getItem('proxy_mode') === 'true';
+let proxyUrl  = localStorage.getItem('proxy_url')  || '';
+let proxyKey  = localStorage.getItem('proxy_key')  || '';
+let proxyModel= localStorage.getItem('proxy_model')|| '';
 let savedBFs = JSON.parse(localStorage.getItem('saved_bfs') || '[]');
 let currentBF = null;
 let chatHistory = JSON.parse(localStorage.getItem('chat_history') || '{}');
@@ -2678,15 +2726,13 @@ CHARACTER:
 Write a single first message — 3-5 sentences — that opens the scenario naturally from ${name}'s perspective. Make it immersive, specific, and atmospheric. Show his personality through how he speaks, not by describing it. Do NOT use asterisks for actions. Write it as direct speech/narration the way a character would actually open. Do not write any preamble or explanation — just the message itself.`;
 
   try{
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:300,temperature:0.95}})});
-    const data=await res.json();
-    const msg=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const msg = await callAnyAPI('You are a creative writer.', [{role:'user',content:prompt}], 300, 0.95);
     if(msg){
       document.getElementById('c-firstmessage').value=msg.trim();
       status.textContent='✓ Generated!';
       setTimeout(()=>status.textContent='',3000);
     } else { status.textContent='Try again.'; }
-  }catch(e){ status.textContent='Error — check API key.'; }
+  }catch(e){ status.textContent='Error — check API key / proxy.'; }
 }
 
 // ---- PERSIST ----
@@ -2979,7 +3025,7 @@ function deleteMessage(idx){
 }
 
 async function rerollMessage(idx){
-  if(!currentBF||!apiKey) return;
+  if(!currentBF||(!apiKey&&!proxyMode)) return;
   const history = chatHistory[currentBF.id]||[];
   if(history[idx]?.role !== 'assistant') return;
 
@@ -3013,7 +3059,8 @@ async function rerollMessage(idx){
 
 async function sendGreeting(){
   if(currentBF) recordFirstChatTs(currentBF.id);
-  if(!apiKey){ addMessage('assistant',`Hi! 😊 Please add your free Gemini API key on the Home page so we can chat!`, true); return; }
+  if(!apiKey && !proxyMode){ addMessage('assistant',`Hi! 😊 Please add your free Gemini API key on the Home page so we can chat!`, true); return; }
+  if(proxyMode && !proxyUrl){ addMessage('assistant',`Hi! 😊 Please set your proxy URL on the Home page first! 🔗`, true); return; }
   const bf=currentBF;
   const userName = userPersona?.name || 'them';
 
@@ -3099,7 +3146,8 @@ async function sendMessage(){
   if(!input) return;
   let text=input.value.trim();
   if(!text) return;
-  if(!apiKey){ showToast('Add your Gemini API key on the Home page! 🔑'); return; }
+  if(!apiKey && !proxyMode){ showToast('Add your Gemini API key on the Home page! 🔑'); return; }
+  if(proxyMode && !proxyUrl){ showToast('Set your proxy URL on the Home page first! 🔗'); return; }
   // Detect cut-off: was typing indicator visible when user sent?
   const wasCutOff = !!document.getElementById('typing-msg');
   input.value=''; input.style.height='auto';
@@ -3185,6 +3233,76 @@ function showTyping(){
 }
 function hideTyping(){ document.getElementById('typing-msg')?.remove(); }
 
+// ============================================================
+// CENTRAL API ROUTER — handles both Gemini and OpenAI-compatible proxies
+// All AI calls funnel through callAnyAPI for consistent proxy support.
+// ============================================================
+
+// Low-level: sends a request and returns the reply text (or throws)
+async function callAnyAPI(systemPrompt, messages, maxTokens=8192, temperature=1.0){
+  if(proxyMode && proxyUrl){
+    // ── OpenAI-compatible proxy format ─────────────────────────
+    const msgs = [{role:'system', content: systemPrompt}];
+    for(const m of messages){
+      msgs.push({role: m.role==='user'?'user':'assistant', content: m.content});
+    }
+    const headers = {'Content-Type':'application/json'};
+    if(proxyKey) headers['Authorization'] = 'Bearer '+proxyKey;
+    const body = {messages: msgs, max_tokens: maxTokens, temperature};
+    if(proxyModel) body.model = proxyModel;
+    const res = await fetch(proxyUrl, {method:'POST', headers, body:JSON.stringify(body)});
+    const data = await res.json();
+    if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    const text = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
+    if(!text) throw new Error('Empty response from proxy');
+    return text;
+  } else {
+    // ── Gemini format ──────────────────────────────────────────
+    const key = apiKey;
+    const model = selectedModel || 'gemini-2.5-flash';
+    const contents = messages.map(m=>({role:m.role==='user'?'user':'model', parts:[{text:m.content}]}));
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        system_instruction:{parts:[{text:systemPrompt}]},
+        contents,
+        generationConfig:{maxOutputTokens:maxTokens, temperature}
+      })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if(!text) throw new Error('Empty response from Gemini');
+    return text;
+  }
+}
+
+function setApiMode(mode){
+  proxyMode = mode === 'proxy';
+  localStorage.setItem('proxy_mode', proxyMode ? 'true' : 'false');
+  document.getElementById('gemini-panel').style.display  = proxyMode ? 'none' : '';
+  document.getElementById('proxy-panel').style.display   = proxyMode ? '' : 'none';
+  const gBtn = document.getElementById('mode-btn-gemini');
+  const pBtn = document.getElementById('mode-btn-proxy');
+  if(gBtn){ gBtn.style.background = proxyMode ? 'var(--card)' : 'var(--rose)'; gBtn.style.color = proxyMode ? 'var(--text-muted)' : '#fff'; gBtn.style.borderColor = proxyMode ? 'var(--border)' : 'var(--rose)'; }
+  if(pBtn){ pBtn.style.background = proxyMode ? 'var(--rose)' : 'var(--card)'; pBtn.style.color = proxyMode ? '#fff' : 'var(--text-muted)'; pBtn.style.borderColor = proxyMode ? 'var(--rose)' : 'var(--border)'; }
+}
+
+function saveProxySettings(){
+  const url   = document.getElementById('proxy-url-input')?.value.trim() || '';
+  const key   = document.getElementById('proxy-key-input')?.value.trim() || '';
+  const model = document.getElementById('proxy-model-input')?.value.trim() || '';
+  if(!url){ showToast('Please enter a proxy URL! 🔗'); return; }
+  proxyUrl = url; proxyKey = key; proxyModel = model;
+  localStorage.setItem('proxy_url',   url);
+  localStorage.setItem('proxy_key',   key);
+  localStorage.setItem('proxy_model', model);
+  const s = document.getElementById('proxy-status');
+  if(s){ s.classList.add('show'); setTimeout(()=>s.classList.remove('show'), 2500); }
+  showToast('Proxy saved! 🔗');
+}
+
 async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   if(!currentBF) return;
   // Regenerate system prompt fresh (picks up latest stage + persona)
@@ -3221,29 +3339,11 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   contents.push({role:'user', parts:[{text:userMessage}]});
 
   try{
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        system_instruction:{parts:[{text:fullSystem}]},
-        contents,
-        generationConfig:{maxOutputTokens:8192, temperature:1.0}
-      })
-    });
-    const data=await res.json();
+    // Route through central API handler (Gemini or proxy)
+    const msgObjs = histToSend.map(m=>({role:m.role, content:m.content}));
+    msgObjs.push({role:'user', content:userMessage});
+    const reply = await callAnyAPI(fullSystem, msgObjs, 8192, 1.0);
     hideTyping();
-    if(data.error){
-      const msg=data.error.message||'Unknown error';
-      if(msg.includes('API_KEY_INVALID')||msg.includes('API key not valid')){
-        addMessage('assistant','❌ Your API key is invalid. Please go to the Home page and re-enter your key from aistudio.google.com');
-      } else if(msg.includes('not found')||msg.includes('404')){
-        addMessage('assistant',`⚠️ Model "${selectedModel}" not available. Try switching to Gemini 2.5 Flash on the Home page.`);
-      } else {
-        addMessage('assistant',`⚠️ Error: ${msg}`);
-      }
-      return;
-    }
-    const reply=data.candidates?.[0]?.content?.parts?.[0]?.text||'...';
     addMessage('assistant', responsePrefix + reply, isGreeting);
 
     // Detect happy/positive responses → trigger heart rain briefly
@@ -3345,7 +3445,7 @@ function renderMemoryPanel(){
 }
 
 async function autoExtractMemories(){
-  if(!currentBF||!apiKey) return;
+  if(!currentBF||(!apiKey&&!proxyMode)) return;
   const history=chatHistory[currentBF.id]||[];
   if(history.length < 4){ showToast('Chat a bit more first! 💬'); return; }
 
@@ -3373,16 +3473,7 @@ Respond ONLY with a JSON array of strings, no markdown, no explanation. Example:
 ["He remembers...", "He noticed...", "He finds..."]`;
 
   try{
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        contents:[{role:'user',parts:[{text:extractPrompt}]}],
-        generationConfig:{maxOutputTokens:400, temperature:0.85}
-      })
-    });
-    const data=await res.json();
-    const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
+    const raw = await callAnyAPI('You are a memory extractor.', [{role:'user',content:extractPrompt}], 400, 0.85);
     const clean=raw.replace(/```json|```/g,'').trim();
     const extracted=JSON.parse(clean);
     if(Array.isArray(extracted)&&extracted.length){
@@ -3416,7 +3507,7 @@ function resetMemInterval(bfId){
 
 async function autoExtractMemoriesSilent(){
   // Like autoExtractMemories but no UI feedback
-  if(!currentBF||!apiKey) return;
+  if(!currentBF||(!apiKey&&!proxyMode)) return;
   const history=chatHistory[currentBF.id]||[];
   if(history.length < 8) return;
   const bfFirstName=currentBF.name.split(' ')[0];
@@ -3426,12 +3517,7 @@ async function autoExtractMemoriesSilent(){
   const extractPrompt=`Read this roleplay conversation and extract 3-5 meaningful memories from ${bfFirstName}'s perspective about ${userName}. Write each memory as a single sentence in third person from ${bfFirstName}'s point of view, using ${pronoun} pronouns for ${userName}.
 CONVERSATION:\n${recentMsgs}\nRespond ONLY with a JSON array of strings.`;
   try{
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{role:'user',parts:[{text:extractPrompt}]}],generationConfig:{maxOutputTokens:300,temperature:0.85}})
-    });
-    const data=await res.json();
-    const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
+    const raw = await callAnyAPI('You are a memory extractor.', [{role:'user',content:extractPrompt}], 300, 0.85);
     const clean=raw.replace(/```json|```/g,'').trim();
     const extracted=JSON.parse(clean);
     if(Array.isArray(extracted)&&extracted.length){
@@ -3445,7 +3531,7 @@ CONVERSATION:\n${recentMsgs}\nRespond ONLY with a JSON array of strings.`;
 }
 
 async function autoSummarize(){
-  if(!currentBF||!apiKey) return;
+  if(!currentBF||(!apiKey&&!proxyMode)) return;
   const history=chatHistory[currentBF.id]||[];
   if(history.length < 20) return;
 
@@ -3465,16 +3551,7 @@ ${msgText}
 Summary:`;
 
   try{
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        contents:[{role:'user',parts:[{text:sumPrompt}]}],
-        generationConfig:{maxOutputTokens:300, temperature:0.7}
-      })
-    });
-    const data=await res.json();
-    const summary=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const summary = await callAnyAPI('You are a conversation summarizer.', [{role:'user',content:sumPrompt}], 300, 0.7);
     if(summary){ saveSummary(currentBF.id, summary); renderMemoryPanel(); }
   }catch(e){ /* silent fail */ }
 }
@@ -3773,7 +3850,7 @@ function calScheduleDate(){
 }
 
 function checkProposal(){
-  if(!currentBF||!apiKey) return;
+  if(!currentBF||(!apiKey&&!proxyMode)) return;
   const relData = getRelHealth(currentBF.id);
   if(relData.status !== 'dating') return;
   const proposed = localStorage.getItem('proposed_'+currentBF.id);
@@ -3920,7 +3997,7 @@ function onAssistantMessageSent(){
 // The character asks the user out on a date / asks to be their partner
 // (distinct from confession which is a deeper feelings moment)
 function checkAskOut(){
-  if(!currentBF||!apiKey) return;
+  if(!currentBF||(!apiKey&&!proxyMode)) return;
   const stage = getStage(currentBF);
   const relData = getRelHealth(currentBF.id);
   const history = chatHistory[currentBF.id]||[];
@@ -3993,7 +4070,7 @@ function checkAskOutResponse(){
 //                (no instant weddings — must live as engaged for a while)
 
 function checkDatingConfession(){
-  if(!currentBF||!apiKey) return;
+  if(!currentBF||(!apiKey&&!proxyMode)) return;
   const stage = getStage(currentBF);
   const relData = getRelHealth(currentBF.id);
   const history = chatHistory[currentBF.id]||[];
@@ -4331,18 +4408,13 @@ async function callGeminiForBF(bf, instruction){
 }
 
 async function generateAndSaveAutoMsg(bf, instruction){
-  if(!apiKey) return;
+  if(!apiKey && !proxyMode) return;
   const sysPrompt = generateSystemPrompt(bf);
   const history = chatHistory[bf.id]||[];
-  const contents = history.slice(-20).map(m=>({role:m.role==='user'?'user':'model',parts:[{text:m.content}]}));
-  contents.push({role:'user',parts:[{text:instruction}]});
+  const msgs = history.slice(-20).map(m=>({role:m.role, content:m.content}));
+  msgs.push({role:'user', content:instruction});
   try{
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({system_instruction:{parts:[{text:sysPrompt}]}, contents, generationConfig:{maxOutputTokens:1200,temperature:1.0}})
-    });
-    const data = await res.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const reply = await callAnyAPI(sysPrompt, msgs, 1200, 1.0);
     if(reply){
       if(!chatHistory[bf.id]) chatHistory[bf.id]=[];
       chatHistory[bf.id].push({role:'assistant',content:reply});
@@ -4556,12 +4628,7 @@ ${recentText}
 Respond ONLY with a JSON array of strings. Example: ["I want to get closer to them.", "They left me on read and I keep thinking about it."]`;
 
   try{
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}], generationConfig:{maxOutputTokens:300, temperature:1.0}})
-    });
-    const data = await res.json();
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
+    const raw = await callAnyAPI('You are a character voice writer.', [{role:'user',content:prompt}], 300, 1.0);
     const clean = raw.replace(/```json|```/g,'').trim();
     const goals = JSON.parse(clean);
     if(Array.isArray(goals) && goals.length){
@@ -4870,7 +4937,7 @@ function getBirthdayInfo(bfId){
 }
 
 function checkBirthdayEvent(){
-  if(!currentBF||!apiKey) return;
+  if(!currentBF||(!apiKey&&!proxyMode)) return;
   const bfId = currentBF.id;
   const info = getBirthdayInfo(bfId);
   if(!info || !info.isToday) return;
@@ -5740,7 +5807,7 @@ function setPendingPlot(bfId, evId){ localStorage.setItem('pending_plot_'+bfId, 
 function clearPendingPlot(bfId){ localStorage.removeItem('pending_plot_'+bfId); }
 
 async function checkPlotEvents(){
-  if(!currentBF || !apiKey) return;
+  if(!currentBF || (!apiKey && !proxyMode)) return;
   const bfId = currentBF.id;
   const stage = getStage(currentBF);
   const relData = getRelHealth(bfId);
@@ -5801,19 +5868,8 @@ Reply with ONLY one word: YES (good moment to introduce the scene) or NO (conver
 
   let contextOk = true; // default to allowing if check fails
   try {
-    const ctxResp = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        contents:[{role:'user', parts:[{text: contextCheckPrompt}]}],
-        generationConfig:{ maxOutputTokens:5, temperature:0.0 }
-      })
-    });
-    if(ctxResp.ok){
-      const ctxData = await ctxResp.json();
-      const answer = (ctxData?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().toUpperCase();
-      contextOk = answer.startsWith('Y');
-    }
+    const answer = (await callAnyAPI('You are a story director.', [{role:'user',content:contextCheckPrompt}], 5, 0.0)).trim().toUpperCase();
+    contextOk = answer.startsWith('Y');
   } catch(e){ contextOk = true; } // on error, allow
 
   if(!contextOk){
@@ -5883,6 +5939,12 @@ function startRelDecayChecker(){
 if(apiKey) document.getElementById('api-key-input').value=apiKey;
 const modelSel=document.getElementById('model-select');
 if(modelSel) modelSel.value=selectedModel;
+// Restore proxy state
+if(proxyUrl)   { const el=document.getElementById('proxy-url-input');   if(el) el.value=proxyUrl; }
+if(proxyKey)   { const el=document.getElementById('proxy-key-input');   if(el) el.value=proxyKey; }
+if(proxyModel) { const el=document.getElementById('proxy-model-input'); if(el) el.value=proxyModel; }
+// Apply saved mode (must run after DOM ready)
+setApiMode(proxyMode ? 'proxy' : 'gemini');
 // Restore persona state
 if(userPersona){
   selectedGender = userPersona.gender||'';
