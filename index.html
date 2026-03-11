@@ -369,6 +369,19 @@
   .msg-edit-save { background: var(--rose); color: #fff; border: none; border-radius: 6px; padding: 3px 12px; font-size: 0.78rem; cursor: pointer; font-family: 'DM Sans',sans-serif; }
   .msg-edit-cancel { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; font-size: 0.78rem; cursor: pointer; color: var(--text-muted); font-family: 'DM Sans',sans-serif; }
   .rerolling-indicator { font-size: 0.78rem; color: var(--text-muted); font-style: italic; padding: 2px 4px; }
+  .msg-alt-nav {
+    display: flex; align-items: center; gap: 5px; margin-top: 4px;
+    font-size: 0.74rem; color: var(--text-muted);
+  }
+  .msg-alt-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-muted);
+    border-radius: 5px; padding: 1px 7px; font-size: 0.78rem; cursor: pointer;
+    transition: all 0.15s; line-height: 1.6;
+  }
+  .msg-alt-btn:hover { border-color: var(--rose); color: var(--rose); background: rgba(201,102,122,0.06); }
+  .msg-alt-btn:disabled { opacity: 0.3; cursor: default; }
+  .msg-action-btn.alt:hover { border-color: #2d9e6b; color: #2d9e6b; background: rgba(45,158,107,0.06); }
+  .generating-alt { font-size: 0.76rem; color: var(--text-muted); font-style: italic; margin-top:4px; }
   @media (max-width: 900px) { .chat-layout { grid-template-columns: 1fr; } .chat-sidebar { display: none; } .memory-panel { display: none; } .form-row { grid-template-columns: 1fr; } .bf-grid { grid-template-columns: repeat(auto-fill, minmax(155px,1fr)); } }
 
   /* ---- RELATIONSHIP HEALTH METER ---- */
@@ -1075,6 +1088,20 @@ let chatHistory = JSON.parse(localStorage.getItem('chat_history') || '{}');
 let selectedEmoji = '🧑';
 let currentModalBF = null;
 let activeTag = 'all';
+// Alternate message versions: msgAlts[bfId][msgIdx] = ['v1','v2',...]
+// msgAltIdx[bfId][msgIdx] = currently displayed version index
+let msgAlts = {};
+let msgAltIdx = {};
+function getMsgAlts(bfId){ return msgAlts[bfId] || {}; }
+function getMsgAltIdx(bfId){ return msgAltIdx[bfId] || {}; }
+function saveMsgAlts(bfId){ localStorage.setItem('msg_alts_'+bfId, JSON.stringify({alts:msgAlts[bfId]||{}, idx:msgAltIdx[bfId]||{}})); }
+function loadMsgAlts(bfId){
+  try{
+    const raw = localStorage.getItem('msg_alts_'+bfId);
+    if(raw){ const d=JSON.parse(raw); msgAlts[bfId]=d.alts||{}; msgAltIdx[bfId]=d.idx||{}; }
+    else { msgAlts[bfId]={}; msgAltIdx[bfId]={}; }
+  }catch(e){ msgAlts[bfId]={}; msgAltIdx[bfId]={}; }
+}
 let userPersona = JSON.parse(localStorage.getItem('user_persona') || 'null');
 let selectedGender = '';
 let selectedPronoun = '';
@@ -2792,6 +2819,8 @@ function confirmNewChat(bfId){
   localStorage.removeItem('bday_waiting_'+bfId);
   localStorage.removeItem('bday_wait_start_msgs_'+bfId);
   localStorage.removeItem('cal_dates_'+bfId);
+  localStorage.removeItem('msg_alts_'+bfId);
+  if(msgAlts[bfId]) { msgAlts[bfId]={}; msgAltIdx[bfId]={}; }
   // Clear all fired plot events for this character
   const allPlotKeys = Object.keys(localStorage).filter(k => k.startsWith('plot_'));
   allPlotKeys.forEach(k => {
@@ -2931,6 +2960,7 @@ function openChat(id){
   `;
   const saved=savedBFs.find(b=>b.id===id);
   if(saved && !saved.isCustom) saved.systemPrompt=generateSystemPrompt(bf);
+  loadMsgAlts(id);
   renderMessages();
   renderMemoryPanel();
   if(!chatHistory[id].length) sendGreeting();
@@ -2975,6 +3005,30 @@ function renderMessages(){
     const bubbleExtra = (hasAction||hasThought) ? ' mixed-content' : '';
     const bubbleContent = `<div class="msg-bubble${bubbleExtra}">${formatMsg(m.content)}</div>`;
 
+    // Alt versions — show the active alt if one exists
+    const bfId = currentBF.id;
+    if(!msgAlts[bfId]) msgAlts[bfId] = {};
+    if(!msgAltIdx[bfId]) msgAltIdx[bfId] = {};
+    const alts = msgAlts[bfId][idx];
+    const altI = msgAltIdx[bfId][idx] ?? 0;
+    let displayContent = m.content;
+    let altNavHtml = '';
+    if(!isUser && alts && alts.length > 1){
+      displayContent = alts[altI];
+      const total = alts.length;
+      altNavHtml = `<div class="msg-alt-nav">
+        <button class="msg-alt-btn" onclick="stepAlt(${idx},-1)" ${altI===0?'disabled':''}>‹</button>
+        <span>${altI+1} / ${total}</span>
+        <button class="msg-alt-btn" onclick="stepAlt(${idx},1)" ${altI===total-1?'disabled':''}>›</button>
+      </div>`;
+    }
+    const hasActionAlt = /\*[^*]+\*/.test(displayContent);
+    const hasThoughtAlt = /\`[^\`]+\`/.test(displayContent);
+    const bubbleExtraAlt = (hasActionAlt||hasThoughtAlt) ? ' mixed-content' : '';
+    const displayBubble = isUser
+      ? bubbleContent
+      : `<div class="msg-bubble${bubbleExtraAlt}">${formatMsg(displayContent)}</div>${altNavHtml}`;
+
     // Action buttons — different set for user vs assistant
     const actions = isUser
       ? `<div class="msg-actions">
@@ -2982,14 +3036,15 @@ function renderMessages(){
            <button class="msg-action-btn delete" onclick="deleteMessage(${idx})" title="Delete">🗑 Delete</button>
          </div>`
       : `<div class="msg-actions">
-           <button class="msg-action-btn reroll" onclick="rerollMessage(${idx})" title="Generate a new response">🎲 Reroll</button>
+           <button class="msg-action-btn alt" onclick="genAlt(${idx})" title="Generate alternate response">✨ Alt</button>
+           <button class="msg-action-btn reroll" onclick="rerollMessage(${idx})" title="Replace with new response">🎲 Reroll</button>
            <button class="msg-action-btn" onclick="editMessage(${idx})" title="Edit">✏️ Edit</button>
            <button class="msg-action-btn delete" onclick="deleteMessage(${idx})" title="Delete">🗑 Delete</button>
          </div>`;
 
     const msgRow = `<div class="msg ${isUser?'user':''}">
       <div class="msg-avatar" style="${avatarStyle}">${avatarHtml}</div>
-      ${bubbleContent}
+      ${displayBubble}
     </div>`;
 
     return `<div class="msg-wrap ${isUser?'user':''}" data-idx="${idx}">
@@ -3056,6 +3111,100 @@ function deleteMessage(idx){
   if(!currentBF) return;
   chatHistory[currentBF.id].splice(idx, 1);
   saveHistory();
+  renderMessages();
+}
+
+// ── ALT MESSAGE SYSTEM ─────────────────────────────────────────────────────
+async function genAlt(idx){
+  if(!currentBF||(!apiKey&&!proxyMode)) return;
+  const bfId = currentBF.id;
+  const history = chatHistory[bfId]||[];
+  if(history[idx]?.role !== 'assistant') return;
+
+  // Find the user message that prompted this response
+  const contextHistory = history.slice(0, idx);
+  const lastUserMsg = [...contextHistory].reverse().find(m=>m.role==='user');
+  if(!lastUserMsg) return;
+
+  // Show generating indicator on the bubble without touching history
+  const wrap = document.querySelector(`[data-idx="${idx}"]`);
+  const bubble = wrap?.querySelector('.msg-bubble');
+  if(bubble){
+    bubble.insertAdjacentHTML('afterend','<div class="generating-alt" id="gen-alt-indicator-'+idx+'">✨ Generating alternative...</div>');
+  }
+  const sendBtn = document.getElementById('send-btn');
+  if(sendBtn) sendBtn.disabled = true;
+
+  // Build a truncated context so the alt is generated from the same prompt
+  const savedHistory = chatHistory[bfId];
+  chatHistory[bfId] = contextHistory; // temporarily truncate
+
+  try{
+    const systemPrompt = generateSystemPrompt(currentBF);
+    const extraPrompt = document.getElementById('extra-system-prompt')?.value?.trim()||'';
+    const memories = getMemories(bfId);
+    const summary = getSummary(bfId);
+    let fullSystem = systemPrompt;
+    if(memories.length){ fullSystem += `
+
+--- ${currentBF.name.split(' ')[0].toUpperCase()}'S MEMORIES ABOUT THE USER ---
+`+memories.map(m=>`• ${m.text}`).join('
+')+`
+(Reference naturally.)`; }
+    if(summary){ fullSystem += `
+
+--- CONVERSATION SUMMARY ---
+${summary}`; }
+    if(proxyMode && proxyPrompt){ fullSystem += `
+
+--- PROXY SYSTEM PROMPT ---
+${proxyPrompt}`; }
+    if(extraPrompt){ fullSystem += `
+
+--- MANDATORY CUSTOM INSTRUCTIONS ---
+${extraPrompt}
+--- END ---`; }
+    fullSystem += `
+
+[Write a DIFFERENT response to the user's last message. Fresh angle, same character — do not repeat the previous reply's phrasing or structure.]`;
+
+    const histToSend = contextHistory.slice(-100);
+    const msgObjs = histToSend.map(m=>({role:m.role,content:m.content}));
+    msgObjs.push({role:'user',content:lastUserMsg.content});
+    const newReply = await callAnyAPI(fullSystem, msgObjs, 8192, 1.0);
+
+    // Store alt
+    if(!msgAlts[bfId]) msgAlts[bfId] = {};
+    if(!msgAltIdx[bfId]) msgAltIdx[bfId] = {};
+    if(!msgAlts[bfId][idx]){
+      // First alt: seed with original as version 1
+      msgAlts[bfId][idx] = [savedHistory[idx].content, newReply];
+    } else {
+      msgAlts[bfId][idx].push(newReply);
+    }
+    // Jump to the newest alt
+    msgAltIdx[bfId][idx] = msgAlts[bfId][idx].length - 1;
+    saveMsgAlts(bfId);
+  } catch(e){}
+
+  // Restore full history
+  chatHistory[bfId] = savedHistory;
+  document.getElementById('gen-alt-indicator-'+idx)?.remove();
+  if(sendBtn) sendBtn.disabled = false;
+  renderMessages();
+  // Scroll to the message
+  wrap?.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function stepAlt(idx, dir){
+  if(!currentBF) return;
+  const bfId = currentBF.id;
+  if(!msgAlts[bfId]?.[idx]) return;
+  const total = msgAlts[bfId][idx].length;
+  const current = msgAltIdx[bfId][idx] ?? 0;
+  const next = Math.max(0, Math.min(total-1, current+dir));
+  msgAltIdx[bfId][idx] = next;
+  saveMsgAlts(bfId);
   renderMessages();
 }
 
