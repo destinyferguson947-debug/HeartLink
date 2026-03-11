@@ -728,16 +728,8 @@
       <span class="search-icon">🔍</span>
       <input type="text" id="search-input" placeholder="Search by name, vibe, or scenario..." oninput="filterBFs()">
     </div>
-    <div class="filter-pills">
+    <div class="filter-pills" id="filter-pills-container">
       <button class="pill active" onclick="filterByTag('all',this)">All</button>
-      <button class="pill" onclick="filterByTag('hard to get',this)">🔒 Hard to Get</button>
-      <button class="pill" onclick="filterByTag('slow burn',this)">🕯️ Slow Burn</button>
-      <button class="pill" onclick="filterByTag('broody',this)">🖤 Broody</button>
-      <button class="pill" onclick="filterByTag('protective',this)">🛡️ Protective</button>
-      <button class="pill" onclick="filterByTag('intellectual',this)">📚 Intellectual</button>
-      <button class="pill" onclick="filterByTag('artistic',this)">🎨 Artistic</button>
-      <button class="pill" onclick="filterByTag('playful',this)">🎮 Playful</button>
-      <button class="pill" onclick="filterByTag('mysterious',this)">🌙 Mysterious</button>
     </div>
   </div>
   <div class="grid-section">
@@ -2232,7 +2224,7 @@ function showPage(id){
   document.getElementById('page-'+id).classList.add('active');
   const idx=['home','browse','create','persona','relationships','chat'].indexOf(id);
   if(idx>=0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
-  if(id==='browse') renderGrid();
+  if(id==='browse'){ buildFilterPills(); renderGrid(); }
   if(id==='chat') renderSidebar();
   if(id==='persona') initPersonaPage();
   if(id==='relationships') renderRelationshipsPage();
@@ -2287,10 +2279,41 @@ function renderGrid(data){
 
 function filterData(){
   const q=(document.getElementById('search-input')?.value||'').toLowerCase();
-  return BF_DATA.filter(bf=>{
-    const tagOk=activeTag==='all'||bf.tag===activeTag;
-    const searchOk=!q||bf.name.toLowerCase().includes(q)||bf.scenario.toLowerCase().includes(q)||bf.tag.toLowerCase().includes(q)||bf.personality.toLowerCase().includes(q);
+  const allChars = [...BF_DATA, ...savedBFs.filter(b=>b.isCustom)];
+  return allChars.filter(bf=>{
+    const bfTags = (bf.tag||'').toLowerCase().split(',').map(t=>t.trim());
+    const tagOk = activeTag==='all' || bfTags.includes(activeTag);
+    const searchOk=!q||bf.name.toLowerCase().includes(q)||(bf.scenario||'').toLowerCase().includes(q)||(bf.tag||'').toLowerCase().includes(q)||(bf.personality||'').toLowerCase().includes(q);
     return tagOk&&searchOk;
+  });
+}
+
+const TAG_EMOJI = {
+  'hard to get':'🔒', 'slow burn':'🕯️', 'broody':'🖤', 'protective':'🛡️',
+  'intellectual':'📚', 'artistic':'🎨', 'playful':'🎮', 'mysterious':'🌙',
+  'royalty':'👑', 'historical':'📜', 'fantasy':'✨', 'omegaverse':'🐺',
+  'mlm':'💼', 'femme':'🌸', 'romantic':'💕', 'dominant':'⚡',
+  'yandere':'🩸', 'tsundere':'💢', 'shy':'🌿', 'villain':'🖤',
+};
+function getTagEmoji(tag){ return TAG_EMOJI[tag.toLowerCase()] || '🏷️'; }
+
+function buildFilterPills(){
+  const container = document.getElementById('filter-pills-container');
+  if(!container) return;
+  // Collect unique tags from ALL characters (preset + saved custom)
+  const allChars = [...BF_DATA, ...savedBFs.filter(b=>b.isCustom)];
+  const tagSet = new Set();
+  allChars.forEach(bf => { if(bf.tag) bf.tag.toLowerCase().split(',').forEach(t => { const clean=t.trim(); if(clean) tagSet.add(clean); }); });
+  // Keep "All" pill, rebuild the rest
+  const allPill = container.querySelector('.pill');
+  container.innerHTML = '';
+  container.appendChild(allPill);
+  [...tagSet].sort().forEach(tag => {
+    const btn = document.createElement('button');
+    btn.className = 'pill';
+    btn.textContent = getTagEmoji(tag) + ' ' + tag.charAt(0).toUpperCase() + tag.slice(1);
+    btn.onclick = () => filterByTag(tag, btn);
+    container.appendChild(btn);
   });
 }
 
@@ -2303,6 +2326,11 @@ function filterByTag(tag,el){
   renderGrid();
 }
 function filterBFs(){ renderGrid(); }
+
+function refreshBrowsePage(){
+  buildFilterPills();
+  renderGrid();
+}
 
 // ---- MODAL ----
 function toggleSection(id){
@@ -4741,7 +4769,11 @@ function openRelProfile(bfId){
 
   overlay.style.display = 'block';
   // Auto-generate goals if none exist
-  if(!goals.length) autoGenerateGoals(bf.id).then(()=>openRelProfile(bfId));
+  if(!goals.length) autoGenerateGoals(bf.id).then(()=>{
+    // Only re-render if the panel is still open — prevents flicker after user closes it
+    const ov = document.getElementById('rel-profile-overlay');
+    if(ov && ov.style.display !== 'none') openRelProfile(bfId);
+  });
 }
 
 function closeRelProfile(e){
@@ -4756,7 +4788,8 @@ function closeRelProfileBtn(){
 
 async function refreshGoals(bfId){
   await autoGenerateGoals(bfId);
-  openRelProfile(bfId);
+  const ov = document.getElementById('rel-profile-overlay');
+  if(ov && ov.style.display !== 'none') openRelProfile(bfId);
 }
 
 
