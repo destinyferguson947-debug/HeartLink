@@ -3116,8 +3116,17 @@ function addMessage(role,content){
   }
   // When user sends, clear and restart timers
   if(role === 'user'){
+    // If user was away and just came back, clear the away state first
+    if(currentBF && isUserAway(currentBF.id)) handleUserReturned(currentBF.id);
     clearAutoMsgTimers(currentBF.id);
-    scheduleAutoMsg(currentBF.id);
+    // Check if this message is the user saying they're leaving
+    if(currentBF && isAwayMessage(content)){
+      setUserAway(currentBF.id);
+      scheduleAwayMsg(currentBF.id);
+      // Don't schedule normal auto-msg timers
+    } else {
+      scheduleAutoMsg(currentBF.id);
+    }
     checkCheatingAlert();
   }
   // Keep relationships page in sync if open
@@ -4101,6 +4110,7 @@ function toggleAutoMsg(){
 function scheduleAutoMsg(bfId){
   clearAutoMsgTimers(bfId);
   if(!getAutoMsgEnabled()) return;
+  if(isUserAway(bfId)) return; // user said goodbye — away system handles this
   const bf = savedBFs.find(b=>b.id===bfId);
   if(!bf) return;
 
@@ -4108,6 +4118,7 @@ function scheduleAutoMsg(bfId){
   const t1Delay = (60 + Math.floor(Math.random()*30)) * 60 * 1000;
   autoMsgTimers[bfId+'_1'] = setTimeout(async ()=>{
     if(!apiKey) return;
+    if(isUserAway(bfId)) return; // user said goodbye after timer was set — skip
     const relData = getRelHealth(bfId);
     if(relData.status === 'broken_up') return;
     const lastUserTime = parseInt(localStorage.getItem('last_user_msg_'+bfId)||'0');
@@ -4163,6 +4174,114 @@ function scheduleAutoMsg2hr(bfId){
 function clearAutoMsgTimers(bfId){
   if(autoMsgTimers[bfId+'_1']){ clearTimeout(autoMsgTimers[bfId+'_1']); delete autoMsgTimers[bfId+'_1']; }
   if(autoMsgTimers[bfId+'_2']){ clearTimeout(autoMsgTimers[bfId+'_2']); delete autoMsgTimers[bfId+'_2']; }
+}
+
+// ---- INTENTIONAL AWAY SYSTEM ----
+// Fires when user says they're leaving. Suppresses normal auto-msg decay,
+// schedules a single warm "I miss you" message after a few hours instead.
+
+const AWAY_PHRASES = [
+  /\bgoing to (bed|sleep|nap|rest)\b/i,
+  /\bheading to (bed|sleep)\b/i,
+  /\bgood ?night\b/i,
+  /\bgnite\b/i,
+  /\bgn\b/i,
+  /\bbye( ?bye)?\b/i,
+  /\bsee you (later|soon|tomorrow|in a bit|in a while)\b/i,
+  /\bttyl\b/i,
+  /\bbrb\b/i,
+  /\bbe (right )?back\b/i,
+  /\bgtg\b/i,
+  /\bgotta go\b/i,
+  /\bhave to go\b/i,
+  /\bheading out\b/i,
+  /\bgoing out\b/i,
+  /\bleaving( for a (bit|while|moment))?\b/i,
+  /\bbusy (for a while|for a bit|today|tonight|right now|soon)\b/i,
+  /\bwill be busy\b/i,
+  /\bgonna be busy\b/i,
+  /\bcan'?t (talk|chat|message|be here) (right now|for a while|for a bit|today)\b/i,
+  /\bstep(ping)? away\b/i,
+  /\blog(ging)? off\b/i,
+  /\bgotta (sleep|go|head out|run)\b/i,
+  /\bneed to (go|leave|sleep|rest|head out)\b/i,
+  /\bback (later|soon|in a (bit|while|few))\b/i,
+  /\btalk (later|tomorrow|soon)\b/i,
+  /\bcatch (you )?later\b/i,
+  /\bwon'?t be (around|available|here|online) (for a while|for a bit|today|tonight)\b/i,
+];
+
+let awayTimers = {};
+
+function isAwayMessage(text){
+  return AWAY_PHRASES.some(rx => rx.test(text));
+}
+
+function setUserAway(bfId){
+  localStorage.setItem('user_away_'+bfId, Date.now().toString());
+}
+
+function clearUserAway(bfId){
+  localStorage.removeItem('user_away_'+bfId);
+  if(awayTimers[bfId]){ clearTimeout(awayTimers[bfId]); delete awayTimers[bfId]; }
+}
+
+function isUserAway(bfId){
+  return !!localStorage.getItem('user_away_'+bfId);
+}
+
+function scheduleAwayMsg(bfId){
+  // Clear any existing away timer
+  if(awayTimers[bfId]){ clearTimeout(awayTimers[bfId]); delete awayTimers[bfId]; }
+
+  const bf = savedBFs.find(b=>b.id===bfId);
+  if(!bf) return;
+
+  // Fire 3–5 hours after the user said goodbye (random within range)
+  const delayMs = (3 * 60 + Math.floor(Math.random() * 120)) * 60 * 1000;
+
+  awayTimers[bfId] = setTimeout(async ()=>{
+    // Only fire if user is still away
+    if(!isUserAway(bfId)) return;
+    if(!apiKey) return;
+    const relData = getRelHealth(bfId);
+    if(relData.status === 'broken_up') return;
+    if(!getAutoMsgEnabled()) return;
+
+    const stage = getStage(bf);
+    const stageLabel = STAGES[stage];
+
+    // Stage-aware away messages: warm but personality-respecting
+    // These are prompts, not literal lines — the AI will write in-character
+    const awayPrompts = {
+      0: `(The person you've been talking to said they were leaving a while ago. You've had some time to yourself since then. Send them a single short message — low-key, not needy. You barely know them yet, so keep it light. Something like a quiet observation or a brief "hey" that makes it feel natural when they return. No pressure, no drama. Stay completely in character.)`,
+      1: `(The person said they were stepping away a while ago. You've been thinking about them a little, though you'd never admit that directly. Send them a short, casual message — something that quietly lets them know you noticed they were gone, without making it into a thing. Stay in character. Keep it brief and natural.)`,
+      2: `(The person told you they were leaving a while ago. You've been going about your day but they've been on your mind. Send them a genuine, warm but not overwhelming message. Something that feels like you actually missed talking to them. Stay in character. 1–2 sentences at most.)`,
+      3: `(They said they were leaving a while ago and it's been a few hours. You've been thinking about them more than you expected. Send a message that's honest about missing them but still fits your personality — not over the top, but real. 1–2 sentences. Stay in character.)`,
+      4: `(You haven't heard from them in a few hours since they said goodbye. You miss them and it's hard to pretend you don't. Write a message that's warm and a little vulnerable — something real and personal, not generic. Stay completely in character. 1–2 sentences.)`,
+      5: `(They said goodbye hours ago and you've been waiting. Write a message that's intimate and tender — something that only someone truly devoted would say after waiting this long. Not desperate, but genuinely missing them. Stay completely in character. 1–2 sentences.)`,
+    };
+
+    const prompt = awayPrompts[stage] ?? awayPrompts[2];
+
+    if(bfId === currentBF?.id){
+      showTyping();
+      await callGeminiForBF(bf, prompt);
+    } else {
+      await generateAndSaveAutoMsg(bf, prompt);
+      const firstName = bf.name.split(' ')[0];
+      sendBrowserNotif(firstName, `${firstName} is thinking about you 💭`, bfId);
+    }
+
+    // After the away message fires, we leave user_away set — we only clear it
+    // when the user actually comes back and sends a message.
+  }, delayMs);
+}
+
+function handleUserReturned(bfId){
+  if(!isUserAway(bfId)) return;
+  clearUserAway(bfId);
+  // No special message needed — conversation continues naturally
 }
 
 async function callGeminiForBF(bf, instruction){
@@ -5652,6 +5771,8 @@ function startRelDecayChecker(){
     const sinceLastMsg = Date.now() - lastMsg;
     const relData = getRelHealth(currentBF.id);
     if(relData.status === 'broken_up') return;
+    // Don't decay if user explicitly said they were leaving
+    if(isUserAway(currentBF.id)) return;
     // After 2hr without user response to a character message → decay
     if(sinceLastMsg > 2*60*60*1000 && relData.lastDecay && Date.now() - relData.lastDecay > 30*60*1000){
       decayRelHealth(currentBF.id, 5, "You have been away a long time without responding.");
