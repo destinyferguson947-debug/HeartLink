@@ -3148,8 +3148,7 @@ async function genAlt(idx){
     if(memories.length){ fullSystem += `
 
 --- ${currentBF.name.split(' ')[0].toUpperCase()}'S MEMORIES ABOUT THE USER ---
-`+memories.map(m=>`• ${m.text}`).join('
-')+`
+`+memories.map(m=>`• ${m.text}`).join('\n')+`
 (Reference naturally.)`; }
     if(summary){ fullSystem += `
 
