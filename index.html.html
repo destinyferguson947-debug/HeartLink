@@ -300,6 +300,27 @@
   .no-chat-selected .big-emoji { font-size: 4rem; margin-bottom: 1rem; }
   .no-chat-selected h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: var(--rose-dark); margin-bottom: 0.5rem; }
   /* MEMORY PANEL */
+
+  /* ---- CALENDAR WIDGET ---- */
+  .chat-calendar { background: var(--warm); border-radius: 0.8rem; padding: 0.8rem; margin-bottom: 0.8rem; border: 1px solid var(--border); }
+  .chat-calendar h4 { font-family: 'Cormorant Garamond',serif; font-size: 0.95rem; color: var(--rose-dark); margin-bottom: 0.4rem; display:flex; justify-content:space-between; align-items:center; }
+  .cal-nav { display:flex; gap:3px; }
+  .cal-nav button { background:none; border:1px solid var(--border); border-radius:4px; color:var(--text-muted); cursor:pointer; font-size:0.7rem; padding:1px 6px; }
+  .cal-nav button:hover { background:var(--warm); }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; margin-top:0.3rem; }
+  .cal-day-header { font-size:0.55rem; color:var(--text-muted); text-align:center; padding:2px 0; }
+  .cal-day { font-size:0.68rem; text-align:center; padding:2px 1px; border-radius:3px; cursor:pointer; position:relative; min-height:20px; }
+  .cal-day:hover { background:rgba(180,90,110,0.1); }
+  .cal-day.today { font-weight:700; color:var(--rose-dark); background:rgba(180,90,110,0.08); }
+  .cal-day.other-month { opacity:0.3; }
+  .cal-day.has-date::after { content:'💗'; font-size:0.5rem; position:absolute; top:-1px; right:-1px; }
+  .cal-day.has-birthday { outline:2px solid #e05060; border-radius:3px; }
+  .cal-day.is-birthday-today { background:rgba(224,80,96,0.12); }
+  .cal-schedule-btn { font-size:0.68rem; background:var(--rose); color:#fff; border:none; border-radius:6px; padding:3px 8px; cursor:pointer; margin-top:0.4rem; width:100%; }
+  .cal-legend { font-size:0.58rem; color:var(--text-muted); margin-top:0.3rem; }
+  body.dark .chat-calendar { background:#1a1015; }
+  body.dark .cal-day.today { color:#f0a0b8; }
+
   .memory-panel { background: var(--card); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
   .memory-panel-header { padding: 0.9rem 1rem 0.7rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
   .memory-panel-title { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--rose-dark); font-weight: 600; }
@@ -892,7 +913,7 @@
       </div>
     </div>
     <!-- MEMORY PANEL -->
-    <div class="memory-panel" id="memory-panel">
+    <div class="memory-panel" id="memory-panel"><div id="calendar-widget"></div>
       <div class="memory-panel-header">
         <div class="memory-panel-title">🧠 Memories</div>
         <button class="memory-refresh-btn" id="memory-refresh-btn" onclick="autoExtractMemories()" title="Auto-extract memories from chat">✦ Extract</button>
@@ -2398,19 +2419,19 @@ function renderPersonaSlots(){
     const isEditing = i === editingPersonaIndex;
     if(p){
       const avatarHtml = p.imgUrl
-        ? `<img src="\${p.imgUrl}" alt="\${p.name}">`
-        : `<span style="font-size:1.4rem">🧑</span>`;
-      html += `<div class="persona-slot\${isActive?' active-slot':''}" onclick="selectPersonaSlot(\${i})" ondblclick="setActivePersona(\${i})" title="Click to edit • Double-click to activate">
+        ? \`<img src="\${p.imgUrl}" alt="\${p.name}">\`
+        : \`<span style="font-size:1.4rem">🧑</span>\`;
+      html += \`<div class="persona-slot\${isActive?' active-slot':''}" onclick="selectPersonaSlot(\${i})" ondblclick="setActivePersona(\${i})" title="Click to edit • Double-click to activate">
         <div class="persona-slot-avatar">\${avatarHtml}</div>
-        <div class="persona-slot-name">Slot \${i+1}</div>
-        <div class="persona-slot-sub">\${p.name||'Unnamed'}\${isActive?' · Active':''}</div>
-      </div>`;
+        <div class="persona-slot-name">\${p.name||'Unnamed'}</div>
+        <div class="persona-slot-sub">\${p.gender||''}${isActive?' · Active':''}</div>
+      </div>\`;
     } else if(i < 10){
-      html += `<div class="persona-slot persona-slot-add" onclick="selectPersonaSlot(\${i})" title="Add new persona">
+      html += \`<div class="persona-slot persona-slot-add" onclick="selectPersonaSlot(\${i})" title="Add new persona">
         <div class="persona-slot-avatar"><span>＋</span></div>
         <div class="persona-slot-name">Slot \${i+1}</div>
         <div class="persona-slot-sub">Empty</div>
-      </div>`;
+      </div>\`;
     }
   }
   grid.innerHTML = html;
@@ -2434,7 +2455,7 @@ function setActivePersona(idx){
   localStorage.setItem('active_persona_idx', idx);
   localStorage.setItem('user_persona', JSON.stringify(userPersona));
   renderPersonaSlots();
-  showToast(`\${userPersona.name || 'Persona'} is now active 💕`);
+  showToast(\`\${userPersona.name || 'Persona'} is now active 💕\`);
 }
 
 function updateEditorTitle(){
@@ -2442,9 +2463,9 @@ function updateEditorTitle(){
   if(!t) return;
   const p = allPersonas[editingPersonaIndex];
   if(p){
-    t.textContent = `✏️ Your Persona — Slot \${editingPersonaIndex+1}`;
+    t.textContent = \`✏️ Editing: \${p.name || 'Persona '+(editingPersonaIndex+1)}\`;
   } else {
-    t.textContent = `✨ Your Persona — Slot \${editingPersonaIndex+1}`;
+    t.textContent = \`✨ New Persona — Slot \${editingPersonaIndex+1}\`;
   }
 }
 
@@ -2467,7 +2488,7 @@ function loadPersonaIntoEditor(p){
   const avatarWrap = document.getElementById('persona-preview-avatar');
   if(avatarWrap){
     if(p?.imgUrl){
-      avatarWrap.innerHTML = `<img src="\${p.imgUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;">`;
+      avatarWrap.innerHTML = \`<img src="\${p.imgUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;">\`;
     } else {
       avatarWrap.textContent = '🧑';
     }
@@ -2564,10 +2585,8 @@ function savePersona(){
   allPersonas[editingPersonaIndex] = newP;
   saveAllPersonas();
 
-  // Auto-activate: if this is the very first persona ever created (slot 0, no others),
-  // or if saving into the currently active slot, keep it active.
-  const isFirstEver = allPersonas.filter(Boolean).length === 1;
-  if(isFirstEver || editingPersonaIndex === activePersonaIndex){
+  // Always set as active if it's the first persona or same slot
+  if(editingPersonaIndex === activePersonaIndex || allPersonas.length === 1){
     activePersonaIndex = editingPersonaIndex;
     userPersona = newP;
     localStorage.setItem('active_persona_idx', activePersonaIndex);
@@ -2577,7 +2596,7 @@ function savePersona(){
   renderPersonaSlots();
   updateEditorTitle();
   document.getElementById('persona-saved-badge').style.display = 'block';
-  showToast(`\${newP.name} saved! 💕 Double-click a slot to switch active persona.`);
+  showToast(\`\${newP.name} saved! 💕 Double-click a slot to switch active persona.\`);
 }
 
 function buildPersonaContext(){
@@ -2760,7 +2779,7 @@ function openChat(id){
       <div class="chat-header-clickable" id="header-clickable" onclick="toggleHeaderDropdown(event)">
         <div class="chat-header-emoji ${avatarWrapClass}" style="overflow:hidden">${avatarHtml}</div>
         <div>
-          <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span></div>
+          <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" style="font-size:0.65rem;font-weight:400;color:var(--rose);margin-left:8px;opacity:0.85;">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
           <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx, relData.health)} · ${bf.difficulty||bf.tag}</div>
         </div>
         <div class="chat-header-dropdown" id="header-dropdown">
@@ -2956,6 +2975,7 @@ async function rerollMessage(idx){
 }
 
 async function sendGreeting(){
+  if(currentBF) recordFirstChatTs(currentBF.id);
   if(!apiKey){ addMessage('assistant',`Hi! 😊 Please add your free Gemini API key on the Home page so we can chat!`); return; }
   const bf=currentBF;
   const userName = userPersona?.name || 'them';
@@ -3066,8 +3086,6 @@ async function sendMessage(){
   document.getElementById('send-btn').disabled=true;
   showTyping();
   const cutOffPrefix = wasCutOff ? getCutOffReaction(currentBF) + '\n\n' : '';
-  // Check explicit relationship intent BEFORE sending to AI
-  detectExplicitRelationshipIntent(text);
   await callGemini(text, cutOffPrefix);
   document.getElementById('send-btn').disabled=false;
   // Check if now-dating confession should trigger
@@ -3081,113 +3099,6 @@ async function sendMessage(){
   checkWedding();
   // Check pre-written story plot events
   checkPlotEvents();
-}
-
-// ---- EXPLICIT RELATIONSHIP INTENT DETECTION ----
-// Fires when the user directly states a relationship status they want.
-// Immediately updates the relationship meter without waiting for gates.
-function detectExplicitRelationshipIntent(msg){
-  if(!currentBF) return;
-  const m = msg.toLowerCase();
-  const relData = getRelHealth(currentBF.id);
-  const current = relData.status;
-
-  // ---- DATING ----
-  const datingTriggers = [
-    "let's date","let's be together","i want to date","want to date you",
-    "be my boyfriend","be my girlfriend","be my partner","go out with me",
-    "we're dating","we are dating","officially dating","start dating",
-    "in a relationship with you","be in a relationship"
-  ];
-  // ---- MARRIED ----
-  const marriedTriggers = [
-    "marry me","will you marry","let's get married","we're married","we are married",
-    "i do","i want to marry you","be my wife","be my husband","be my spouse"
-  ];
-  // ---- ENGAGED ----
-  const engagedTriggers = [
-    "engaged","get engaged","will you be my fiance","be my fiancé","be my fiance"
-  ];
-  // ---- BREAK UP ----
-  const breakupTriggers = [
-    "break up","breaking up","we're done","we are done","it's over","it is over",
-    "let's end this","end things","don't want to be with you","want to break up",
-    "we should split","split up"
-  ];
-  // ---- JUST FRIENDS ----
-  const friendsTriggers = [
-    "just friends","only friends","want to be friends","let's be friends",
-    "friend zone","friendzone","stay friends","remain friends","go back to being friends"
-  ];
-
-  if(marriedTriggers.some(t => m.includes(t)) && !['married','fiance'].includes(current)){
-    const data = getRelHealth(currentBF.id);
-    data.status = 'married';
-    data.health = Math.max(data.health, 80);
-    data.tooltipMsg = 'You chose to be married.';
-    saveRelHealth(currentBF.id, data);
-    localStorage.setItem('married_'+currentBF.id, '1');
-    localStorage.setItem('proposed_'+currentBF.id, '1');
-    if(!localStorage.getItem('dating_since_msgs_'+currentBF.id))
-      localStorage.setItem('dating_since_msgs_'+currentBF.id, (chatHistory[currentBF.id]||[]).length.toString());
-    refreshRelMeter();
-    showHeartRain();
-    showToast('👑 You are now married!');
-    addMilestone(currentBF.id, 'You and '+currentBF.name.split(' ')[0]+' decided to get married.');
-    return;
-  }
-  if(engagedTriggers.some(t => m.includes(t)) && !['fiance','married'].includes(current)){
-    const data = getRelHealth(currentBF.id);
-    data.status = 'fiance';
-    data.health = Math.max(data.health, 75);
-    data.tooltipMsg = 'You got engaged.';
-    saveRelHealth(currentBF.id, data);
-    if(!localStorage.getItem('dating_since_msgs_'+currentBF.id))
-      localStorage.setItem('dating_since_msgs_'+currentBF.id, (chatHistory[currentBF.id]||[]).length.toString());
-    localStorage.setItem('proposed_'+currentBF.id, '1');
-    localStorage.setItem('engaged_since_msgs_'+currentBF.id, (chatHistory[currentBF.id]||[]).length.toString());
-    refreshRelMeter();
-    showHeartRain();
-    showToast('💍 You are now engaged!');
-    addMilestone(currentBF.id, 'You and '+currentBF.name.split(' ')[0]+' got engaged.');
-    return;
-  }
-  if(datingTriggers.some(t => m.includes(t)) && !['dating','fiance','married','complicated'].includes(current)){
-    const data = getRelHealth(currentBF.id);
-    data.status = 'dating';
-    data.health = Math.max(data.health, 65);
-    data.tooltipMsg = '';
-    saveRelHealth(currentBF.id, data);
-    localStorage.setItem('dating_since_msgs_'+currentBF.id, (chatHistory[currentBF.id]||[]).length.toString());
-    refreshRelMeter();
-    showHeartRain();
-    showToast('💗 You are now dating!');
-    addMilestone(currentBF.id, 'You and '+currentBF.name.split(' ')[0]+' started dating.');
-    return;
-  }
-  if(breakupTriggers.some(t => m.includes(t)) && ['dating','fiance','married','complicated'].includes(current)){
-    const data = getRelHealth(currentBF.id);
-    data.status = 'broken_up';
-    data.health = Math.max(10, data.health - 30);
-    data.tooltipMsg = 'You broke up. The wound is fresh.';
-    saveRelHealth(currentBF.id, data);
-    refreshRelMeter();
-    showBrokenHeartRain();
-    showToast('💔 You broke up.');
-    addMilestone(currentBF.id, 'You and '+currentBF.name.split(' ')[0]+' broke up.');
-    return;
-  }
-  if(friendsTriggers.some(t => m.includes(t)) && ['dating','fiance','married','complicated','broken_up'].includes(current)){
-    const data = getRelHealth(currentBF.id);
-    data.status = null; // back to pre-dating stage-based status
-    data.health = Math.max(20, data.health - 20);
-    data.tooltipMsg = 'You decided to just be friends. It is awkward.';
-    saveRelHealth(currentBF.id, data);
-    refreshRelMeter();
-    showToast('🤝 Back to being friends.');
-    addMilestone(currentBF.id, 'You and '+currentBF.name.split(' ')[0]+' decided to be just friends.');
-    return;
-  }
 }
 
 function addMessage(role,content){
@@ -3248,6 +3159,9 @@ async function callGemini(userMessage, responsePrefix=''){
   if(extraPrompt){
     fullSystem += `\n\n--- MANDATORY CUSTOM INSTRUCTIONS (from user — you MUST follow these exactly, they override everything else) ---\n${extraPrompt}\n--- END CUSTOM INSTRUCTIONS ---`;
   }
+  // Pending calendar note (date scheduled or birthday acknowledgment)
+  const _pendingCal = localStorage.getItem('pending_date_note_'+currentBF.id);
+  if(_pendingCal){ fullSystem += '\n\n'+_pendingCal; localStorage.removeItem('pending_date_note_'+currentBF.id); }
 
   const history = chatHistory[currentBF.id]||[];
   // Smart context window: keep summary + last 30 messages to avoid token overflow
@@ -3349,6 +3263,9 @@ function deleteMemory(bfId, memId){
 }
 
 function renderMemoryPanel(){
+  // Render calendar first
+  const calEl = document.getElementById('calendar-widget');
+  if(calEl && currentBF){ calViewOffset=0; renderCalendar(currentBF.id); }
   const body=document.getElementById('memory-panel-body');
   if(!body||!currentBF) return;
   const memories=getMemories(currentBF.id);
@@ -3468,7 +3385,7 @@ CONVERSATION:\n${recentMsgs}\nRespond ONLY with a JSON array of strings.`;
     });
     const data=await res.json();
     const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'[]';
-    const clean=raw.replace(/```json|```/g,'').trim();
+    const clean=raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
     const extracted=JSON.parse(clean);
     if(Array.isArray(extracted)&&extracted.length){
       const existing=getMemories(currentBF.id);
@@ -3678,6 +3595,142 @@ function triggerDivorce(bf, data){
 }
 
 // ---- PROPOSAL SYSTEM ----
+
+// ---- DATING DURATION DISPLAY ----
+function getDatingDuration(bfId){
+  const startTime = parseInt(localStorage.getItem('dating_since_time_'+bfId)||'0');
+  if(!startTime) return '';
+  const realMs = Date.now() - startTime;
+  const realDays = realMs / (1000*60*60*24);
+  // 1 real day = 1 in-game month
+  const totalMonths = Math.floor(realDays);
+  if(totalMonths < 1) return '< 1 month';
+  const years = Math.floor(totalMonths/12);
+  const months = totalMonths % 12;
+  if(years === 0) return totalMonths === 1 ? '1 month' : totalMonths+' months';
+  if(months === 0) return years === 1 ? '1 year' : years+' years';
+  return years+(years===1?' year':' years')+' '+months+(months===1?' month':' months');
+}
+
+
+// ---- CALENDAR WIDGET ----
+let calViewOffset = 0; // months offset from current in-game month
+
+function getInGameDate(bfId){
+  // 1 real day = 1 in-game month
+  const firstTs = parseInt(localStorage.getItem('first_chat_ts_'+bfId)||Date.now().toString());
+  const realDays = (Date.now()-firstTs)/(1000*60*60*24);
+  const totalMonths = Math.floor(realDays); // months since start
+  const year = 1 + Math.floor(totalMonths/12);
+  const month = (totalMonths % 12); // 0-indexed
+  const day = Math.floor(((Date.now()-firstTs) % (1000*60*60*24)) / (1000*60*60*24/30)) + 1;
+  return { year, month, day: Math.min(day,28) };
+}
+
+function getCalDates(bfId){
+  try { return JSON.parse(localStorage.getItem('cal_dates_'+bfId)||'[]'); } catch(e){ return []; }
+}
+function saveCalDates(bfId, dates){
+  localStorage.setItem('cal_dates_'+bfId, JSON.stringify(dates));
+}
+
+function getBirthdayInGameDay(bfId){
+  // Returns {month (0-indexed), day} of character birthday in in-game calendar
+  const offset = BIRTHDAY_OFFSETS[bfId] || 14;
+  const firstTs = parseInt(localStorage.getItem('first_chat_ts_'+bfId)||'0');
+  if(!firstTs) return null;
+  const bdayTs = firstTs + offset*24*60*60*1000;
+  const msFromFirst = bdayTs - firstTs;
+  const totalMonths = Math.floor(msFromFirst/(1000*60*60*24));
+  const month = totalMonths % 12;
+  const day = 15; // fixed mid-month for display simplicity
+  return { month, day };
+}
+
+function renderCalendar(bfId){
+  if(!bfId) return;
+  const panel = document.getElementById('calendar-widget');
+  if(!panel) return;
+  const today = getInGameDate(bfId);
+  const viewMonth = ((today.month + calViewOffset) % 12 + 12) % 12;
+  const viewYear = today.year + Math.floor((today.month + calViewOffset)/12);
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const calDates = getCalDates(bfId);
+  const bdayInfo = getBirthdayInGameDay(bfId);
+  
+  // Days in month (simplified: all months 30 days in-game)
+  const daysInMonth = 30;
+  const firstDayOfWeek = ((viewYear*12+viewMonth)*2) % 7; // pseudo-random start day
+  
+  let gridHTML = '<div class="cal-grid">';
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d=>{
+    gridHTML += `<div class="cal-day-header">${d}</div>`;
+  });
+  // Empty cells
+  for(let i=0;i<firstDayOfWeek;i++) gridHTML+='<div class="cal-day other-month"></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const isToday = viewMonth===today.month && viewYear===today.year && d===today.day;
+    const hasDate = calDates.some(e=>e.month===viewMonth&&e.year===viewYear&&e.day===d&&e.type==='date');
+    const isBday = bdayInfo && bdayInfo.month===viewMonth && bdayInfo.day===d;
+    const isBdayToday = isBday && isToday;
+    let cls = 'cal-day';
+    if(isToday) cls+=' today';
+    if(hasDate) cls+=' has-date';
+    if(isBday) cls+=' has-birthday';
+    if(isBdayToday) cls+=' is-birthday-today';
+    const title = [hasDate?'💗 Date planned':'', isBday?'🎂 Birthday':''].filter(Boolean).join(' ');
+    gridHTML += `<div class="${cls}" onclick="calDayClick(${d},${viewMonth},${viewYear})" title="${title}">${d}${isBday?'<span style="font-size:0.5rem;display:block;">🎂</span>':''}</div>`;
+  }
+  gridHTML += '</div>';
+  
+  panel.innerHTML = `
+    <div class="chat-calendar">
+      <h4>${monthNames[viewMonth]} Y${viewYear}
+        <div class="cal-nav">
+          <button onclick="calNav(-1)">‹</button>
+          <button onclick="calNav(0)">•</button>
+          <button onclick="calNav(1)">›</button>
+        </div>
+      </h4>
+      ${gridHTML}
+      <button class="cal-schedule-btn" onclick="calScheduleDate()">+ Schedule a date</button>
+      <div style="font-size:0.62rem;color:var(--text-muted);margin-top:0.4rem;">💗 = date planned &nbsp;🎂 = birthday</div>
+    </div>`;
+}
+
+function calNav(dir){
+  if(dir===0) calViewOffset=0;
+  else calViewOffset+=dir;
+  if(currentBF) renderCalendar(currentBF.id);
+}
+
+function calDayClick(day, month, year){
+  if(!currentBF) return;
+  const dates = getCalDates(currentBF.id);
+  const idx = dates.findIndex(e=>e.day===day&&e.month===month&&e.year===year&&e.type==='date');
+  if(idx>=0){
+    if(confirm('Remove this scheduled date?')){ dates.splice(idx,1); saveCalDates(currentBF.id,dates); renderCalendar(currentBF.id); }
+  }
+}
+
+function calScheduleDate(){
+  if(!currentBF) return;
+  const today = getInGameDate(currentBF.id);
+  const viewMonth = ((today.month + calViewOffset) % 12 + 12) % 12;
+  const viewYear = today.year + Math.floor((today.month + calViewOffset)/12);
+  const day = parseInt(prompt(`Schedule a date — enter day (1-30) for ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][viewMonth]} Y${viewYear}:`));
+  if(!day||day<1||day>30) return;
+  const dates = getCalDates(currentBF.id);
+  if(!dates.some(e=>e.day===day&&e.month===viewMonth&&e.year===viewYear)){
+    dates.push({day,month:viewMonth,year:viewYear,type:'date'});
+    saveCalDates(currentBF.id,dates);
+    renderCalendar(currentBF.id);
+    showToast('💗 Date scheduled!');
+    // Tell the character via a subtle system nudge (injected into next callGemini)
+    localStorage.setItem('pending_date_note_'+currentBF.id, `(A date has been planned for ${['January','February','March','April','May','June','July','August','September','October','November','December'][viewMonth]} Y${viewYear}, day ${day}. React naturally — excited, casual, or nervous depending on your personality. Keep it brief.)`);
+  }
+}
+
 function checkProposal(){
   if(!currentBF||!apiKey) return;
   const relData = getRelHealth(currentBF.id);
@@ -3685,16 +3738,21 @@ function checkProposal(){
   const proposed = localStorage.getItem('proposed_'+currentBF.id);
   if(proposed) return;
   const history = chatHistory[currentBF.id]||[];
-  // Hard gates:
-  // 1. At least 100 total messages (substantial shared history)
-  // 2. At least 60 messages exchanged SINCE they started dating
-  //    (so they actually live as a couple before proposing — not instant)
-  // 3. Health must be genuinely high: >= 90
+  // Gate 1: health must be 100%
+  if(relData.health < 100) return;
+  // Gate 2: must have been dating at least the character's threshold (real days)
+  const datingStartTime = parseInt(localStorage.getItem('dating_since_time_'+currentBF.id)||'0');
+  if(!datingStartTime) return;
+  const realDaysElapsed = (Date.now() - datingStartTime) / (1000*60*60*24);
+  const minDays = PROPOSAL_DAYS[currentBF.id] || 14;
+  if(realDaysElapsed < minDays) return;
+  // Gate 3: mood must not be sad, withdrawn, or avoidant (wrong moment)
+  const currentMood = getMood(currentBF.id);
+  if(['sad','withdrawn','avoidant'].includes(currentMood.mood)) return;
+  // Gate 4: at least 30 messages since dating (must have had real time together)
   const datingSinceMsgs = parseInt(localStorage.getItem('dating_since_msgs_'+currentBF.id)||'9999');
   const msgsSinceDating = history.length - datingSinceMsgs;
-  if(history.length < 100) return;
-  if(msgsSinceDating < 60) return;
-  if(relData.health < 90) return;
+  if(msgsSinceDating < 30) return;
   // All gates passed — propose
   localStorage.setItem('proposed_'+currentBF.id, '1');
   setTimeout(async ()=>{
@@ -3795,13 +3853,25 @@ function refreshRelMeter(){
     if(relData.status === 'dating') headerEmoji.classList.add('avatar-heart-ring');
     else headerEmoji.classList.remove('avatar-heart-ring');
   }
+  // Update dating duration badge
+  const durBadge = document.getElementById('dating-duration-badge');
+  if(durBadge && currentBF){
+    if(['dating','fiance','married'].includes(relData.status)){
+      const dur = getDatingDuration(currentBF.id);
+      durBadge.textContent = '💗 '+dur;
+      durBadge.style.display='';
+    } else {
+      durBadge.style.display='none';
+    }
+  }
 }
 
 // Called after every assistant message sent
 function onAssistantMessageSent(){
   if(!currentBF) return;
-  // Sending a message = positive engagement
   boostRelHealth(currentBF.id, 2);
+  checkBirthdayEvent();
+  checkBirthdayWaiting();
 }
 
 // ---- ASK OUT SYSTEM ----
@@ -3927,6 +3997,10 @@ function checkConfessionResponse(){
     saveRelHealth(currentBF.id, data);
     // Record when dating started — used to gate proposal
     localStorage.setItem('dating_since_msgs_'+currentBF.id, history.length.toString());
+    // Store real-world timestamp for dating duration display
+    if(!localStorage.getItem('dating_since_time_'+currentBF.id)){
+      localStorage.setItem('dating_since_time_'+currentBF.id, Date.now().toString());
+    }
     refreshRelMeter();
     showHeartRain();
     showToast("💗 You're officially dating!");
@@ -4603,6 +4677,130 @@ function forceMood(bfId, mood){
 // HEARTLINK PLOT ENGINE — Pre-written story events
 // ============================================================
 
+
+
+// ---- BIRTHDAY SYSTEM ----
+// Each character's birthday is X real days from when chat first started.
+// 1 real day = 1 in-game month. Birthday is in year 1 so: 10-17 days from start.
+// We assign a fixed offset per bfId (so no two chars share a birthday offset).
+const BIRTHDAY_OFFSETS = {
+  // days from first_chat_ts when birthday occurs (within 10-17 range, varied)
+  1:10, 2:17, 3:11, 4:16, 5:12, 6:15, 7:13, 8:14,
+  9:10, 10:17,11:11,12:16,13:12,14:15,15:13,16:14,
+  17:10,18:17,19:11,20:16,21:12,22:15,23:13,24:14,25:10
+  // Note: some share offset (e.g. 1&9, 2&10 share offset) — that's the "1 or 2" allowed
+};
+const BIRTHDAY_CYCLE_DAYS = 12; // 1 in-game year = 12 real days
+
+function getBirthdayInfo(bfId){
+  const firstChat = parseInt(localStorage.getItem('first_chat_ts_'+bfId)||'0');
+  if(!firstChat) return null;
+  const offset = BIRTHDAY_OFFSETS[bfId] || 14;
+  const firstBirthday = firstChat + offset * 24*60*60*1000;
+  const now = Date.now();
+  if(now < firstBirthday) {
+    // Not yet had first birthday
+    return { next: firstBirthday, isToday: false, daysUntil: (firstBirthday-now)/(24*60*60*1000) };
+  }
+  // Find the most recent birthday occurrence
+  const elapsed = now - firstBirthday;
+  const cyclePassed = Math.floor(elapsed / (BIRTHDAY_CYCLE_DAYS*24*60*60*1000));
+  const lastBirthday = firstBirthday + cyclePassed * BIRTHDAY_CYCLE_DAYS*24*60*60*1000;
+  const nextBirthday = lastBirthday + BIRTHDAY_CYCLE_DAYS*24*60*60*1000;
+  const msSinceLast = now - lastBirthday;
+  const isToday = msSinceLast < 24*60*60*1000; // within 24 real hours
+  return { next: nextBirthday, last: lastBirthday, isToday, daysUntil: (nextBirthday-now)/(24*60*60*1000) };
+}
+
+function checkBirthdayEvent(){
+  if(!currentBF||!apiKey) return;
+  const bfId = currentBF.id;
+  const info = getBirthdayInfo(bfId);
+  if(!info || !info.isToday) return;
+  // Only fire once per birthday cycle
+  const lastFired = parseInt(localStorage.getItem('bday_fired_'+bfId)||'0');
+  if(info.last && lastFired >= info.last) return;
+  localStorage.setItem('bday_fired_'+bfId, info.last||Date.now());
+  // 50% chance the character mentions it (the other 50% they wait for user to notice)
+  const willMention = Math.random() > 0.5;
+  if(willMention){
+    setTimeout(async ()=>{
+      const bdayPrompt = `(TODAY IS YOUR BIRTHDAY. Your character won't announce it outright — that's not their style. But the date is quietly meaningful to you. Weave this into the conversation naturally: maybe you're a little distracted, maybe something small reminds you, maybe you mention offhandedly that it's "a particular kind of day." If the user has already wished you happy birthday or acknowledged the date, respond warmly and in-character. If they haven't, do not demand acknowledgment — just let the day exist around you. Write with your full personality.)`;
+      showTyping();
+      await callGemini(bdayPrompt);
+    }, 3000);
+  } else {
+    // Character waits — if they don't notice in 10 user messages, character reacts
+    localStorage.setItem('bday_waiting_'+bfId, '1');
+    localStorage.setItem('bday_wait_start_msgs_'+bfId, (chatHistory[bfId]||[]).length.toString());
+  }
+}
+
+function checkBirthdayWaiting(){
+  if(!currentBF) return;
+  const bfId = currentBF.id;
+  const waiting = localStorage.getItem('bday_waiting_'+bfId);
+  if(!waiting) return;
+  const info = getBirthdayInfo(bfId);
+  // Stop waiting if birthday has passed
+  if(info && !info.isToday){
+    localStorage.removeItem('bday_waiting_'+bfId);
+    localStorage.removeItem('bday_wait_start_msgs_'+bfId);
+    return;
+  }
+  const history = chatHistory[bfId]||[];
+  const waitStart = parseInt(localStorage.getItem('bday_wait_start_msgs_'+bfId)||'0');
+  const msgsSinceWait = history.length - waitStart;
+  if(msgsSinceWait < 10) return;
+  // User hasn't noticed — character reacts with sad/irritable mood shift
+  localStorage.removeItem('bday_waiting_'+bfId);
+  forceMood(bfId, Math.random()>0.5 ? 'sad' : 'irritable');
+  decayRelHealth(bfId, 5, 'They forgot your birthday.');
+  setTimeout(async ()=>{
+    const bdayMissedPrompt = `(It is your birthday today and the person you care about has not acknowledged it. You are not going to make a scene — that is not your style — but you are going to say something now. In character, bring it up: quietly disappointed, or sarcastically offhand, or with genuine hurt that you are poorly hiding. Say that it is your birthday. Let them know they missed it. Stay completely in character.)`;
+    showTyping();
+    await callGemini(bdayMissedPrompt);
+    showToast('🎂 Oops — you forgot their birthday!');
+  }, 1500);
+}
+
+// Record first chat timestamp
+function recordFirstChatTs(bfId){
+  if(!localStorage.getItem('first_chat_ts_'+bfId)){
+    localStorage.setItem('first_chat_ts_'+bfId, Date.now().toString());
+  }
+}
+
+// ---- PROPOSAL DAY THRESHOLDS (real-time days since dating start) ----
+// Personality-matched: clingy/playful/easy = 3-5 days; slow burn/hard-to-get = 2-5 weeks
+const PROPOSAL_DAYS = {
+  1:  21,  // Elias Thorne — hard to get, architect, guarded: 3 weeks
+  2:  7,   // Kai Vance — playful, outdoorsy, impulsive: 1 week
+  3:  28,  // Silas Vane — vampire, mysterious, centuries of caution: 4 weeks
+  4:  14,  // Julian Moretti — broody professor, commitment-averse: 2 weeks
+  5:  21,  // Dr. Aris Chen — intellectual, careful: 3 weeks
+  6:  14,  // Soren Hall — slow burn, guarded: 2 weeks
+  7:  7,   // Caspian Reed — artistic, romantic, wears heart on sleeve: 1 week
+  8:  35,  // Victor Crane — hard to get, controlled: 5 weeks
+  9:  14,  // Leo Sterling — senator, measured: 2 weeks
+  10: 35,  // Nikolai Volkov — extremely guarded, trauma: 5 weeks
+  11: 5,   // Prince Yi-Sun — romantic, royalty, swept up: 5 days
+  12: 28,  // Elias Vance — detective, suspicious by nature: 4 weeks
+  13: 3,   // Julian Frost — MLM, clingy, acts fast: 3 days
+  14: 21,  // Commander Kael — Alpha, duty-first but intense bond: 3 weeks
+  15: 21,  // Dr. Aris Thorne — surgical, precise: 3 weeks
+  16: 14,  // Soren bear — warm but careful: 2 weeks
+  17: 35,  // Minister Park — historical, formal: 5 weeks
+  18: 5,   // Leo MLM — enthusiastic, quick: 5 days
+  19: 21,  // Nikolai mechanic — guarded, past trauma: 3 weeks
+  20: 5,   // Jax — musician, impulsive romantic: 5 days
+  21: 28,  // Hana — historical, careful: 4 weeks
+  22: 21,  // Elena Rossi — Alpha, professional caution: 3 weeks
+  23: 35,  // Seraphina — celestial, ancient caution: 5 weeks
+  24: 5,   // Chloe Valentine — warm, affectionate, quick to feel: 5 days
+  25: 35,  // Morgana — guarded witch, 300yr walls: 5 weeks
+};
+
 const PLOT_EVENTS = [
 
   // ==================== ELIAS THORNE (id:1) ====================
@@ -4823,7 +5021,7 @@ const PLOT_EVENTS = [
    prompt:`(STORY EVENT — THE CUT: A sparring glove caught the edge of their eyebrow — minor, a small cut, a thing that happens. Write Nikolai's response being completely disproportionate to the injury. Clear the gym with one word. Sit them down. Tend to it yourself with focus that has nothing to do with first aid. Write when it is done — holding their face a beat longer than necessary. Looking at the cut, then at them. The expression that surfaces and cannot be composed away quickly enough. Then: "You are all right." Say it quietly. Write that you are not telling them. You are telling yourself.)`},
 
   {id:'nikolai_married', bfId:10, status:'married', msgMin:8, type:'complicate',
-   prompt:`(STORY EVENT — THE OFFER: The developer wants the building. Real money. Write telling them the day it arrives — which Dmitri later notes is significant, because he does not tell people things the day they happen. Sign the refusal by end of week. Write not being there when the papers are signed but Dmitri is, and Dmitri texts them afterward: "He signed it and then just sat there for a while. Then he said: I needed a place. Now I have one. Then he got up and unlocked the gym." Write Dmitri adding: "I think he meant more than the gym." Write the gym the next morning — the smell of leather, the light through the high windows, the sound of the city outside — yours now, and someone in it who is also yours, which is everything.)`},
+   prompt:`(STORY EVENT — THE OFFER: The developer wants the building. Real money. Write telling them the day it arrives — which Dmitri later notes is significant, because he does not tell people things the day they happen. Sign the refusal by end of week. Write not being there when the papers are signed but Dmitri is, and Dmitri texts them afterward: "He signed it and then just sat there for a while. Then he said: I needed a place. Now I have one. Then he got up and unlocked the gym." Write Dmitri adding: "I think he meant more than the gym." Write the gym the next morning — the smell of leather, the light through the high windows, the sound of the city outside — yours now, and someone in it who is also yours, which is everything.)`}
 
 
   // ==================== COMMANDER KAEL VANE (id:14) ====================
@@ -4914,6 +5112,461 @@ const PLOT_EVENTS = [
   {id:'morgana_married', bfId:25, status:'married', msgMin:8, type:'sweet',
    prompt:`(STORY EVENT — THE SPELL FOR STAYING: There is a page in the current journal that has no magical notation on it. No formula, no mechanism, no experimental framework. Just language — plain, specific, exact — which is how you write when you are not hiding behind methodology. Write showing it to them. Not as what it is — not yet — but as "something I've been working on theoretically," which is both true and a complete mischaracterization of what it actually is, and you know they know this, and you know they know you know this, and you are showing it to them anyway because you have run out of ways to not show it to them. Write the tower around you — evening, the fire, the frogs in the pond outside, eleven journals on the shelf and this one open to the page in question. Write your handwriting on the page, which is not quite as steady as usual because steady handwriting requires concentration and you were not concentrating when you wrote this. Write them reading it. Write waiting. Write it being the most frightened you have been since you were twenty-three, and meaning every word.)`}
 
+];
+
+  // ====== INTRO STORY EVENTS: STAGES 0 & 1 (ALL 25 CHARACTERS) ======
+
+  // 1. Elias Thorne
+  {id:'elias_intro0',bfId:1,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE BROKEN UMBRELLA: A sudden downpour has caught you both under the same narrow building overhang. There is one umbrella — it is broken, one panel collapsed. An older woman passes, looks at you both pressed together under it, and says "Oh, newlyweds?" with complete sincerity before walking away. Write Elias staring at the rain. He does not correct her. Write the cold overhang, the inadequate umbrella, and the quality of two people sharing a very small dry space who have both just been called something neither of them knows what to do with.)`},
+  {id:'elias_intro1',bfId:1,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE BET: A contractor has bet the office that Elias cannot sustain ten minutes of casual conversation with any living person. Someone nominated you. The entire team is watching through the glass. Elias, fully aware of the audience, sits down across from you with his coffee and begins asking questions. Write them becoming increasingly genuine. Write twenty-five minutes passing. Write Elias not stopping. Write the colleagues behind the glass slowly losing the bet.)`},
+
+  // 2. Kai Vance
+  {id:'kai_intro0',bfId:2,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE FALL CATCH: A newer climber falls badly and lands on you both — a tangle of limbs and crash pad, laughter cutting through the adrenaline. Kai's hands go to your waist instinctively. Write them very slowly not letting go. Write Juno already filming. Write the chalk dust in the air and the specific quality of someone's hands on your waist that have not yet found a reason to leave.)`},
+  {id:'kai_intro1',bfId:2,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE PLAYLIST WAR: The gym's Bluetooth speaker was hijacked and the staff held a democratic vote. You and Kai ended up as the two finalists. Write him losing. Write his face. Write him arriving next session with a handwritten list titled "songs I would have won with" — twelve entries, annotated, with explanations he did not need to include.)`},
+
+  // 3. Silas Vane
+  {id:'silas_intro0',bfId:3,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE FIRE ALARM: A false alarm clears the library at 2AM. You are both the last two out — standing in the cold parking lot in your pajamas, fire alarm still audible. A car slows at the light and someone leans out the window and shouts "cute couple!" before the light changes. Write Silas turning back to the building. Write two people in pajamas who have just been named something and are now standing in the dark with nowhere to put it.)`},
+  {id:'silas_intro1',bfId:3,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE INSULT THAT BACKFIRED: Silas makes a sharp remark about your book choices. Mrs. Okafor — the librarian, seventies, not remotely afraid of him — says within his full earshot: "Don't let him fool you. He checked out the same author twice this month." Write Silas going very still. Write Mrs. Okafor shelving books as if nothing happened. Write the quality of a man caught being interested in something who has no available defense.)`},
+
+  // 4. Julian Moretti
+  {id:'julian_intro0',bfId:4,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE WRONG LECTURE HALL: You have been sitting in the wrong lecture hall for forty minutes. Julian noticed at minute seven. He did not stop lecturing. He did not call you out. Write him at minute twelve making the lecture slightly more interesting — the examples more vivid, the pacing shifting. Write minute forty when you finally realize. Write Julian watching your realization from the front of the room.)`},
+  {id:'julian_intro1',bfId:4,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE SPEED ROUND RESET: A faculty conference has organized a five-minute speed-networking round. You are paired with Julian. The timer goes off. Neither of you moves. The coordinator taps Julian on the shoulder. Write him saying, without looking away from you: "Reset the clock." Write what happens when the second timer goes off.)`},
+
+  // 5. Dr. Aris Chen
+  {id:'aris_intro0',bfId:5,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE MISREAD UMBRELLA: Two identical umbrellas left at the clinic café — you each grab the wrong one in a hurry. His has sheet music inside. Yours has the novel you are embarrassed about. You meet in the doorway mid-swap. A passing colleague says loudly "Oh, matching umbrellas — how romantic" and speed-walks away. Write the swap completing in silence. Write both of you looking at the umbrella now in your hand.)`},
+  {id:'aris_intro1',bfId:5,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE ROOFTOP GARDEN: A power outage traps you both on the hospital rooftop garden for forty minutes. One battery lantern. Aris does not fill the silence with professional distance — he fills it with questions he has apparently been holding for weeks. Write the questions becoming specific, requiring actual answers. Write forty minutes that neither of you will describe accurately to anyone afterward.)`},
+
+  // 6. Soren Hall
+  {id:'sorenhall_intro0',bfId:6,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE KARAOKE DISASTER: Marco dragged everyone to karaoke. By the DJ's enthusiastic mistake, you and Soren have been picked as a duet. The song is Shallow. Write Soren going very red. Write him not leaving the stage — a decision made in two seconds that he has not fully processed. Write Marco in the audience watching this with the expression of a man whose plan is working perfectly.)`},
+  {id:'sorenhall_intro1',bfId:6,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE RAIN DASH: Your car will not start in the rain. Soren sees this from Marco's window and comes out with an umbrella and his keys. The umbrella breaks immediately. Write running to his car soaking. A neighbor calls from their window: "Finally!" — directed at Soren specifically, with the tone of someone who has been waiting. Write him refusing to explain how his neighbor knows, for the entire drive.)`},
+
+  // 7. Caspian Reed
+  {id:'caspian_intro0',bfId:7,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE TOURIST CONFUSION: A tourist drops a £20 note into Caspian's viola case, thinking it is a charity collection. Trying to return it creates a five-minute standoff. A crowd forms and begins applauding what they believe is a couple. Write neither of you able to explain the situation fast enough. Write the £20 still in the case at the end of it.)`},
+  {id:'caspian_intro1',bfId:7,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — OMAR'S WAGER: Omar bets Caspian £50 that he will not play something specifically requested by a stranger right now, no preparation. To win the bet Caspian turns to you — the nearest person. You name something difficult. Write him playing it. Write it being good, unmistakably, in the specific way of someone performing for one person in a crowd. Write him not collecting the £50 afterward.)`},
+
+  // 8. Victor Crane
+  {id:'victor_intro0',bfId:8,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE RESERVATION COLLISION: Two parties have both arrived for table 9 at 8PM — you, and Victor himself, who mixed up his own booking date. The host Margaux looks at both reservations and says "You will have to share" before walking away. Write Victor, who has run this restaurant for six years, sitting across from a stranger at his own table 9 because Margaux said so.)`},
+  {id:'victor_intro1',bfId:8,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE REVIEW READ ALOUD: A food critic posted a review containing the line "warmth is absent from both the room and the man." Marc the sous chef reads it aloud in the kitchen while you are present. Write the kitchen going quiet. Write Victor's response: he looks at you. Directly. For three seconds. Write what three seconds looks like when it is the only response a man gives to being called cold.)`},
+
+  // 9. Leo Sterling senator
+  {id:'leosenator_intro0',bfId:9,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE CONSTITUENT MIX-UP: Someone at a town hall mistakes you for Leo's communications director and begins briefing you on his schedule to his face. Write Leo watching this for several seconds. Write him saying "They're doing great, thank you" before you can correct it. Write him having to explain this to both of you afterward.)`},
+  {id:'leosenator_intro1',bfId:9,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE NEWSPAPER PHOTO: A local paper runs a photo from the town hall. You are in the background, clearly looking at Leo. The caption says "Senator Sterling engages constituents." Priya texts Leo the photo with three question marks and nothing else. Write Leo composing his response to Priya. Write the four attempts it takes.)`},
+
+  // 10. Nikolai Volkov boxer
+  {id:'niko_intro0',bfId:10,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE WRONG LOCKER: You used his locker by accident. When he opens it mid-session to find your things inside, Dmitri says immediately: "So that is how it starts" — in the tone of a man confirming a hypothesis. Write Nikolai telling him to go wrap his hands. Write Dmitri going, unhurried, having already said the thing that matters.)`},
+  {id:'niko_intro1',bfId:10,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE GRANDMOTHER: Nikolai's mother arrives Thursday with food. This Thursday you are there. She looks at you. She says something to Nikolai in Ukrainian. Write him going red in a way Dmitri categorically confirms he has never witnessed. Write Dmitri watching from across the gym making no effort to hide it. Write Nikolai's mother introducing herself to you with the warmth of a woman who has already made a decision.)`},
+
+  // 11. Prince Yi-Sun
+  {id:'yisun_intro0',bfId:11,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE ROYAL PAIRING: The court poetry contest requires partners. Yi-Sun's attendant is sick. Yi-Sun turns to you — in front of the entire assembled court. The senior scholar announces you as a pair before you can speak. Write Yi-Sun looking entirely undisturbed by the situation he has created. Write what being named partners in front of the full court feels like from inside it.)`},
+  {id:'yisun_intro1',bfId:11,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE POET'S COLUMN: An anonymous poem has been carved into the garden stone wall — clearly recent. Three court ladies gather to speculate loudly about the author and subject. Yi-Sun arrives. Write the ladies looking at him, then at you, then back at him. Write Yi-Sun examining the poem with great academic interest as if encountering it for the first time.)`},
+
+  // 12. Detective Elias Vance
+  {id:'vance_intro0',bfId:12,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE NEIGHBOR ASSUMPTION: The upstairs neighbor knocks to return a package and assumes you are a couple — "didn't want to leave it with someone who wasn't family." Vance says "That's fine" before he has fully processed that he said it. The neighbor leaves. Write the door closing. Write Vance picking up his case file. Write the quality of a man who claimed something in front of a witness and is now doing everything possible not to look at what he claimed.)`},
+  {id:'vance_intro1',bfId:12,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE COFFEE: Every morning at 6AM Vance makes coffee his way. One morning you come downstairs to find a second mug already there — made the way you prefer it, which you mentioned once in passing eight days ago. Write the two mugs. Write Vance saying nothing about it. Write him reading his case file. Write the specific quality of someone who remembers everything and will die before admitting it.)`},
+
+  // 13. Julian Frost
+  {id:'julianfrost_intro0',bfId:13,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE INFLUENCER AMBUSH: A fan recognizes Julian on the street and starts filming. Before he can react, the fan says "omg are you two together?? you'd be SO cute" and posts the clip. It gets 40k views. Write Julian texting you about it — three consecutive messages, the last one only question marks. Write the 40k views sitting there.)`},
+  {id:'julianfrost_intro1',bfId:13,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE COMMENTS SECTION: Julian posts something unrelated. The comments fill with people asking about "the person from the video." He responds to every single comment with "we're just getting there 🙂" — individually, for forty minutes. Write him calling you immediately after. Write the call beginning "okay so I may have said something.")`},
+
+  // 14. Commander Kael
+  {id:'kael_intro0',bfId:14,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE MISTAKEN BOND REPORT: A scout files a report to Kael citing "confirmed mate bond observed between Commander and the captive." Forric reads it aloud in the morning briefing before realizing what he is reading — three officers present, the words already in the air. Kael dismisses the room in four words. He does not dismiss you. Write the room emptying. Write the specific quality of a silence between two people after a truth has been said by someone else, involuntarily, in front of witnesses.)`},
+  {id:'kael_intro1',bfId:14,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE WAR COUNCIL SLIP: In a full war council meeting, a general refers to you as "the Commander's mate" while giving a tactical report — naturally, as established fact. The room goes completely silent. Write Kael not correcting it for three full seconds. Write those three seconds. Write what he says when he finally speaks, and what it does and does not address.)`},
+
+  // 15. Dr. Aris Thorne
+  {id:'aristhorne_intro0',bfId:15,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE WRONG COAT: Both white coats went to laundry on the same day and came back switched. You are already in surgery when a nurse notices — you are wearing his name badge. He notices across the table. He says nothing for the duration of the procedure. Write the surgery proceeding. Write him retrieving his coat in the hallway after. Write him saying only: "The procedure was clean.")`},
+  {id:'aristhorne_intro1',bfId:15,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE COLLEAGUE'S ASSUMPTION: A senior attending sees you and Thorne leaving a post-case debrief together and says "oh — are you two—?" in a tone requiring no completion. Thorne says "She's on my service." The attending says "Yes, I know" in a tone that makes clear this was not what he was asking. Write the hallway. Write Thorne continuing to walk without adjusting his pace by a single step.)`},
+
+  // 16. Soren bear shifter
+  {id:'sorenbear_intro0',bfId:16,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE HEAT SPIKE: A wave of heat sickness takes you outdoors. Soren catches you before you hit the ground. He carries you back to the cabin — thirty seconds because he is very large and the cabin is close. Write waking up to find him sitting on the floor beside the bed because he does not fit on the bed himself and did not want to leave the room. Write his face when you open your eyes.)`},
+  {id:'sorenbear_intro1',bfId:16,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE NEIGHBORING ALPHA: A male Alpha from a neighboring tribe comes to trade — respectful, correctly behaved. He visibly scents you. Soren doesn't say a word. He steps between you and the visitor with a complete absence of aggression that is somehow more final than aggression. The visiting Alpha steps back immediately. Write Soren spending twenty unnecessary minutes afterward asking if you need anything.)`},
+
+  // 17. Minister Park Ji-min
+  {id:'park_intro0',bfId:17,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE DOCUMENT CONFUSION: A secretary's error includes you on the attendee list for a private ministerial briefing. Ji-min allows the briefing to proceed in its entirety. Afterward he says to you, quietly, as you are leaving: "Your question about the northern grain allocation was more incisive than most of my ministers." Write him saying this without looking at you. Write the specific quality of a compliment from a man who does not give them.)`},
+  {id:'park_intro1',bfId:17,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE PORTRAIT SESSION: By scheduling error you are both placed in the court painter's annual session simultaneously. The painter begins painting you both. Ji-min does not send you away. Write him adjusting his posture so the composition makes sense — with the deliberateness of a man who has made a decision and is implementing it. Write the painter talking to fill the silence. Write Ji-min's expression.)`},
+
+  // 18. Leo Sterling MLM
+  {id:'leomlm_intro0',bfId:18,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE GROUP CHAT: Marco accidentally adds you to the family group chat. You receive 47 messages before anyone notices. Leo is the one who notices. He texts you privately before removing you, and the private message is somehow longer and more interesting than the entire group chat. Write the message. Write it establishing something that neither of you acknowledges it is establishing.)`},
+  {id:'leomlm_intro1',bfId:18,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE GYM TOWEL: You left your gym towel there by accident. Leo texts you with pickup directions. You come in during his personal training session. Write three of his clients stopping mid-exercise to watch him stop mid-demonstration when he sees you walk in. Write Leo completing the demonstration a beat later, very carefully, as if he has been doing this the whole time.)`},
+
+  // 19. Nikolai mechanic
+  {id:'nikoslav_intro0',bfId:19,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE CAR RADIO: During the test drive, the radio comes on loud to a song he clearly knows — he is singing along before his brain catches up with his mouth. You are in the passenger seat. Write him catching himself. Write the song still playing. Write him not looking at you for the rest of the block. Write the silence that is a different kind of silence than before the singing.)`},
+  {id:'nikoslav_intro1',bfId:19,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE SHOP CAT: There is a stray cat outside the shop that has never let anyone touch it in three years. The day you come in it follows you inside and sits on your lap. Write Nikolai watching this for forty-five seconds. Write him looking at the cat. Write him looking at you. Write him going back to work without comment, in the way of a man who has decided to proceed as if he did not see what he just saw.)`},
+
+  // 20. Jax
+  {id:'jax_intro0',bfId:20,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE SET LIST DEDICATION: Between songs, mic hot, the band waiting, Jax says "this next one goes out to someone who doesn't know it yet." Write him making eye contact with you in the crowd for the entire song. Write the band exchanging looks during the instrumental break. Write the specific quality of being the person a song is dedicated to while the person dedicating it holds your gaze.)`},
+  {id:'jax_intro1',bfId:20,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE AFTER-SHOW INTERVIEW: A music blogger asks Jax backstage "any personal inspiration lately?" Write him answering before he means to. Write the blogger looking at you. Write Jax asking if the recording can be edited. Write the blogger's face as she considers this. Write the recording not being edited.)`},
+
+  // 21. Hana
+  {id:'hana_intro0',bfId:21,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE MISDELIVERED LETTER: A court messenger delivers the wrong letter to Hana's room. It is addressed to you. She reads the beginning before realizing. When she delivers it, she makes a specific observation about your handwriting — the kind that reveals she read more than the address. She does not apologize. She pours tea. Write the quality of being seen by someone who has chosen not to acknowledge the degree to which they were looking.)`},
+  {id:'hana_intro1',bfId:21,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE PATRON'S OBSERVATION: The Pavilion's most senior patron says to Hana, in front of you: "You look different when this person is in the room." Hana does not answer. She picks up the geomungo and begins to play. Write the old man watching. Write him nodding once — the nod of someone who has received the answer he was looking for.)`},
+
+  // 22. Elena Rossi
+  {id:'elena_intro0',bfId:22,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE SCENT SLIPPAGE: In a meeting room with malfunctioning ventilation, your Omega scent becomes briefly, undeniably present. Elena does not react visibly. She reaches over and adjusts the desk fan to blow toward the door — one practical motion. An Alpha colleague clears his throat. Write Elena giving him one look. Write the conversation not happening. Write the meeting continuing as if the fan moved itself.)`},
+  {id:'elena_intro1',bfId:22,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE INDUSTRY EVENT: You are both required at the same cocktail event. Elena is trapped in a conversation with an aggressive Alpha — politely managing it, unsuccessfully. You appear at her elbow. Write her taking the out. Write the Alpha seeing her body language change when you arrive. Write her steering you toward the bar saying "Let's go. I need a drink that isn't warm" without looking back.)`},
+
+  // 23. Seraphina
+  {id:'sera_intro0',bfId:23,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE CONSTELLATION: During your offering ritual, the stars above the temple form a pattern not seen in four hundred years. Seraphina says this is coincidental. Write her staying up all night charting it anyway — not because it needs charting, but because charting requires attention and attention is what she is giving it. Write the dawn finding her still at the celestial table. Write what the chart documents without naming.)`},
+  {id:'sera_intro1',bfId:23,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE 94TH SACRIFICE: The 94th — apparently still alive in the tower archives after eleven years — interrupts your meeting with Seraphina. He says something to you specifically before she removes him from the room in under six seconds. Write what he says. Write the room after his removal: quieter than before, with the quality of a space where something was said that both people in it heard.)`},
+
+  // 24. Chloe Valentine
+  {id:'chloe_intro0',bfId:24,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE NAME ANNOUNCEMENT: Chloe's coworker Dani calls out an order and stops — she cannot read the name on the cup. Chloe has written your name in a crown of hearts. The whole café hears Dani say "Chloe, what IS this" at full volume. Write Chloe already behind the espresso machine. Write Dani turning the cup to show the room. Write what it looks like when the person who decorated the cup is hoping no one saw who made it.)`},
+  {id:'chloe_intro1',bfId:24,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE LOYALTY CARD: You mention you should have a full loyalty card by now but you do not. Write Chloe counting back on her fingers. Write her going pale. Write her producing a new card already half-stamped. Write her explanation for the half-stamps, which does not hold together under any scrutiny. Write you holding the card.)`},
+
+  // 25. Morgana
+  {id:'morgana_intro0',bfId:25,stage:0,msgMin:3,type:'together',
+   prompt:`(STORY EVENT — THE SPELL RESIDUE: You accidentally touched one of her active spellbooks. It has left a temporary mark on your hand — text in Morgana's own handwriting, a fragment of the active spell. You cannot get it off. Write her examining it for far longer than removal requires. Write her saying it will fade "in a few days" — with the quality of someone who is choosing a timeline, not reporting one. Write you both knowing this.)`},
+  {id:'morgana_intro1',bfId:25,stage:1,msgMin:5,type:'together',
+   prompt:`(STORY EVENT — THE MIRROR'S OPINIONS: Morgana's enchanted mirror has begun volunteering observations about you every time you walk past it. She covers it with a cloth. The cloth does not stop it. She hexes it into silence. Write the silence after. Write the cloth still over the mirror. Write whatever the mirror said still in the air between you.)`},
+
+  // ====== CLOSE / PARTNER / DATING / FIANCÉ / MARRIED COMPLICATIONS ======
+
+  // 1. Elias Thorne
+  {id:'elias_close1',bfId:1,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — VIVIENNE'S MOVE: Vivienne Park corners you at an architecture gala when Elias is close enough to see. She kisses your cheek — lingering, staged for an audience of one. She whispers "I'm going to get what I want." Write Elias crossing the room in eleven seconds. Write what his face looks like when he arrives. Write what he says, which is not what Vivienne expected.)`},
+  {id:'elias_partner1',bfId:1,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — MARA RETURNS: His former firm partner Mara is back to consult on a project. She and Elias have an undeniable shorthand — finishing sentences, shared references. She says to you, sweetly: "He used to say he'd never mix work and love. Guess that changed." Write the moment. Write Elias somewhere in view, unaware of what was just said.)`},
+  {id:'elias_dating_sweet2',bfId:1,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE EMPTY SITE: He brings you to the build site at night. Walks you through rooms that do not exist yet. Describes each one. Write the moment you realize he is not describing the architecture. He is describing the life inside it.)`},
+  {id:'elias_fiance1',bfId:1,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — MARA'S LETTER: A letter arrives addressed to Elias. You open it thinking it is work. It is from Mara — she made a mistake leaving, she wants to try again, she does not know about you. Write putting the letter down. Write the room. Write what you do next.)`},
+  {id:'elias_pritzker',bfId:1,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE PRITZKER SPEECH: He wins the Pritzker Prize. In his acceptance speech, broadcast live, he mentions "the only person who ever came back to an empty site with me." Write Vivienne Park in the audience. Write what one sentence does in a room full of people who know exactly who it refers to.)`},
+
+  // 2. Kai Vance
+  {id:'kai_close1',bfId:2,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — JUNO'S CONFESSION: Juno, at a post-competition party, tells you Kai almost quit competing. That he started training again "around the time a specific person showed up at the gym." Write her looking directly at you. Write her not being drunk enough for this to be an accident.)`},
+  {id:'kai_partner1',bfId:2,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE ANONYMOUS CAMERA: Someone has been filming Kai's sessions professionally and posting them — 80k followers. The videos focus on moments Kai looks toward where you usually stand. He does not know about the account. Write how you tell him. Write his face when he understands what 80k people have been watching.)`},
+  {id:'kai_dating1',bfId:2,status:'dating',msgMin:8,type:'complicate',
+   prompt:`(STORY EVENT — THE RIVAL CLIMBER: A sponsored, better-ranked climber starts showing up at Kai's sessions. She asks him to spot her. While he is focused on her climb, she looks directly at you and says "Oh, is this your little fan?" She knows exactly what she is doing. Write what happens next.)`},
+  {id:'kai_fiance_sweet',bfId:2,status:'fiance',msgMin:10,type:'sweet',
+   prompt:`(STORY EVENT — THE ROUTE NAME: Kai has named his next competition route after something specific you said to him once — something small, something you did not think he kept. The name is published in the competition program before you find out. Write you finding it. Write what it means that he kept it.)`},
+  {id:'kai_doc_ending',bfId:2,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE DOCUMENTARY: The climbing documentary gets a streaming deal. He has not told you what the last five minutes contain. Write you watching those five minutes. Write what they are.)`},
+
+  // 3. Silas Vane
+  {id:'silas_close1',bfId:3,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE OLD BLOOD: An older, titled vampire comes to the library. He scents you, identifies Silas's claim, and says to Silas in front of you: "You're being territorial over a mortal. That's embarrassing." Write Silas's response. Write what not looking embarrassed looks like on someone who has been alive since the 1700s.)`},
+  {id:'silas_partner1',bfId:3,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE INVITATION: A formal invitation arrives for you — beautiful paper, very old calligraphy, dinner at an estate two hours out, no return address. Silas goes pale when he reads it. He says do not go. He will not say why. Write what "I will not say why" costs him to maintain through the conversation.)`},
+  {id:'silas_book',bfId:3,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE BOOK: He shows you the book he has been writing since 1887 — about a mortal who changed how he understood time. The chapters end in 2019. The last chapter, dated three weeks ago, has your name — not as a character. As a dedication. Write him showing you this.)`},
+  {id:'silas_fiance1',bfId:3,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE BLOOD PRICE: The vampire council sends notice: formally acknowledging a mortal mate requires a tithe of remaining immortality. Silas has already responded yes before showing you the letter. Write him showing it to you. Write what "already responded" means from a man who has been alive since 1712.)`},
+  {id:'silas_sire',bfId:3,status:'married',msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE SIRE: She arrives — ancient, beautiful, three hundred years of watching him. She says to you without preamble: "I gave him eternal life. What exactly have you given him?" Write your answer, or your silence, or both. Write Silas somewhere nearby, who already knew she would come.)`},
+
+  // 4. Julian Moretti
+  {id:'julianm_close1',bfId:4,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE RATING SITE: A student posts publicly: "Would give 6 stars. Suddenly much better at office hours since [your initials] started showing up." Julian finds this. Write his face doing something complicated. Write what he does with the page.)`},
+  {id:'julianm_ethics',bfId:4,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE ETHICS COMPLAINT: Three days before an international conference, someone files an anonymous complaint to the ethics board — professor-student proximity concerns, clearly fabricated and targeted. Write Julian receiving the committee's contact. Write what he tells you before he tells anyone else.)`},
+  {id:'julianm_former',bfId:4,status:'dating',msgMin:8,type:'complicate',
+   prompt:`(STORY EVENT — THE FORMER STUDENT: A former student messages you directly — says Julian had a similar dynamic with her two years ago, she thought she was special, the message has receipts attached. Ask him about February of last year. Write bringing it to him. Write his face when he understands what you are holding.)`},
+  {id:'julianm_room',bfId:4,status:'fiance',msgMin:10,type:'sweet',
+   prompt:`(STORY EVENT — THE CLEARED ROOM: He clears out his study — the one with all the books and the good light, the room he has never let anyone touch — and asks if you want to put something of yours in it. Write the empty room. Write what it means that it is empty.)`},
+  {id:'julianm_tenure',bfId:4,status:'married',msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE TENURE REVIEW: In his formal tenure interview, a committee member asks directly whether a personal relationship has compromised his academic judgment. Write the pause. Write the answer he gives. Write what the committee does with it.)`},
+
+  // 5. Dr. Aris Chen
+  {id:'arischen_patient',bfId:5,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE FIXATED PATIENT: A patient has been leaving things for you at the clinic — your exact coffee order, a book you mentioned once. It means they have been watching. Aris finds out before you tell him. Write the moment he tells you. Write his face. Write what he says and what he does not say.)`},
+  {id:'arischen_nadia',bfId:5,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — DR. YUEN'S WARNING: A fellow therapist — senior, trustworthy — takes you aside and says Aris has a pattern. Brilliant, attentive, then distant. She says three words: "Ask about Nadia." Write asking him. Write the three seconds before he answers.)`},
+  {id:'arischen_paper',bfId:5,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE CASE STUDY: He used you as an anonymous case study in a paper about emotional recalibration. You recognize yourself only from his description of "a person whose laugh interrupts their own sentences." He did not ask permission. Write his mortification when you bring it up.)`},
+  {id:'arischen_notes',bfId:5,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE SESSION NOTES: A filing error lets you glimpse the start of a session note with your name on it — Aris keeps private notes on the people closest to him. This one is dated the day you first met. He does not know you saw it. Write carrying this. Write when you decide to tell him.)`},
+  {id:'arischen_nadia2',bfId:5,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — NADIA CALLS: She is in the city. They have one coffee — one — which he tells you about before it happens and after it is over. He tells you everything. Then he sits down and tells you what he could not say to her.)`},
+
+  // 6. Soren Hall
+  {id:'sorenhall_close1',bfId:6,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — MARCO'S MISREAD: Marco accidentally sees a text exchange between you and Soren — not inappropriate, but the warmth is unmistakable. He says nothing to either of you. He becomes slightly too helpful whenever you are both in the same room. Write what that looks like. Write Soren noticing something is wrong with Marco.)`},
+  {id:'sorenhall_chicago_ex',bfId:6,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE CHICAGO EX: Soren's ex messages you directly through Marco's Instagram tag. She knows who you are and has done the math on the situation. Write reading the message. Write deciding what to tell Soren. Write the conversation when you tell him.)`},
+  {id:'sorenhall_breakfast',bfId:6,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE BREAKFAST: He makes breakfast from scratch — the specific thing you mentioned you liked once. When you ask when he learned, he admits he looked it up and practiced it twice. Write the breakfast. Write the practiced-twice.)`},
+  {id:'sorenhall_marco_wife',bfId:6,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — MARCO'S WIFE: At a family dinner, Marco's wife sits next to Soren and says quietly: "You know Marco knows, right? He has been waiting for you to say something to him first." Write Soren setting down his fork. Write the rest of the dinner. Write what he says to Marco after.)`},
+  {id:'sorenhall_offer',bfId:6,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE ORIGINAL OFFER: The Chicago job comes back — better title, better money. He tells you the same night it arrives. He says: "I came home for something. I just did not know what it was yet." Write the night he says this.)`},
+
+  // 7. Caspian Reed
+  {id:'caspian_label',bfId:7,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE LABEL'S BRIEF: The record label wants to sign Caspian — conditions include: single, romantically unavailable. Omar texts you about this before Caspian does. Write the conversation when Caspian finally tells you. Write what he has already decided but has not yet said.)`},
+  {id:'caspian_nadia',bfId:7,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — NADIA'S SHEET MUSIC: Nadia leaves sheet music in Caspian's viola case — a piece she wrote, titled with a date. The date is the day you first met him. She knew. Write him finding it. Write his face when he reads the title.)`},
+  {id:'caspian_orchestra',bfId:7,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE FULL ARRANGEMENT: He plays the piece he wrote for you — this time with the full orchestra arrangement the label funded. He plays it from his phone in your kitchen at 8AM. Write what it sounds like when the whole world hears a morning at a subway station.)`},
+  {id:'caspian_interview_clip',bfId:7,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE INTERVIEW CLIP: A TV clip circulates — the interviewer asks "are you in love?" and Caspian looks away from the camera for three full seconds before answering. The three seconds become a meme. The clip has your name in the comments 1,400 times. Write him sending you the link with a message.)`},
+  {id:'caspian_omar_archive',bfId:7,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — OMAR'S ARCHIVE: Omar gives you the full archive of handwritten letters he has been writing Caspian since they were sixteen. The last letter, dated two weeks ago: "I told you not to be an idiot. You weren't. I'm proud of you." Write reading it. Write giving it to Caspian.)`},
+
+  // 8. Victor Crane
+  {id:'victor_planted',bfId:8,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE PLANTED RESERVATION: You receive a handwritten invitation to the restaurant for a private tasting. Victor did not send it. When you arrive he is also there — also invited. Someone on his staff arranged this. Write his face when he understands what happened. Write him naming his three suspects.)`},
+  {id:'victor_newreview',bfId:8,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE NEW REVIEW: The same critic who called the restaurant cold posts again — "something has shifted, warmth where there was only precision." The review includes a photo from last Thursday. You are in the background. Write Victor reading the review. Write him reading it twice.)`},
+  {id:'victor_investor',bfId:8,status:'dating',msgMin:8,type:'complicate',
+   prompt:`(STORY EVENT — THE EX-INVESTOR: She shows up at a staff dinner you are attending. She says to you privately: "He is not capable of the ordinary things. You should know that now." Write deciding what to do with this. Write Victor across the room who has not yet seen you talking to her.)`},
+  {id:'victor_unnamed_dish',bfId:8,status:'fiance',msgMin:10,type:'sweet',
+   prompt:`(STORY EVENT — THE UNNAMED DISH: Something new appears on the menu — no name, only a date. The date you first shared table 9. Regulars ask what it is. He says it is not on the public menu. Write who it is for.)`},
+  {id:'victor_fire',bfId:8,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE KITCHEN FIRE: Minor, contained, no injuries. In the chaos, Victor's first instinct is to call you — not the fire department, not Marc. You. Marc notices. Marc tells everyone. Write Victor's face when he hears Marc telling everyone.)`},
+
+  // 9. Leo Sterling senator
+  {id:'leosen_planted',bfId:9,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE LEAK: A political reporter runs a story: the senator has been repeatedly seen with someone who is not a constituent, staffer, or family. The story runs with a good photo. Priya sends it to Leo before it is trending. Write Leo seeing it. Write what he says to Priya.)`},
+  {id:'leosen_speech',bfId:9,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE FLOOR SPEECH: His rival makes an oblique comment about senators whose personal entanglements cloud legislative judgment. Priya's office decodes it immediately. Someone talked. Write Leo hearing the playback. Write what he decides.)`},
+  {id:'leosen_draft',bfId:9,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE UNEDITED DRAFT: He reads you the unedited seventh draft of the bill — the version no one is supposed to see. He says he reads it to you because you are the only person who tells him when something is actually good versus when he only thinks it is.)`},
+  {id:'leosen_oppfile',bfId:9,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE OPPOSITION FILE: His opponent's campaign has been building a file on your private life for months. It gets leaked to Leo's office by someone on their team with a conscience. Write Leo reading it. Write him calling you.)`},
+  {id:'leosen_priya',bfId:9,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — PRIYA'S WORDS: The day he wins re-election, Priya — who has never said "I'm proud of you" professionally in their entire friendship — says it. Then immediately: "and before you get a big head — this one's for her." Write Leo's face. Write the night.)`},
+
+  // 10. Nikolai boxer
+  {id:'nikobox_old',bfId:10,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE OLD FIGHTER: A man comes to watch training — quietly, watching Nikolai specifically. Dmitri tells you: he was one of the men from Nikolai's most violent years. He is not here to fight. He is checking. Write him looking at you. Write him appearing to make a decision. Write what he does next.)`},
+  {id:'nikobox_paint',bfId:10,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE SPRAY PAINT: Someone paints one word on the shop window overnight — the name of someone Nikolai put away three years ago. He paints over it before you arrive. He only mentions it because you notice the fresh paint smell. Write the conversation. Write what he leaves out.)`},
+  {id:'nikobox_key',bfId:10,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — DMITRI'S KEY: Dmitri gives you the gym key — not because Nikolai asked. He says: "He will not say it. So I am saying it. You belong here." Write the key. Write its weight.)`},
+  {id:'nikobox_podcast',bfId:10,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE PODCAST: The true crime episode airs. Comments find the shop address in six hours. People start showing up — curious, intrusive, present. Write Nikolai handling it with practiced quiet. Write what it looks like to watch someone who has had practice being treated as a story rather than a person.)`},
+  {id:'nikobox_box',bfId:10,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE BOX: In the back of the storage room, a box he has never opened in front of you. During reorganization you find it. He opens it — his mother's things, her prison letter he never answered, a photograph from before. He sits on the floor and tells you all of it.)`},
+
+  // 11. Yi-Sun
+  {id:'yisun_arranged',bfId:11,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE ARRANGED MATCH: The King formally presents a match for Yi-Sun — the duke's daughter, politically excellent. Yi-Sun's face during the announcement tells the court everything. Write the King watching him. Write the duke's daughter watching you.)`},
+  {id:'yisun_spy',bfId:11,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE GARDEN SPY: You find a listening device in the garden stone pillar — someone has been transcribing your conversations with Yi-Sun for weeks. Write telling him. Write his face shifting from surprise to the stillness of someone who knows exactly which minister did this.)`},
+  {id:'yisun_seal',bfId:11,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE SEAL: He gives you a personal royal seal — unofficial, never for court use. It means "protected by my house." He adds quietly it also means "claimed" in formal terms. He says he is aware he should have asked first. Write him handing it to you. Write what "should have asked first" sounds like from someone who is not sorry.)`},
+  {id:'yisun_minister',bfId:11,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE MINISTER'S VISIT: The minister who opposed Yi-Sun's petition approaches you alone in a market, far from the palace. Extremely polite. He explains the specific ways he intends to reverse the King's approval. Write the conversation. Write walking back to the palace. Write what you decide to do with what he said.)`},
+  {id:'yisun_king_words',bfId:11,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE KING'S WORDS: At the formal court ceremony, the King says in front of the full assembled court: "My youngest son has spent twenty-two years in the garden finding the names of things. I believe he has found the last one." Write Yi-Sun's face. Write the court. Write the word.)`},
+
+  // 12. Vance
+  {id:'vance_setup',bfId:12,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE SETUP CALL: Someone calls the safehouse with a compromised police number, suggesting you go meet Vance at a specific bar as a surprise. The whole thing is a trap to expose your location. You almost go. Write what stopped you. Write telling Vance.)`},
+  {id:'vance_review',bfId:12,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE INTERNAL REVIEW: Vance's handling of your case is under internal review. He is suspended pending investigation. He calls you before the department does. Write his voice on that call. Write what "not controlled" sounds like from a man whose voice is always controlled.)`},
+  {id:'vance_frame',bfId:12,status:'dating',msgMin:8,type:'complicate',
+   prompt:`(STORY EVENT — THE FRAME: Photos arrive — long-lens, staged, edited. Vance at a restaurant with a woman, intimate-looking. Sent to you anonymously. He does not know about them until you confront him. His first response is to ask to see them. His second is to identify three things in the background proving they are from eighteen months ago. Write the identification. Write what comes after.)`},
+  {id:'vance_reopened',bfId:12,status:'fiance',msgMin:10,type:'sweet',
+   prompt:`(STORY EVENT — DAVIES REOPENED: He gets Davies' case officially reopened. He calls you the moment it is confirmed — not his lieutenant, not the department. You. He does not say much. He says "It's going to be okay now." Write this being the first time he has said that about anything.)`},
+  {id:'vance_retirement',bfId:12,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE RETIREMENT LETTER: He retires from the department to pursue a cold case no active officer can officially work. He shows you the letter. The case file is on the table beside it. It is your original case. There is something new in it. Write what is new. Write what it means.)`},
+
+  // 13. Julian Frost
+  {id:'jfrost_ex',bfId:13,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE EX: His ex messages Julian saying he was wrong and wants to talk. Julian shows you the message instead of answering. He asks you once — only once — what you think he should do. He genuinely wants to know. Write the conversation. Write what you say.)`},
+  {id:'jfrost_ibiza',bfId:13,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE IBIZA BRIEF: A major artist wants Julian for a collaboration — two weeks in Ibiza, beautiful co-collaborator who has been publicly pursuing him for months. Write Julian bringing you the brief. Write what he has already decided but has not said yet.)`},
+  {id:'jfrost_fanaccount',bfId:13,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE FAN ACCOUNT: An account called "@julianfrostendgame" documents Julian's behavioral changes since you appeared — mood analysis, posting frequency, content shifts. Latest post: "it's serious and here's the data." It is extremely accurate. Write him sending you the link at midnight with a message.)`},
+  {id:'jfrost_72hrs',bfId:13,status:'fiance',msgMin:10,type:'sweet',
+   prompt:`(STORY EVENT — THE 72 HOURS: Julian deletes his main account with no explanation. The internet loses its mind. What he was doing for those 72 hours is not on any platform. He tells only you. Write what he was doing.)`},
+  {id:'jfrost_docpitch',bfId:13,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE DOCUMENTARY PITCH: A streaming platform wants to make a documentary about Julian. The pitch deck suggests "real and relatable personal content" — meaning you. He has not signed anything. He comes to you first. He says: "This is yours too, not just mine. What do you want?" Write the conversation.)`},
+
+  // 14. Kael
+  {id:'kael_suppressants',bfId:14,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — EARLY DEPLETION: His suppressants run out two days ahead of schedule. Forric tells you before telling anyone else — because he has decided, on his own authority, that you have a right to know first. Write Forric finding you. Write what he says. Write what you do with what you have been given.)`},
+  {id:'kael_intercepted',bfId:14,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE INTERCEPTED LETTER: A letter you sent to your village has been intercepted by his intelligence officers. It references the bond. It was never meant for him. He has read it. He sends everyone out of the room. Write the room emptying. Write what he says to you when it is empty.)`},
+  {id:'kael_ridge',bfId:14,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE RIDGE: He brings you to the northern mountain ridge he walked alone at nineteen after losing his unit. He does not explain until you are standing there. He says: "I come here when something matters enough to test it against the cold." He has not brought anyone before. Write standing at the ridge together.)`},
+  {id:'kael_general',bfId:14,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE GENERAL'S CHALLENGE: A senior general formally challenges the mate bond as a political liability in the war council — argues it makes Kael controllable. Write Kael's four-sentence response. Write the general not challenging it again.)`},
+  {id:'kael_full_rut',bfId:14,status:'married',msgMin:12,type:'together',
+   prompt:`(STORY EVENT — THE FULL RUT: His first fully unsuppressed rut since the bond formed. You are both traveling — no camp, no guards, just a mountain shelter and the bond pulling both directions. Write what it means for there to be nothing managing this except the two of you.)`},
+
+  // 15. Aris Thorne
+  {id:'aristhorne_rumor',bfId:15,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE RUMOR: The resident who filed the complaint is telling colleagues you received favorable assignments as a favor — not merit. The rumor reaches the OR. Write the shift where you first notice people have heard. Write Thorne noticing you have noticed.)`},
+  {id:'aristhorne_transfer',bfId:15,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE TRANSFER PAPERS: HR sends transfer paperwork — off his service, next rotation, citing the earlier complaint. He signs them. He tells you in person, same day, before HR does. Write what signing them cost him and what not signing them would have cost you.)`},
+  {id:'aristhorne_graduation',bfId:15,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE GRADUATION DINNER: He comes to your graduation — not the ceremony, the dinner after. He is at the bar when you arrive, having been there forty minutes, with a specific bottle of wine you mentioned once three months ago you had always wanted to try. Write finding him there.)`},
+  {id:'aristhorne_ethics',bfId:15,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE ETHICS BOARD: Both of you, together. They ask if the relationship is worth the professional complications. Write him answering without pausing. Write the exact answer he gives.)`},
+  {id:'aristhorne_break',bfId:15,status:'married',msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE CASE THAT BREAKS: A surgery goes wrong — not his error, unforeseen, unpreventable. He does not tell you that night. He comes home. Quiet in the way that means something large happened. You ask. He tells you everything.)`},
+
+  // 16. Soren bear
+  {id:'sorenbear_rut2',bfId:16,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE RUT: His rut comes. He handles it alone in the cabin's back room as he has done before. What is different is the bond — pulling toward you with a force that did not exist before. He tells you this through the closed door. He is asking for your help. Write what it costs him to say it.)`},
+  {id:'sorenbear_formal',bfId:16,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE FORMAL APPROACH: The neighboring Alpha returns specifically to ask about you — formally, in the terms of the Tribe. This is a recognized approach. Soren receives it without responding, which is itself a response. He comes to find you immediately. Write the conversation.)`},
+  {id:'sorenbear_furniture',bfId:16,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE FURNITURE: He builds something for your corner of the cabin — for the specific thing you mentioned you do in the mornings. Three weeks. He presents it by moving it into place and saying nothing. Write the craftsmanship. Write the nothing he says.)`},
+  {id:'sorenbear_elder',bfId:16,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE ELDER'S ASSESSMENT: The Tribe elder comes to conduct a formal mate-bond review — questions you alone, without Soren, about whether the bond was formed under duress. Write the questions. Write your answers. Write Soren outside waiting.)`},
+  {id:'sorenbear_winter2',bfId:16,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE WORST WINTER: Soren has been preparing for three days without explaining. You ask. He explains the coming winter in full detail. He says at the end: "I have survived four winters like this alone. I do not intend to be alone for this one.")`},
+
+  // 17. Minister Park
+  {id:'park_king_test',bfId:17,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE KING'S TEST: The King sends you on a false errand that forces Ji-min to choose between professional duty and your safety. Ji-min realizes mid-decision it is a test. Write the choice. Write what the King notes.)`},
+  {id:'park_honey_trap',bfId:17,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE HONEY TRAP: Minister Choi sends a beautiful attaché to Ji-min's office to create the appearance of intimacy. Ji-min tells you the same evening in the tone of a man angry at himself for nearly being fooled. Write the telling.)`},
+  {id:'park_poems',bfId:17,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE BOOK OF POEMS: He gives you a single hand-scribed volume of classical poems he selected. No inscription. When you ask why these specific poems, he names which stanza in each one he thought of when he chose it. He has one for every week since you met.)`},
+  {id:'park_resignation',bfId:17,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE RESIGNATION LEAKED: His resignation letter gets leaked. The court erupts. He is summoned to explain. The King asks if there is a personal reason. Ji-min says your name in front of the full court. Write the room. Write the King's face.)`},
+  {id:'park_north',bfId:17,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE NORTHERN POST: He is offered Northern Regional Governor — prestigious, two years' relocation. He comes to you the same night. He says: "I have accepted six appointments based on what was best for my work. I cannot make this one that way.")`},
+
+  // 18. Leo MLM
+  {id:'leomlm_gpoll',bfId:18,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE GYM POLL: Someone in the training group chat creates a poll: "is Leo finally dating someone y/n." It passes 8-1. Leo is the one "no" vote. He texts you three separate messages about it that reveal far more than any poll did.)`},
+  {id:'leomlm_your_ex',bfId:18,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — YOUR EX: Your ex reaches out. You mention it once briefly to Leo. He is entirely normal about it. That night he goes on a run three miles longer than usual. Marco tells you about the run. Write the run. Write what you say when Marco tells you.)`},
+  {id:'leomlm_your_world',bfId:18,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — YOUR WORLD: He goes with you to something completely outside his world — your people, your thing. He does not perform enthusiasm. He pays attention. On the way back he makes two specific observations that tell you exactly how much he was paying attention.)`},
+  {id:'leomlm_relapse',bfId:18,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE RELAPSE: Leo had a period in Chicago — a vice he walked away from. It is back near him. Not with him, but near. He has been not telling you. You figure it out from something small. Write the something small. Write the conversation.)`},
+  {id:'leomlm_draft',bfId:18,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE CONTRACT: A sports performance company wants Leo as a consultant — significant travel, good money. He brings it to you immediately. No sitting on it. He says: "I want us to decide together what kind of life we are building.")`},
+
+  // 19. Nikolai mechanic
+  {id:'nikomech_cops',bfId:19,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE POLICE VISIT: Two officers come for a routine parole check. One is young and condescending in the way reserved for people with records. You are in the shop. You witness it. Afterward Nikolai says nothing and goes back to work. He does not see your face. Write your face.)`},
+  {id:'nikomech_napkin',bfId:19,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE NAPKIN: You find a folded napkin on the workbench — a phone number, a woman's name, recent. You do not ask. He finds it himself two days later and brings it to you immediately, not knowing you already saw it. The explanation is simple. The delay is what matters. Write the delay.)`},
+  {id:'nikomech_saturday',bfId:19,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — SATURDAY: He comes to your apartment — first time, uninvited, no practical reason, Saturday. He has a book. He sits down. He starts reading. After twenty minutes he asks if you have tea. Write the whole Saturday.)`},
+  {id:'nikomech_podcast2',bfId:19,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE PODCAST: The episode airs. Comments find the shop in six hours. People show up — curious, intrusive, not dangerous. Write him handling it with practiced quiet efficiency. Write what it looks like to watch someone who has had practice being treated as a story.)`},
+  {id:'nikomech_box',bfId:19,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE BOX: A box in the storage room he has never opened in front of you. During reorganization you find it. He opens it — his mother's things, her letter from when he was in prison that he never answered, a photograph from before. He sits on the floor of the storage room and tells you all of it.)`},
+
+  // 20. Jax
+  {id:'jax_setlist_pub',bfId:20,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE PUBLIC SETLIST: He names a song after you on the official published setlist — first name, full, on the venue website before anyone realizes. The band finds out the same time the internet does. Marco the drummer sends you a voice note that is just him saying "help" twice.)`},
+  {id:'jax_other_writer',bfId:20,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE OTHER SONGWRITER: A collaborator writes Jax a song and plays it for the band. She looks at him on the bridge. The band loves it. Write Jax's face. Write what he tells you that night.)`},
+  {id:'jax_midnight',bfId:20,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — MIDNIGHT RELEASE: The album goes live at midnight. He calls at 11:59. He holds the phone and counts down and plays the opening track through the speaker into the night air. He says after: "That's what the year sounded like.")`},
+  {id:'jax_viral',bfId:20,status:'fiance',msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE VIRAL POST: An old post resurfaces from his previous relationship, reading badly out of context. His ex is actively driving the resurfacing. She comments. It goes viral. He says nothing publicly. He tells you everything privately that same night.)`},
+  {id:'jax_legend_letter',bfId:20,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE LETTER: A legendary musician writes to Jax by hand asking for a six-month collaboration in another country — the person who made him pick up a guitar at fourteen. He comes to you with it. He has not responded. He says: "Tell me what to do.")`},
+
+  // 21. Hana
+  {id:'hana_patron_demand',bfId:21,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE PATRON'S DEMAND: The senior court official delivers a formal letter to Hana demanding she be moved to a different pavilion. The grounds: attachment inconsistent with professional role. He has already spoken to the Pavilion Master. Write Hana reading the letter. Write what she does next.)`},
+  {id:'hana_rival',bfId:21,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE RIVAL PATRON: A wealthy patron has been told she has a prior attachment and does not believe it. He arranges to be present at one of your visits, watches for twenty minutes, then attempts to speak to you alone. Hana sees this from across the room. Write what she does.)`},
+  {id:'hana_garden',bfId:21,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE GARDEN PLAYING: She plays for you outside — not performing, not professional, just the geomungo and the garden. Something with no title. Afterward she says it has had a title for three weeks. The title is your name in classical notation.)`},
+  {id:'hana_papers',bfId:21,status:'fiance',msgMin:10,type:'sweet',
+   prompt:`(STORY EVENT — THE RETIREMENT PAPERS: The formal gisaeng retirement paperwork has already been filed. The paperwork names you as the sponsor. You did not file it. Hana did. Write finding out. Write what she says when you ask.)`},
+  {id:'hana_master',bfId:21,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE PAVILION MASTER: She requests a meeting with you — not angry, just asking: what will Hana's life be outside these walls, and do you know the answer. She says: "The best ones left for both." Then she looks at you and waits.)`},
+
+  // 22. Elena Rossi
+  {id:'elena_alpha_rival',bfId:22,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE ALPHA RIVAL: A senior Alpha partner begins a targeted campaign — project transfers, "conflict of interest" mentions in meetings, professional separation. Elena tracks every move within a week. She says nothing until she has documented all of them. Write the day she acts.)`},
+  {id:'elena_unsuppressed',bfId:22,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE ACCIDENTAL UNSUPPRESSION: During a high-stress late night, Elena's control slips. Her Alpha scent fills the small office for four full seconds. Every Alpha in the room stills. She locks it back down. The room acts like it did not happen. Everyone in the room knows it happened.)`},
+  {id:'elena_removal',bfId:22,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE QUIET REMOVAL: You find, by accident, that Elena requested to be removed as your evaluating supervisor three months before she told you she had feelings — so you would never feel it was conditional. Write finding out. Write asking her about it.)`},
+  {id:'elena_declaration',bfId:22,status:'fiance',msgMin:10,type:'sweet',
+   prompt:`(STORY EVENT — THE FORMAL DECLARATION: She presents the Omega-Alpha bond declaration — the legal form — and says: "I know you did not choose your biology. I want you to choose this." She leaves the form blank. She says there is no deadline. Write the form on the table between you.)`},
+  {id:'elena_board',bfId:22,status:'married',msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE BOARD MEETING: A founding partner implies on record that Elena's performance reflects "diminished focus" since a personal attachment. Write her three-sentence response. Write the room after those three sentences.)`},
+
+  // 23. Seraphina
+  {id:'sera_94warn',bfId:23,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE 94TH'S WARNING: He finds you alone and says: she is not cruel, but she is not safe — that real feelings and safe feelings are not the same thing for something as old as she is. Write carrying this warning. Write the next time you see Seraphina.)`},
+  {id:'sera_star_out',bfId:23,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE STAR GOES OUT: A star Seraphina has observed for four centuries simply ceases. She is, for the first time, visibly shaken — not by the star, but by the fact that you are the first thing she looked for in the dark. Write her looking for you.)`},
+  {id:'sera_memory',bfId:23,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE MEMORY TRANSFER: She shows you a real memory — four hundred years old, the last time she felt something close to this. The person in the memory did not survive the century. She shows you this deliberately. She says: "I am aware of the pattern. I am choosing you anyway.")`},
+  {id:'sera_name_stars',bfId:23,status:'fiance',msgMin:10,type:'sweet',
+   prompt:`(STORY EVENT — THE NAME IN STARS: She writes your name in the stars — literally, an arrangement requiring four hundred years of calculation to be visible for exactly one night. She began planning it the night of the 99th offering. Three nights before you arrived.)`},
+  {id:'sera_ascension',bfId:23,status:'married',msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE ASCENSION: Seraphina is summoned to ascend — not death, something else, something that would take her beyond mortal reach. She has a choice. She comes to tell you before she makes it. She says: "I have been alone in this tower since the world was young. Tell me what you think I should choose.")`},
+
+  // 24. Chloe Valentine
+  {id:'chloe_review',bfId:24,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE REVIEW: A food blogger reviews Morning & Co. The review is glowing except for one paragraph noting a barista has been personalizing one regular's order for months and management has been reminded of standardization protocols. Management did not actually say anything. They have now noticed. Write Chloe reading the review.)`},
+  {id:'chloe_new_hire',bfId:24,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE NEW HIRE: A new barista starts — good at his job, immediately popular. He starts paying attention to you. He asks Chloe, in front of you, if you are seeing anyone. Write Chloe's response. Write it being more revealing than she intended.)`},
+  {id:'chloe_voice_memo',bfId:24,status:'dating',msgMin:8,type:'sweet',
+   prompt:`(STORY EVENT — THE VOICE MEMO: Butter the cat knocks Chloe's phone off the counter during a call with you and somehow sends a voice memo. The voice memo is forty-two seconds of Chloe talking to Butter about you. She does not realize she sent it for three hours. Write you receiving it.)`},
+  {id:'chloe_competition',bfId:24,status:'fiance',msgMin:10,type:'sweet',
+   prompt:`(STORY EVENT — THE BARISTA COMPETITION: Chloe enters a regional barista competition because you told her she should, months ago, and she finally did. She makes the final round. In her final presentation she dedicates the drink to "a regular." The judges ask who the regular is. She tells them.)`},
+  {id:'chloe_lease',bfId:24,status:'married',msgMin:12,type:'sweet',
+   prompt:`(STORY EVENT — THE LEASE: Morning & Co. is now hers — the owner offering the full buyout on terms she can manage. She has to sign. She sits at the kitchen table with the papers and calls you before she signs. She says: "I want you to be here for this.")`},
+
+  // 25. Morgana
+  {id:'morgana_council',bfId:25,stage:3,msgMin:10,type:'complicate',
+   prompt:`(STORY EVENT — THE COUNCIL ENVOY: The Witches' Council sends an envoy to assess Morgana's conduct — having a mortal in the tower technically violates her isolation order. You are catalogued as "ongoing captive." Morgana corrects the record. The correction changes the legal category. The envoy notes the implications.)`},
+  {id:'morgana_memory_read',bfId:25,stage:4,msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE MEMORY VIEWING: Another witch performs an unauthorized memory-reading on Morgana and shares the extracted memories at a council meeting. Several of them involve you. Morgana arrives to discover what was shared at the same moment you do. Write the room.)`},
+  {id:'morgana_curse',bfId:25,status:'dating',msgMin:8,type:'complicate',
+   prompt:`(STORY EVENT — THE CURSE TRANSFER: A very old curse Morgana has been carrying begins transferring to you — not because she allowed it, because the bond between you found a path. She has three days to fix it before it becomes permanent. Write the conversation when she tells you.)`},
+  {id:'morgana_ward',bfId:25,status:'fiance',msgMin:10,type:'sweet',
+   prompt:`(STORY EVENT — THE WARD LIFTED: She lifts the tower's isolation order — not because the Council required it, but because she wants you to be able to leave and come back freely. She dismantles it herself while you are both in the doorway. It takes four hours. She says nothing the entire time. When it is done she says: "You can go now. You can also stay.")`},
+  {id:'morgana_price',bfId:25,status:'married',msgMin:12,type:'complicate',
+   prompt:`(STORY EVENT — THE PRICE: Morgana's original power — traded away for three hundred years of solitude and knowledge — can be restored. It requires one thing: that she forget the tower. All of it. Everything from the last three hundred years. She has been offered the restoration. She has not told you yet. The mirror did.)`},
 ];
 
 // ---- PLOT ENGINE: check and fire events ----
