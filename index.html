@@ -345,6 +345,7 @@
   /* MESSAGE ACTIONS */
   .msg-wrap { display: flex; flex-direction: column; gap: 3px; max-width: 78%; }
   .msg-wrap.user { margin-left: auto; align-items: flex-end; }
+  .msg-wrap.editing { max-width: 92%; width: 92%; }
   .msg-actions {
     display: none; gap: 4px; padding: 0 4px;
     align-items: center;
@@ -360,22 +361,31 @@
   .msg-action-btn.reroll:hover { border-color: #7c5cbf; color: #7c5cbf; background: rgba(124,92,191,0.06); }
   .msg-action-btn.delete:hover { border-color: #c94f4f; color: #c94f4f; background: rgba(201,79,79,0.06); }
   .msg-edit-area {
-    width: 100%; border: 1.5px solid var(--rose); border-radius: 1rem;
-    padding: 0.65rem 0.9rem; font-family: 'DM Sans', sans-serif;
-    font-size: 0.92rem; line-height: 1.6; outline: none; resize: none;
-    background: #fff; color: var(--text);
+    width: 100%; min-height: 140px; border: 1.5px solid var(--rose); border-radius: 1rem;
+    padding: 0.75rem 1rem; font-family: 'DM Sans', sans-serif;
+    font-size: 0.92rem; line-height: 1.6; outline: none; resize: vertical;
+    background: #fff; color: var(--text); box-sizing: border-box;
+  }
+  .msg-wrap.user .msg-edit-area {
+    background: rgba(201,102,122,0.07); color: var(--text);
   }
   .msg-edit-btns { display: flex; gap: 5px; margin-top: 3px; }
   .msg-edit-save { background: var(--rose); color: #fff; border: none; border-radius: 6px; padding: 3px 12px; font-size: 0.78rem; cursor: pointer; font-family: 'DM Sans',sans-serif; }
   .msg-edit-cancel { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; font-size: 0.78rem; cursor: pointer; color: var(--text-muted); font-family: 'DM Sans',sans-serif; }
   .rerolling-indicator { font-size: 0.78rem; color: var(--text-muted); font-style: italic; padding: 2px 4px; }
   .msg-alt-nav {
-    display: flex; align-items: center; gap: 5px; margin-top: 4px;
+    display: inline-flex; align-items: center; gap: 0; margin-top: 4px;
     font-size: 0.74rem; color: var(--text-muted);
+    background: var(--warm); border: 1px solid var(--border);
+    border-radius: 20px; padding: 1px 3px; width: fit-content;
+  }
+  .msg-alt-nav .msg-alt-counter {
+    padding: 0 5px; font-size: 0.74rem; color: var(--text-muted);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
   }
   .msg-alt-btn {
-    background: none; border: 1px solid var(--border); color: var(--text-muted);
-    border-radius: 5px; padding: 1px 7px; font-size: 0.78rem; cursor: pointer;
+    background: none; border: none; color: var(--text-muted);
+    border-radius: 20px; padding: 1px 6px; font-size: 0.82rem; cursor: pointer;
     transition: all 0.15s; line-height: 1.6;
   }
   .msg-alt-btn:hover { border-color: var(--rose); color: var(--rose); background: rgba(201,102,122,0.06); }
@@ -440,7 +450,7 @@
   .persona-slot-add:hover { opacity: 1; }
 
   /* ---- EDIT BOX SQUARE FIX ---- */
-  .msg-edit-area { width: 100%; min-height: 80px; max-height: 200px; border: 1.5px solid var(--rose); border-radius: 0.75rem; padding: 0.65rem 0.9rem; font-family: 'DM Sans', sans-serif; font-size: 0.92rem; line-height: 1.6; outline: none; resize: vertical; background: #fff; color: var(--text); box-sizing: border-box; }
+  /* msg-edit-area defined above */
 
   /* ---- RELATIONSHIPS PAGE ---- */
   .rel-card { background: var(--card); border: 1px solid var(--border); border-radius: 1.2rem; overflow: hidden; cursor: pointer; transition: all 0.22s; box-shadow: var(--shadow); }
@@ -2907,6 +2917,8 @@ function renderSidebar(){
 function openChat(id){
   const bf=savedBFs.find(b=>b.id===id);
   if(!bf) return;
+  // Cancel every other character's pending auto-message timers before switching
+  clearAllAutoMsgTimers();
   currentBF=bf;
   renderSidebar();
   if(!chatHistory[id]) chatHistory[id]=[];
@@ -3018,7 +3030,7 @@ function renderMessages(){
       const total = alts.length;
       altNavHtml = `<div class="msg-alt-nav">
         <button class="msg-alt-btn" onclick="stepAlt(${idx},-1)" ${altI===0?'disabled':''}>‹</button>
-        <span>${altI+1} / ${total}</span>
+        <span class="msg-alt-counter">${altI+1}/${total}</span>
         <button class="msg-alt-btn" onclick="stepAlt(${idx},1)" ${altI===total-1?'disabled':''}>›</button>
       </div>`;
     }
@@ -3073,10 +3085,10 @@ function editMessage(idx){
   const ta = document.createElement('textarea');
   ta.className = 'msg-edit-area';
   ta.value = original;
-  ta.rows = Math.max(2, original.split('\n').length);
-  // Auto-resize
-  setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; },0);
-  ta.oninput = ()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; };
+  ta.rows = Math.max(6, original.split('\n').length + 2);
+  // Auto-grow but never below min-height from CSS
+  setTimeout(()=>{ ta.style.height='auto'; ta.style.height=Math.max(ta.scrollHeight, 140)+'px'; },0);
+  ta.oninput = ()=>{ ta.style.height='auto'; ta.style.height=Math.max(ta.scrollHeight, 140)+'px'; };
 
   const btnRow = document.createElement('div');
   btnRow.className = 'msg-edit-btns';
@@ -3085,6 +3097,7 @@ function editMessage(idx){
 
   bubble.replaceWith(ta);
   wrap.querySelector('.msg-actions')?.remove();
+  wrap.classList.add('editing');
   wrap.appendChild(btnRow);
   ta.focus();
   ta.setSelectionRange(ta.value.length, ta.value.length);
@@ -4479,6 +4492,11 @@ function clearAutoMsgTimers(bfId){
   if(autoMsgTimers[bfId+'_2']){ clearTimeout(autoMsgTimers[bfId+'_2']); delete autoMsgTimers[bfId+'_2']; }
 }
 
+function clearAllAutoMsgTimers(){
+  // Cancel every pending timer across all characters
+  Object.keys(autoMsgTimers).forEach(k => { clearTimeout(autoMsgTimers[k]); delete autoMsgTimers[k]; });
+}
+
 // ---- INTENTIONAL AWAY SYSTEM ----
 // Fires when user says they're leaving. Suppresses normal auto-msg decay,
 // schedules a single warm "I miss you" message after a few hours instead.
@@ -4589,6 +4607,11 @@ function handleUserReturned(bfId){
 
 async function callGeminiForBF(bf, instruction){
   // Like callGemini but for a specific bf (used in auto-msg)
+  // Safety: if user switched to a different character, don't inject a response for the wrong one
+  if(currentBF?.id !== bf.id) {
+    await generateAndSaveAutoMsg(bf, instruction);
+    return;
+  }
   const savedCurrentBF = currentBF;
   currentBF = bf;
   await callGemini(instruction);
