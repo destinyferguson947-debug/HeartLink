@@ -315,6 +315,8 @@
   .cal-day.other-month { opacity:0.3; }
   .cal-day.has-date::after { content:'💗'; font-size:0.5rem; position:absolute; top:-1px; right:-1px; }
   .cal-day.has-birthday { outline:2px solid #e05060; border-radius:3px; }
+  .cal-day.has-anniversary { outline:2px solid var(--rose); border-radius:50%; font-weight:700; color:var(--rose-dark); }
+  .cal-day.has-anniversary::before { content:''; position:absolute; inset:0; border-radius:50%; background:rgba(180,60,90,0.08); }
   .cal-day.is-birthday-today { background:rgba(224,80,96,0.12); }
   .cal-schedule-btn { font-size:0.68rem; background:var(--rose); color:#fff; border:none; border-radius:6px; padding:3px 8px; cursor:pointer; margin-top:0.4rem; width:100%; }
   .cal-legend { font-size:0.58rem; color:var(--text-muted); margin-top:0.3rem; }
@@ -369,6 +371,20 @@
   .msg-edit-save { background: var(--rose); color: #fff; border: none; border-radius: 6px; padding: 3px 12px; font-size: 0.78rem; cursor: pointer; font-family: 'DM Sans',sans-serif; }
   .msg-edit-cancel { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; font-size: 0.78rem; cursor: pointer; color: var(--text-muted); font-family: 'DM Sans',sans-serif; }
   .rerolling-indicator { font-size: 0.78rem; color: var(--text-muted); font-style: italic; padding: 2px 4px; }
+  /* Dating badge tooltip */
+  .dating-tooltip {
+    position: fixed; z-index: 9999;
+    background: var(--card); border: 1.5px solid var(--rose);
+    color: var(--text); border-radius: 0.8rem;
+    padding: 0.7rem 1.1rem; font-size: 0.83rem;
+    box-shadow: 0 4px 20px rgba(180,60,90,0.18);
+    max-width: 260px; text-align: center; line-height: 1.5;
+    pointer-events: none; opacity: 0;
+    transition: opacity 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .dating-tooltip.show { opacity: 1; pointer-events: auto; }
+  .dating-tooltip strong { color: var(--rose); display: block; margin-bottom: 0.2rem; font-size: 0.9rem; }
   .msg-alt-nav {
     display: flex; align-items: center; gap: 5px; margin-top: 4px;
     font-size: 0.74rem; color: var(--text-muted);
@@ -2928,7 +2944,7 @@ function openChat(id){
       <div class="chat-header-clickable" id="header-clickable" onclick="toggleHeaderDropdown(event)">
         <div class="chat-header-emoji ${avatarWrapClass}" style="overflow:hidden">${avatarHtml}</div>
         <div>
-          <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" style="font-size:0.78rem;font-weight:500;color:var(--rose);margin-left:10px;letter-spacing:0.01em;">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
+          <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" style="font-size:0.78rem;font-weight:500;color:var(--rose);margin-left:10px;letter-spacing:0.01em;cursor:pointer;" onclick="showDatingTooltip(event,${bf.id})" title="Click for details">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
           <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx, relData.health)} · ${bf.difficulty||bf.tag}</div>
         </div>
         <div class="chat-header-dropdown" id="header-dropdown">
@@ -3514,6 +3530,58 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   if(extraPrompt){
     fullSystem += `\n\n--- MANDATORY CUSTOM INSTRUCTIONS (from user — you MUST follow these exactly, they override everything else) ---\n${extraPrompt}\n--- END CUSTOM INSTRUCTIONS ---`;
   }
+  // ── Birthday awareness ──────────────────────────────────────────────────
+  const _bfData = BF_DATA.find(b=>b.id===currentBF.id);
+  if(_bfData?.birthday){
+    const _bday = _bfData.birthday;
+    const _bdayMonthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const _bdayInfo = getBirthdayInfo(currentBF.id);
+    const _todayIG = getInGameDate(currentBF.id);
+    const _bdayIGMonth = _bday.month - 1; // 0-indexed for in-game
+    const _todayIGMonthName = _bdayMonthNames[_todayIG.month];
+    const _bdayMonthName = _bdayMonthNames[_bdayIGMonth];
+    let _bdayNote = `YOUR BIRTHDAY: ${_bdayMonthName} ${_bday.day}. Today in-game is ${_todayIGMonthName} ${_todayIG.day}, Year ${_todayIG.year}.`;
+    if(_bdayInfo?.isToday){
+      _bdayNote += ` TODAY IS YOUR BIRTHDAY. You are aware of this. You may let it colour the scene in subtle or overt ways depending on your personality.`;
+    } else if(_bdayInfo){
+      const _realHrsUntil = (_bdayInfo.next - Date.now()) / (1000*60*60);
+      const _igDaysUntil = Math.round(_realHrsUntil * (30/24));
+      if(_igDaysUntil <= 7){
+        _bdayNote += ` Your birthday is in ${_igDaysUntil} in-game day${_igDaysUntil===1?'':'s'}. You may be quietly aware of it approaching.`;
+      }
+    }
+    fullSystem += `
+
+--- CALENDAR AWARENESS ---
+${_bdayNote}`;
+  }
+
+  // ── Dating anniversary awareness ────────────────────────────────────────
+  const _datingStart = parseInt(localStorage.getItem('dating_since_time_'+currentBF.id)||'0');
+  if(_datingStart && ['dating','fiance','married'].includes(getRelHealth(currentBF.id).status)){
+    const _relData2 = getRelHealth(currentBF.id);
+    const _todayIG2 = getInGameDate(currentBF.id);
+    const _startIG = (() => {
+      // Reconstruct in-game date when dating began from the real timestamp
+      const _firstChat = parseInt(localStorage.getItem('first_chat_ts_'+currentBF.id)||_datingStart.toString());
+      const _realDaysAtStart = (_datingStart - _firstChat) / (1000*60*60*24);
+      const _startMonth = Math.floor(_realDaysAtStart) % 12;
+      const _startYear = 1 + Math.floor(Math.floor(_realDaysAtStart)/12);
+      const _startDay = Math.floor(((_datingStart - _firstChat) % (1000*60*60*24)) / (1000*60*60*24/30)) + 1;
+      return { month: _startMonth, year: _startYear, day: Math.min(_startDay, 28) };
+    })();
+    const _monthNames2 = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const _isAnniversary = _startIG.month === _todayIG2.month && _startIG.day === _todayIG2.day && _todayIG2.year > _startIG.year;
+    let _annivNote = `You started dating on ${_monthNames2[_startIG.month]} ${_startIG.day}, Year ${_startIG.year} (in-game). Today is ${_monthNames2[_todayIG2.month]} ${_todayIG2.day}, Year ${_todayIG2.year}.`;
+    if(_isAnniversary){
+      _annivNote += ` TODAY IS YOUR ANNIVERSARY. You remember this date. React naturally — warmly, emotionally, or with your characteristic style.`;
+    }
+    fullSystem += `
+
+--- RELATIONSHIP ANNIVERSARY ---
+${_annivNote}`;
+  }
+
   // Pending calendar note (date scheduled or birthday acknowledgment)
   const _pendingCal = localStorage.getItem('pending_date_note_'+currentBF.id);
   if(_pendingCal){ fullSystem += '\n\n'+_pendingCal; localStorage.removeItem('pending_date_note_'+currentBF.id); }
@@ -3911,6 +3979,43 @@ function triggerDivorce(bf, data){
 // ---- PROPOSAL SYSTEM ----
 
 // ---- DATING DURATION DISPLAY ----
+function showDatingTooltip(e, bfId){
+  e.stopPropagation();
+  const tooltip = document.getElementById('dating-tooltip');
+  if(!tooltip) return;
+  const startTime = parseInt(localStorage.getItem('dating_since_time_'+bfId)||'0');
+  if(!startTime) return;
+  const bf = savedBFs.find(b=>b.id===bfId) || BF_DATA.find(b=>b.id===bfId);
+  const name = bf ? bf.name.split(' ')[0] : 'them';
+  const realMs = Date.now() - startTime;
+  const realDays = realMs / (1000*60*60*24);
+  const totalInGameMonths = Math.floor(realDays);
+  const realHours = realMs / (1000*60*60);
+  const inGameDays = Math.floor(realHours * (30/24));
+  let durationStr;
+  if(totalInGameMonths < 1){
+    durationStr = inGameDays < 1 ? 'just 1 day' : inGameDays === 1 ? '1 day' : inGameDays + ' days';
+  } else {
+    const years = Math.floor(totalInGameMonths/12);
+    const months = totalInGameMonths % 12;
+    const parts = [];
+    if(years > 0) parts.push(years === 1 ? '1 year' : years + ' years');
+    if(months > 0) parts.push(months === 1 ? '1 month' : months + ' months');
+    durationStr = parts.join(' and ');
+  }
+  tooltip.innerHTML = `<strong>💗 You & ${name}</strong>You've been dating for<br><span style="font-size:1rem;font-weight:600;color:var(--rose)">${durationStr}</span>`;
+  // Position near the badge
+  const rect = e.target.getBoundingClientRect();
+  tooltip.style.left = Math.min(rect.left, window.innerWidth - 280) + 'px';
+  tooltip.style.top = (rect.bottom + 8) + 'px';
+  tooltip.classList.add('show');
+  // Dismiss on next click anywhere
+  setTimeout(()=>{
+    const dismiss = ()=>{ tooltip.classList.remove('show'); document.removeEventListener('click', dismiss); };
+    document.addEventListener('click', dismiss);
+  }, 10);
+}
+
 function getDatingDuration(bfId){
   const startTime = parseInt(localStorage.getItem('dating_since_time_'+bfId)||'0');
   if(!startTime) return '';
@@ -3987,13 +4092,22 @@ function renderCalendar(bfId){
     const hasDate = calDates.some(e=>e.month===viewMonth&&e.year===viewYear&&e.day===d&&e.type==='date');
     const isBday = bdayInfo && bdayInfo.month===viewMonth && bdayInfo.day===d;
     const isBdayToday = isBday && isToday;
+    // Anniversary: same month+day as dating start, but any year after year 1
+    const annivEntry = calDates.find(e=>e.type==='anniversary');
+    const isAnniv = annivEntry && annivEntry.month===viewMonth && annivEntry.day===d && !(annivEntry.year===viewYear); // circle on same day each year
+    const isAnnivOnThisYear = annivEntry && annivEntry.month===viewMonth && annivEntry.day===d; // show every year
     let cls = 'cal-day';
     if(isToday) cls+=' today';
     if(hasDate) cls+=' has-date';
     if(isBday) cls+=' has-birthday';
     if(isBdayToday) cls+=' is-birthday-today';
-    const title = [hasDate?'💗 Date planned':'', isBday?'🎂 Birthday':''].filter(Boolean).join(' ');
-    gridHTML += `<div class="${cls}" onclick="calDayClick(${d},${viewMonth},${viewYear})" title="${title}">${d}${isBday?'<span style="font-size:0.5rem;display:block;">🎂</span>':''}</div>`;
+    if(isAnnivOnThisYear) cls+=' has-anniversary';
+    const titleParts = [];
+    if(hasDate) titleParts.push('💗 Date planned');
+    if(isBday) titleParts.push('🎂 Birthday');
+    if(isAnnivOnThisYear) titleParts.push('💑 Anniversary');
+    const title = titleParts.join(' · ');
+    gridHTML += `<div class="${cls}" onclick="calDayClick(${d},${viewMonth},${viewYear})" title="${title}">${d}${isBday?'<span style="font-size:0.5rem;display:block;">🎂</span>':''}${isAnnivOnThisYear&&!isBday?'<span style="font-size:0.5rem;display:block;">💑</span>':''}</div>`;
   }
   gridHTML += '</div>';
   
@@ -4008,7 +4122,7 @@ function renderCalendar(bfId){
       </h4>
       ${gridHTML}
       <button class="cal-schedule-btn" onclick="calScheduleDate()">+ Schedule a date</button>
-      <div style="font-size:0.62rem;color:var(--text-muted);margin-top:0.4rem;">💗 = date planned &nbsp;🎂 = birthday</div>
+      <div style="font-size:0.62rem;color:var(--text-muted);margin-top:0.4rem;">💗 = date planned &nbsp;🎂 = birthday &nbsp;💑 = anniversary</div>
     </div>`;
 }
 
@@ -4315,6 +4429,18 @@ function checkConfessionResponse(){
     if(!localStorage.getItem('dating_since_time_'+currentBF.id)){
       localStorage.setItem('dating_since_time_'+currentBF.id, Date.now().toString());
     }
+    // Circle the start date on the in-game calendar as the anniversary
+    (()=>{
+      const _igStart = getInGameDate(currentBF.id);
+      const _calDates = getCalDates(currentBF.id);
+      // Remove any old anniversary entry first
+      const _filtered = _calDates.filter(e=>e.type!=='anniversary');
+      _filtered.push({day:_igStart.day, month:_igStart.month, year:_igStart.year, type:'anniversary'});
+      saveCalDates(currentBF.id, _filtered);
+      // Inject a note so the AI is aware of this special date
+      localStorage.setItem('pending_date_note_'+currentBF.id,
+        `(Today — ${['January','February','March','April','May','June','July','August','September','October','November','December'][_igStart.month]} ${_igStart.day}, Year ${_igStart.year} — is the day you officially became a couple. This date is now circled on your calendar. You are quietly aware of it. React as your character naturally would.)`);
+    })();
     refreshRelMeter();
     showHeartRain();
     showToast("💗 You're officially dating!");
@@ -6193,5 +6319,6 @@ function saveModel(){
 }
 </script>
   <button class="dark-mode-fab" id="dark-mode-fab" onclick="toggleDarkMode()" title="Toggle dark/light mode">🌙 Dark</button>
+  <div class="dating-tooltip" id="dating-tooltip"></div>
 </body>
 </html>
