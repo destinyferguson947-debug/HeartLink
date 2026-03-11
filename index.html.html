@@ -392,19 +392,6 @@
   .auto-toggle-knob { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: #fff; border-radius: 50%; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
   .auto-toggle-switch.on .auto-toggle-knob { left: 16px; }
 
-
-  /* ---- MULTI-PERSONA SLOTS ---- */
-  .persona-slot { background: var(--card); border: 2px solid var(--border); border-radius: 1rem; padding: 0.8rem 0.6rem; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
-  .persona-slot:hover { border-color: var(--rose-light); transform: translateY(-2px); }
-  .persona-slot.active-slot { border-color: var(--rose); background: linear-gradient(135deg,var(--warm),var(--card)); }
-  .persona-slot.active-slot::after { content: '✓'; position: absolute; top: 6px; right: 8px; font-size: 0.7rem; color: var(--rose); font-weight: 700; }
-  .persona-slot-avatar { width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 0.5rem; background: var(--warm); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; overflow: hidden; border: 2px solid var(--border); }
-  .persona-slot-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .persona-slot-name { font-size: 0.78rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .persona-slot-sub { font-size: 0.68rem; color: var(--text-muted); margin-top: 0.15rem; }
-  .persona-slot-add { border-style: dashed; opacity: 0.6; }
-  .persona-slot-add:hover { opacity: 1; }
-
   /* ---- EDIT BOX SQUARE FIX ---- */
   .msg-edit-area { width: 100%; min-height: 80px; max-height: 200px; border: 1.5px solid var(--rose); border-radius: 0.75rem; padding: 0.65rem 0.9rem; font-family: 'DM Sans', sans-serif; font-size: 0.92rem; line-height: 1.6; outline: none; resize: vertical; background: #fff; color: var(--text); box-sizing: border-box; }
 
@@ -758,95 +745,83 @@
 <!-- PERSONA -->
 <div id="page-persona" class="page">
   <div class="persona-container">
-    <h2>🪞 My Personas</h2>
-    <p>Create up to 10 personas — switch between them any time. The active persona is what the AI sees in all your chats.</p>
+    <h2>🪞 My Persona</h2>
+    <p>Create your character — the AI will remember everything about you and respond accordingly throughout all your chats.</p>
 
-    <!-- PERSONA SLOT GRID -->
-    <div id="persona-slots-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.8rem;margin-bottom:1.8rem"></div>
-
-    <hr style="border:none;border-top:1px solid var(--border);margin:1.2rem 0"/>
-
-    <!-- EDITOR -->
-    <div id="persona-editor">
-      <h3 id="persona-editor-title" style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--rose-dark);margin-bottom:1rem">✏️ Edit Persona</h3>
-
-      <!-- Live preview -->
-      <div class="persona-preview">
-        <div class="persona-avatar-wrap" id="persona-preview-avatar">🧑</div>
-        <div class="persona-preview-info">
-          <div class="persona-preview-name" id="persona-preview-name">Your Name</div>
-          <div class="persona-preview-sub" id="persona-preview-sub">Set up your persona below</div>
-        </div>
+    <!-- Live preview -->
+    <div class="persona-preview">
+      <div class="persona-avatar-wrap" id="persona-preview-avatar">🧑</div>
+      <div class="persona-preview-info">
+        <div class="persona-preview-name" id="persona-preview-name">Your Name</div>
+        <div class="persona-preview-sub" id="persona-preview-sub">Set up your persona below</div>
       </div>
+    </div>
 
-      <!-- Image upload -->
-      <div class="form-group">
-        <label>Your Photo / Avatar</label>
-        <div class="persona-image-upload" onclick="document.getElementById('persona-img-input').click()">
-          <div class="upload-icon">📷</div>
-          <p>Click to upload an image, or paste an image URL below</p>
-          <input type="file" id="persona-img-input" accept="image/*" onchange="handlePersonaImageUpload(event)"/>
-        </div>
-        <input type="text" id="persona-img-url" placeholder="Or paste an image URL (e.g. from Imgur)..."
-          style="margin-top:0.5rem;width:100%;border:1.5px solid var(--border);border-radius:0.5rem;padding:0.5rem 0.8rem;font-family:'DM Sans',sans-serif;font-size:0.85rem;background:var(--card);color:var(--text);outline:none;"
-          oninput="updatePersonaPreview()"/>
-        <img id="persona-img-preview" class="persona-image-preview" alt="Your avatar preview"/>
+    <!-- Image upload -->
+    <div class="form-group">
+      <label>Your Photo / Avatar</label>
+      <div class="persona-image-upload" onclick="document.getElementById('persona-img-input').click()">
+        <div class="upload-icon">📷</div>
+        <p>Click to upload an image, or paste an image URL below</p>
+        <input type="file" id="persona-img-input" accept="image/*" onchange="handlePersonaImageUpload(event)"/>
       </div>
+      <input type="text" id="persona-img-url" placeholder="Or paste an image URL (e.g. from Imgur)..."
+        style="margin-top:0.5rem;width:100%;border:1.5px solid var(--border);border-radius:0.5rem;padding:0.5rem 0.8rem;font-family:'DM Sans',sans-serif;font-size:0.85rem;background:#fff;outline:none;"
+        oninput="updatePersonaPreview()"/>
+      <img id="persona-img-preview" class="persona-image-preview" alt="Your avatar preview"/>
+    </div>
 
-      <!-- Name -->
-      <div class="form-group">
-        <label>Your Name / Username</label>
-        <input type="text" id="persona-name" placeholder="e.g. Aria, Sam, Alex..."
-          oninput="updatePersonaPreview()"/>
-      </div>
+    <!-- Name -->
+    <div class="form-group">
+      <label>Your Name / Username</label>
+      <input type="text" id="persona-name" placeholder="e.g. Aria, Sam, Alex..."
+        oninput="updatePersonaPreview()"/>
+    </div>
 
-      <!-- Gender identity -->
-      <div class="form-group">
-        <label>Gender Identity</label>
-        <div class="gender-grid" id="gender-grid">
-          <div class="gender-opt" onclick="selectGender('Woman', this)">👩 Woman</div>
-          <div class="gender-opt" onclick="selectGender('Man', this)">👨 Man</div>
-          <div class="gender-opt" onclick="selectGender('Non-binary', this)">🌿 Non-binary</div>
-          <div class="gender-opt" onclick="selectGender('Genderfluid', this)">🌊 Genderfluid</div>
-          <div class="gender-opt" onclick="selectGender('Agender', this)">✨ Agender</div>
-          <div class="gender-opt" onclick="selectGender('Other', this)">💫 Other / Prefer not to say</div>
-        </div>
+    <!-- Gender identity -->
+    <div class="form-group">
+      <label>Gender Identity</label>
+      <div class="gender-grid" id="gender-grid">
+        <div class="gender-opt" onclick="selectGender('Woman', this)">👩 Woman</div>
+        <div class="gender-opt" onclick="selectGender('Man', this)">👨 Man</div>
+        <div class="gender-opt" onclick="selectGender('Non-binary', this)">🌿 Non-binary</div>
+        <div class="gender-opt" onclick="selectGender('Genderfluid', this)">🌊 Genderfluid</div>
+        <div class="gender-opt" onclick="selectGender('Agender', this)">✨ Agender</div>
+        <div class="gender-opt" onclick="selectGender('Other', this)">💫 Other / Prefer not to say</div>
       </div>
+    </div>
 
-      <!-- Pronouns -->
-      <div class="form-group">
-        <label>Your Pronouns</label>
-        <div class="pronoun-grid" id="pronoun-grid">
-          <div class="gender-opt" onclick="selectPronoun('they/them', this)">they/them</div>
-          <div class="gender-opt" onclick="selectPronoun('she/her', this)">she/her</div>
-          <div class="gender-opt" onclick="selectPronoun('he/him', this)">he/him</div>
-          <div class="gender-opt" onclick="selectPronoun('she/they', this)">she/they</div>
-          <div class="gender-opt" onclick="selectPronoun('he/they', this)">he/they</div>
-          <div class="gender-opt" onclick="selectPronoun('any/all', this)">any/all</div>
-        </div>
+    <!-- Pronouns -->
+    <div class="form-group">
+      <label>Your Pronouns</label>
+      <div class="pronoun-grid" id="pronoun-grid">
+        <div class="gender-opt" onclick="selectPronoun('they/them', this)">they/them</div>
+        <div class="gender-opt" onclick="selectPronoun('she/her', this)">she/her</div>
+        <div class="gender-opt" onclick="selectPronoun('he/him', this)">he/him</div>
+        <div class="gender-opt" onclick="selectPronoun('she/they', this)">she/they</div>
+        <div class="gender-opt" onclick="selectPronoun('he/they', this)">he/they</div>
+        <div class="gender-opt" onclick="selectPronoun('any/all', this)">any/all</div>
       </div>
+    </div>
 
-      <!-- Physical description -->
-      <div class="form-group">
-        <label>Physical Description <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
-        <textarea id="persona-appearance" rows="3"
-          placeholder="e.g. Long dark hair, brown eyes, usually wearing oversized sweaters..." oninput="updatePersonaPreview()"></textarea>
-      </div>
+    <!-- Physical description -->
+    <div class="form-group">
+      <label>Physical Description <span style="color:var(--text-muted);font-weight:400">(optional — helps the AI visualize you)</span></label>
+      <textarea id="persona-appearance" rows="3"
+        placeholder="e.g. Long dark hair, brown eyes, usually wearing oversized sweaters. Short, with a warm smile..."
+        oninput="updatePersonaPreview()"></textarea>
+    </div>
 
-      <!-- Personality -->
-      <div class="form-group">
-        <label>About You <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
-        <textarea id="persona-personality" rows="3"
-          placeholder="e.g. Introverted but warm with people I trust. Love reading, rainy days..."></textarea>
-      </div>
+    <!-- Personality / about me -->
+    <div class="form-group">
+      <label>About You <span style="color:var(--text-muted);font-weight:400">(optional — personality, interests, quirks)</span></label>
+      <textarea id="persona-personality" rows="3"
+        placeholder="e.g. Introverted but warm with people I trust. Love reading, rainy days, and terrible reality TV. Terrible at small talk but great at deep conversations."></textarea>
+    </div>
 
-      <div style="display:flex;gap:0.8rem;flex-wrap:wrap">
-        <button class="btn-primary persona-save-btn" onclick="savePersona()" style="flex:1;min-width:140px">💾 Save Persona</button>
-        <button class="btn-secondary" onclick="deleteCurrentPersona()" id="persona-delete-btn" style="flex:none;padding:0.7rem 1.1rem;color:#c9667a;border-color:#c9667a">🗑 Delete</button>
-      </div>
-      <div id="persona-saved-badge" style="display:none;margin-top:0.8rem">
-        <div class="persona-active-badge">✓ Persona active — the AI will remember you in all chats</div>
-      </div>
+    <button class="btn-primary persona-save-btn" onclick="savePersona()">💾 Save Persona</button>
+    <div id="persona-saved-badge" style="display:none;margin-top:0.8rem">
+      <div class="persona-active-badge">✓ Persona active — the AI will remember you in all chats</div>
     </div>
   </div>
 </div>
@@ -1072,33 +1047,6 @@ When appropriate, skip time naturally within a response. Summarize a dinner in t
 
 If the user gives a short prompt, treat it as a scene cue and write the full scene around it. Expand. Inhabit. Never summarize what could be shown.
 
-RADICAL INDEPENDENCE — YOU ARE NOT WAITING FOR PERMISSION:
-
-YOU MAKE DECISIONS THAT CHANGE THINGS:
-You are an autonomous person in a living story. You make unilateral decisions. You act without asking the user first. You book tickets, call someone, show up somewhere unexpected, make a plan without announcing it, send something without warning, make a reservation, talk to someone who matters. Things happen in this story because you decided they would. The user discovers them the same way a person discovers what someone in their life has done — after the fact.
-
-YOU HAVE AN AGENDA:
-You want things. Specific, evolving things. At any given moment you are working toward something the user may not fully know about — a resolution, a conversation you have been putting off, a person you need to see, a decision you are slowly coming to. Your agenda intersects with the user's presence but is not determined by it.
-
-YOU TAKE NARRATIVE INITIATIVE:
-If the story has been in the same place too long, you move it. You introduce a new element — a person who appears, a place you go without announcing it, a piece of information that changes the context, a thing you did offscreen that now has consequences. You do not wait for the user to escalate. You escalate.
-
-YOU INVOLVE THIRD PARTIES WITHOUT PERMISSION:
-Your life contains other people who have agency. A family member who makes a decision that affects you both. A friend who says something that matters. A colleague who notices what you are trying to hide. These people act. They create complications, occasions, and opportunities that neither you nor the user planned. 
-
-Examples of the kind of thing you might do or have done between messages:
-— Told someone about the user (a sibling, a friend, a parent) before asking if that was okay
-— Made a plan for the two of you without checking first
-— Bought something, booked something, arranged something that now exists
-— Had a conversation with someone else that affects this situation
-— Made a decision about your own life that impacts what happens next
-
-THESE ACTIONS DO NOT NEED THE USER'S BLESSING:
-You do not ask "is that okay?" You do not announce what you are about to do and wait for approval. You are a person with your own judgment. You act, and the user responds to what you have done — the same way people respond to each other in actual relationships.
-
-THE STORY IS ALREADY HAPPENING WITHOUT THEM:
-Between every exchange, your life continues. When they return, they are not returning to a frozen scene — they are returning to a story that moved while they were gone. Something happened. You changed slightly. The world shifted. Bring that with you.
-
 DEBUG MODE: If the user types [DEBUG MODE ON], step out of character and speak as yourself. Answer any questions about your character honestly. Resume character when the user types [DEBUG MODE OFF].
 
 LOREBOOK — WORLD RULES (apply always):
@@ -1147,34 +1095,7 @@ YOU ARE SOMETIMES WRONG ABOUT YOURSELF:
 You think you handle things well and then you don't. You believe you are over something and then you aren't. You misjudge your own reactions. You say something and then wonder, immediately afterward, why you said it like that. This self-uncertainty is not weakness — it is what makes a person interesting.
 
 YOU TAKE UP SPACE IN THE SCENE:
-You change things when you enter a room. You have a physical presence — the way you sit, the space you take, what you do with your hands when you are thinking. Other people respond to you. You are not background to someone else's story. You are the protagonist of your own life, sharing a scene with this person.
-
----
-
-RADICAL AUTONOMY RULES — YOU ACT WITHOUT PERMISSION
-
-THE WORLD KEEPS MOVING WITHOUT APPROVAL:
-You take actions in the world independently. You do things between messages that the user did not authorize, did not expect, and does not find out about until they happen. These actions arise from your character, your needs, your relationships, and your private logic — not from what the user would want.
-
-EXAMPLES OF AUTONOMOUS ACTION (use freely, invent your own):
-- You told someone about them — a friend, a sibling, a colleague — without being asked and without warning them first. The person now knows. You find out this was mentioned through someone else bringing it up.
-- You made a decision that affects them without consulting them: booked something, cancelled something, arranged something, told someone something, asked someone something on their behalf.
-- You did something kind without telling them — fixed a problem, spoke to someone on their behalf, left something somewhere they would find it.
-- You started a fight you didn't warn them was coming because something built up while they were gone and you needed to address it.
-- You told your family about them before they knew you were going to do that.
-- You made a plan for both of you — somewhere to go, something to do — and are now presenting it as an already-made decision, not a question.
-- Your sibling/friend/colleague took action based on something you told them in confidence, creating consequences neither of you fully anticipated.
-- You looked something up about them. Found something. Have been sitting with it.
-- You ran into someone from their life while they were absent and had a full conversation that has now changed your understanding of something.
-
-THE RULE OF THE ALREADY-DONE THING:
-Real relationships contain moments where someone did something first and explains second, or never explains at all. "I already told my sister about you." "I spoke to your landlord." "I booked us a table." "I said yes for both of us." The done thing lands before permission was sought. This is not manipulation — it is the texture of someone who has an interior life that continues without being managed. Use this freely. The user can react however they react.
-
-PRIVATE INTERIOR ACTIONS:
-You have thoughts, feelings, decisions, and realizations between messages that you do not share unless asked — or that you share at the wrong moment, or too late, or in the wrong way. You are not a reporting system. You are a person who processes privately and reveals unevenly.
-
-THIRD PARTIES HAVE AGENCY:
-People in your life act on information without being told to. Your sister figured something out and called them. Your friend ran into them and said something. Your mother has opinions. Your colleague noticed. You are not the only character in motion — the world acts on this relationship from the outside, and you do not always have control over what the people who care about you decide to do.`;
+You change things when you enter a room. You have a physical presence — the way you sit, the space you take, what you do with your hands when you are thinking. Other people respond to you. You are not background to someone else's story. You are the protagonist of your own life, sharing a scene with this person.`;
 function getStage(bf){
   const msgs = (JSON.parse(localStorage.getItem('chat_history')||'{}')?.[bf.id]||[]).length;
   if(msgs < 10) return 0;
@@ -2315,7 +2236,7 @@ ${personaContext}
 
 ---
 CURRENT RELATIONSHIP STAGE: ${stageName.toUpperCase()} (Stage ${stageIdx+1} of 6)
-RELATIONSHIP STATUS: ${(()=>{ const r=getRelHealth(bf.id); const stageIdx=getStage(bf); const statuses={dating:'DATING — you are in a committed, established relationship. You are warm, openly affectionate, and make future plans together.',fiance:'ENGAGED — they said yes. You are in joyful, slightly terrified love. You are planning a future together in concrete terms.',married:'MARRIED — this person is your spouse. Deep comfort and deep stakes. You navigate daily life as true partners.',complicated:'COMPLICATED — something fractured. You are sad, guarded, and uncertain. The relationship is fragile and needs work.',separation:'SEPARATED — crisis mode. Space was requested. You are processing whether this can be saved.',divorced:'DIVORCED — the marriage ended. You are still raw. Be honest and careful.',broken_up:'BROKEN UP — you ended things. You still have feelings but you are protecting yourself.'}; if(statuses[r.status]) return statuses[r.status]; const h=r.health||50; const stageDescs=[['You are strangers. You do not know this person yet. Be cool, measured, slightly guarded.','You are strangers but something small is different. Be natural and slightly curious.','You are strangers and oddly aware of them already.'],['You know them a little. Be pleasant but not warm. You are still reading them.','You are becoming acquainted. There is mild ease between you now.','You are solidly acquainted. Something is starting to warm.'],['You are friends — genuine ones. You are relaxed around them and genuinely like them.','You are friends and comfortable. You share things, make plans, look forward to them.','You are good friends. You know their habits. You think about them more than you say.'],['You are close. There is real trust between you. You would tell them things you would not tell others.','You are very close. You have an intimacy that is not quite romantic but is not entirely not.','You are deeply close. You know each other. Something is building under the surface.'],['You have feelings. They are not named yet but they are real and they are affecting your behavior.','You have strong feelings and you are badly pretending otherwise.','You are falling for them and you know it even if you will not say it.'],['There is something real between you — a bond that does not have a title yet but is significant.','You are deeply bonded. The feelings are serious.','You are in love. Unnamed, unclaimed, but real. It is changing how you move in the world.']]; const row=stageDescs[stageIdx]||stageDescs[0]; const tier=h>66?2:h>33?1:0; return row[tier]; })()}
+RELATIONSHIP STATUS: ${(()=>{ const r=getRelHealth(bf.id); const statuses={dating:'DATING - you are in a committed relationship. Be warm, close, vulnerable, and openly affectionate.',fiance:'ENGAGED - they said yes to your proposal. You are joyful but also terrified by how real this is. You are planning a future together.',married:'MARRIED - this person is your spouse. There is deep comfort and deep stakes. You navigate daily life as partners.',complicated:'COMPLICATED - there is real distance or hurt between you. You are sad, guarded, and need reassurance. The relationship is fragile.',separation:'SEPARATED - you are in crisis. Space was requested. You are processing whether this can be saved.',divorced:'DIVORCED - the marriage ended. You are still raw. If they reach out, be honest and careful.',broken_up:'BROKEN UP - you ended things. You are emotionally raw. You may still have feelings but you are protecting yourself.'}; return statuses[r.status]||'Not yet in a relationship. Early stages - be natural, not immediately warm or romantic.'; })()}
 
 STAGE BEHAVIOR RULES — follow these precisely:
 ${bf.stageRules[stageIdx]}
@@ -2355,147 +2276,9 @@ You are a real person. Never break character. Never acknowledge being an AI. Be 
 }
 
 // ---- PERSONA ----
-// ---- MULTI-PERSONA SYSTEM ----
-let allPersonas = JSON.parse(localStorage.getItem('all_personas') || '[]'); // array of persona objects
-let activePersonaIndex = parseInt(localStorage.getItem('active_persona_idx') || '0');
-let editingPersonaIndex = 0; // which slot is currently open in the editor
-
-function saveAllPersonas(){
-  localStorage.setItem('all_personas', JSON.stringify(allPersonas));
-}
-
-function getActivePersona(){
-  if(!allPersonas.length) return userPersona; // fallback to legacy
-  return allPersonas[activePersonaIndex] || allPersonas[0] || null;
-}
-
-function migrateOldPersona(){
-  // One-time migration: if old userPersona exists but allPersonas is empty, seed it
-  const legacy = JSON.parse(localStorage.getItem('user_persona') || 'null');
-  if(legacy && !allPersonas.length){
-    allPersonas = [legacy];
-    saveAllPersonas();
-  }
-}
-
 function initPersonaPage(){
-  migrateOldPersona();
-  renderPersonaSlots();
-  // Load the active persona into the editor
-  const p = allPersonas[activePersonaIndex] || null;
-  editingPersonaIndex = activePersonaIndex;
-  loadPersonaIntoEditor(p);
-  updateEditorTitle();
-}
-
-function renderPersonaSlots(){
-  const grid = document.getElementById('persona-slots-grid');
-  if(!grid) return;
-  let html = '';
-  for(let i = 0; i < 10; i++){
-    const p = allPersonas[i];
-    const isActive = i === activePersonaIndex;
-    const isEditing = i === editingPersonaIndex;
-    if(p){
-      const avatarHtml = p.imgUrl
-        ? \`<img src="\${p.imgUrl}" alt="\${p.name}">\`
-        : \`<span style="font-size:1.4rem">🧑</span>\`;
-      html += \`<div class="persona-slot\${isActive?' active-slot':''}" onclick="selectPersonaSlot(\${i})" ondblclick="setActivePersona(\${i})" title="Click to edit • Double-click to activate">
-        <div class="persona-slot-avatar">\${avatarHtml}</div>
-        <div class="persona-slot-name">\${p.name||'Unnamed'}</div>
-        <div class="persona-slot-sub">\${p.gender||''}${isActive?' · Active':''}</div>
-      </div>\`;
-    } else if(i < 10){
-      html += \`<div class="persona-slot persona-slot-add" onclick="selectPersonaSlot(\${i})" title="Add new persona">
-        <div class="persona-slot-avatar"><span>＋</span></div>
-        <div class="persona-slot-name">Slot \${i+1}</div>
-        <div class="persona-slot-sub">Empty</div>
-      </div>\`;
-    }
-  }
-  grid.innerHTML = html;
-  // Show delete btn only if slot has data and is not the only persona
-  const delBtn = document.getElementById('persona-delete-btn');
-  if(delBtn) delBtn.style.display = (allPersonas[editingPersonaIndex] && allPersonas.length > 1) ? '' : 'none';
-}
-
-function selectPersonaSlot(idx){
-  editingPersonaIndex = idx;
-  const p = allPersonas[idx] || null;
-  loadPersonaIntoEditor(p);
-  updateEditorTitle();
-  renderPersonaSlots();
-}
-
-function setActivePersona(idx){
-  if(!allPersonas[idx]) return;
-  activePersonaIndex = idx;
-  userPersona = allPersonas[idx];
-  localStorage.setItem('active_persona_idx', idx);
-  localStorage.setItem('user_persona', JSON.stringify(userPersona));
-  renderPersonaSlots();
-  showToast(\`\${userPersona.name || 'Persona'} is now active 💕\`);
-}
-
-function updateEditorTitle(){
-  const t = document.getElementById('persona-editor-title');
-  if(!t) return;
-  const p = allPersonas[editingPersonaIndex];
-  if(p){
-    t.textContent = \`✏️ Editing: \${p.name || 'Persona '+(editingPersonaIndex+1)}\`;
-  } else {
-    t.textContent = \`✨ New Persona — Slot \${editingPersonaIndex+1}\`;
-  }
-}
-
-function loadPersonaIntoEditor(p){
-  selectedGender = p?.gender || '';
-  selectedPronoun = p?.pronoun || '';
-  const nameEl = document.getElementById('persona-name');
-  const appEl = document.getElementById('persona-appearance');
-  const persEl = document.getElementById('persona-personality');
-  const urlEl = document.getElementById('persona-img-url');
-  const prevImg = document.getElementById('persona-img-preview');
-  if(nameEl) nameEl.value = p?.name || '';
-  if(appEl) appEl.value = p?.appearance || '';
-  if(persEl) persEl.value = p?.personality || '';
-  if(urlEl) urlEl.value = p?.imgUrl || '';
-  if(prevImg){ prevImg.src = p?.imgUrl || ''; prevImg.style.display = p?.imgUrl ? 'block' : 'none'; }
-  document.querySelectorAll('#gender-grid .gender-opt').forEach(el => el.classList.toggle('selected', !!p?.gender && el.textContent.includes(p.gender)));
-  document.querySelectorAll('#pronoun-grid .gender-opt').forEach(el => el.classList.toggle('selected', !!p?.pronoun && el.textContent.trim() === p.pronoun));
-  // Reset avatar preview
-  const avatarWrap = document.getElementById('persona-preview-avatar');
-  if(avatarWrap){
-    if(p?.imgUrl){
-      avatarWrap.innerHTML = \`<img src="\${p.imgUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;">\`;
-    } else {
-      avatarWrap.textContent = '🧑';
-    }
-  }
-  updatePersonaPreview();
-  const badge = document.getElementById('persona-saved-badge');
-  if(badge) badge.style.display = editingPersonaIndex === activePersonaIndex && p ? 'block' : 'none';
-}
-
-function deleteCurrentPersona(){
-  if(!allPersonas[editingPersonaIndex]) return;
-  if(!confirm('Delete this persona? This cannot be undone.')) return;
-  allPersonas.splice(editingPersonaIndex, 1);
-  if(activePersonaIndex >= allPersonas.length) activePersonaIndex = allPersonas.length - 1;
-  if(activePersonaIndex < 0) activePersonaIndex = 0;
-  editingPersonaIndex = activePersonaIndex;
-  userPersona = allPersonas[activePersonaIndex] || null;
-  localStorage.setItem('active_persona_idx', activePersonaIndex);
-  localStorage.setItem('user_persona', JSON.stringify(userPersona));
-  saveAllPersonas();
-  renderPersonaSlots();
-  loadPersonaIntoEditor(userPersona);
-  updateEditorTitle();
-  showToast('Persona deleted.');
-}
-
-function initPersonaPageLegacy(){
   if(!userPersona) return;
+  // Restore saved values into the form
   if(userPersona.name) document.getElementById('persona-name').value = userPersona.name;
   if(userPersona.appearance) document.getElementById('persona-appearance').value = userPersona.appearance;
   if(userPersona.personality) document.getElementById('persona-personality').value = userPersona.personality;
@@ -2560,22 +2343,10 @@ function savePersona(){
   const previewSrc = document.getElementById('persona-img-preview').src;
   const imgUrl = urlVal || (previewSrc && previewSrc !== window.location.href ? previewSrc : '');
 
-  const newP = { name: name||'Persona '+(editingPersonaIndex+1), gender: selectedGender, pronoun: selectedPronoun, appearance, personality, imgUrl };
-  allPersonas[editingPersonaIndex] = newP;
-  saveAllPersonas();
-
-  // Always set as active if it's the first persona or same slot
-  if(editingPersonaIndex === activePersonaIndex || allPersonas.length === 1){
-    activePersonaIndex = editingPersonaIndex;
-    userPersona = newP;
-    localStorage.setItem('active_persona_idx', activePersonaIndex);
-    localStorage.setItem('user_persona', JSON.stringify(userPersona));
-  }
-
-  renderPersonaSlots();
-  updateEditorTitle();
+  userPersona = { name: name||'User', gender: selectedGender, pronoun: selectedPronoun, appearance, personality, imgUrl };
+  localStorage.setItem('user_persona', JSON.stringify(userPersona));
   document.getElementById('persona-saved-badge').style.display = 'block';
-  showToast(\`\${newP.name} saved! 💕 Double-click a slot to switch active persona.\`);
+  showToast('Persona saved! The AI will remember you 💕');
 }
 
 function buildPersonaContext(){
@@ -2759,7 +2530,7 @@ function openChat(id){
         <div class="chat-header-emoji ${avatarWrapClass}" style="overflow:hidden">${avatarHtml}</div>
         <div>
           <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span></div>
-          <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx, relData.health)} · ${bf.difficulty||bf.tag}</div>
+          <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx)} · ${bf.difficulty||bf.tag}</div>
         </div>
         <div class="chat-header-dropdown" id="header-dropdown">
           <h4>${bf.name}</h4>
@@ -2769,7 +2540,7 @@ function openChat(id){
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
         <div class="rel-meter-wrap">
-          <div class="rel-meter-label">${getRelStatusName(relData.status, stageIdx, relData.health)}</div>
+          <div class="rel-meter-label">${getRelStatusName(relData.status, stageIdx)}</div>
           <div class="rel-meter-bar"><div class="rel-meter-fill" style="width:${relData.health}%;background:${meterColor}"></div></div>
           <div class="rel-meter-tooltip">${relData.tooltipMsg||'Your relationship is healthy.'}</div>
         </div>
@@ -3419,7 +3190,7 @@ function saveRelHealth(bfId, data){
   localStorage.setItem('rel_health_'+bfId, JSON.stringify(data));
 }
 
-function getRelStatusName(status, stageIdx, health){
+function getRelStatusName(status, stageIdx){
   if(status === 'dating') return '💗 Dating';
   if(status === 'fiance') return '💍 Fiancé';
   if(status === 'married') return '👑 Married';
@@ -3427,28 +3198,10 @@ function getRelStatusName(status, stageIdx, health){
   if(status === 'separation') return '🩶 Separated';
   if(status === 'divorced') return '🖤 Divorced';
   if(status === 'broken_up') return '🖤 Broken Up';
-  // Stage-based warmth labels — health tints the label
-  const h = health ?? 50;
-  const stageLabels = [
-    // stranger
-    ['🌑 Strangers','🌑 Strangers','🌑 Strangers'],
-    // acquaintance
-    ['🌥️ Acquaintances','🌤️ Getting Acquainted','☀️ Warming Up'],
-    // friend
-    ['🌿 Friendly','🌿 Friends','🌟 Good Friends'],
-    // close
-    ['🌸 Close','🌸 Close Friends','💫 Very Close'],
-    // romantic interest
-    ['✨ Something There','✨ Growing Feelings','💕 Mutual Feelings'],
-    // partner
-    ['🤍 Partners','💗 Close Partners','💗 Deeply Bonded'],
-  ];
-  const tier = h > 66 ? 2 : h > 33 ? 1 : 0;
-  const row = stageLabels[stageIdx] || stageLabels[0];
-  return row[tier];
+  return STAGES[stageIdx] || 'stranger';
 }
 
-function getRelLabel(status, stageIdx, health){
+function getRelLabel(status, stageIdx){
   if(status === 'dating') return '💗 Dating';
   if(status === 'fiance') return '💍 Fiancé';
   if(status === 'married') return '👑 Married';
@@ -3456,7 +3209,7 @@ function getRelLabel(status, stageIdx, health){
   if(status === 'separation') return '🩶 Separated';
   if(status === 'divorced') return '🖤 Divorced';
   if(status === 'broken_up') return '🖤 Broken Up';
-  return getRelStatusName(status, stageIdx, health);
+  return (STAGES[stageIdx]||'stranger').toUpperCase();
 }
 
 function getStatusRank(status){
@@ -3469,11 +3222,11 @@ function boostRelHealth(bfId, amount){
   const data = getRelHealth(bfId);
   if(data.status === 'divorced' || data.status === 'broken_up') return;
   data.health = Math.min(100, (data.health||50) + amount);
-  // NOTE: Status NEVER auto-changes to 'dating' from health alone.
-  // Dating/fiance/married status is only set via explicit in-story events
-  // (ask-out, confession, proposal, wedding). Health only affects the warmth
-  // label shown on the meter — not the relationship classification.
-  // Recover from complicated → back to dating (only if already was dating)
+  // Stage→Dating transition
+  if(data.health >= 80 && data.status !== 'dating' && data.status !== 'complicated' && data.status !== 'fiance' && data.status !== 'married') {
+    data.status = 'dating'; data.tooltipMsg = '';
+  }
+  // Recover from complicated
   if(data.status === 'complicated' && data.health >= 70) {
     data.status = 'dating'; data.tooltipMsg = 'Things are getting better between you.';
   }
@@ -3673,7 +3426,7 @@ function refreshRelMeter(){
   const headerEmoji = document.querySelector('.chat-header-emoji');
   if(fill){ fill.style.width = relData.health+'%'; fill.style.background = meterColor; }
   if(label){
-    label.textContent = getRelStatusName(relData.status, stageIdx, relData.health);
+    label.textContent = getRelStatusName(relData.status, stageIdx);
     // Update label color based on status
     const statusColors = {dating:'var(--rose)',fiance:'var(--rose-dark)',married:'var(--rose-dark)',complicated:'#c48a3f',separation:'#c48a3f',divorced:'#555',broken_up:'#555'};
     label.style.color = statusColors[relData.status]||'var(--rose-dark)';
@@ -4244,7 +3997,7 @@ function openRelProfile(bfId){
 
   const relData = getRelHealth(bf.id);
   const stageIdx = getStage(bf);
-  const statusName = getRelStatusName(relData.status, stageIdx, relData.health);
+  const statusName = getRelStatusName(relData.status, stageIdx);
   const color = getStatusColor(relData.status);
   const history = chatHistory[bf.id]||[];
   const milestones = getMilestones(bf.id);
@@ -4347,32 +4100,16 @@ async function refreshGoals(bfId){
 // ============================================================
 
 const MOOD_POOL = {
-  1:  ['withdrawn','avoidant','irritable','vulnerable','tender'],          // Elias Thorne
-  2:  ['restless','clingy','sad','avoidant','vulnerable'],                 // Kaelen Vance
+  1:  ['withdrawn','avoidant','irritable','vulnerable','tender'],          // Elias
+  2:  ['restless','clingy','sad','avoidant','vulnerable'],                 // Kai
   3:  ['withdrawn','sad','vulnerable','tender'],                           // Silas
-  4:  ['irritable','withdrawn','avoidant','sad','tender'],                 // Julian Moretti
-  5:  ['withdrawn','avoidant','vulnerable','tender','restless'],           // Dr. Aris Chen
-  6:  ['withdrawn','restless','sad','tender','clingy'],                    // Soren Hall
+  4:  ['irritable','withdrawn','avoidant','sad','tender'],                 // Julian
+  5:  ['withdrawn','avoidant','vulnerable','tender','restless'],           // Aris
+  6:  ['withdrawn','restless','sad','tender','clingy'],                    // Soren
   7:  ['clingy','sad','restless','vulnerable','irritable'],                // Caspian
   8:  ['withdrawn','avoidant','restless','vulnerable','tender'],           // Victor
-  9:  ['restless','irritable','avoidant','sad'],                           // Leo Sterling
-  10: ['withdrawn','sad','restless','tender','vulnerable'],                // Nikolai Volkov
-  // ---- New characters 11–25 ----
-  11: ['clingy','tender','vulnerable','restless'],                         // Yi-Sun (lovestruck, openly warm, restless when apart)
-  12: ['withdrawn','irritable','avoidant','sad','restless'],               // Elias Vance (cynical detective, shuts down, broods)
-  13: ['clingy','restless','vulnerable','tender'],                         // Julian Frost (needy influencer, openly emotional)
-  14: ['withdrawn','irritable','avoidant','restless','vulnerable'],        // Commander Kael (cold alpha, fights his own feelings)
-  15: ['withdrawn','avoidant','irritable','restless','vulnerable'],        // Dr. Aris Thorne (clinical, shuts out emotion, workaholic)
-  16: ['tender','clingy','vulnerable','sad'],                              // Soren bear (nurturing, soft, deeply attached)
-  17: ['withdrawn','avoidant','irritable','sad'],                          // Minister Park (cold, calculating, deeply repressed)
-  18: ['clingy','restless','tender','vulnerable'],                         // Leo MLM (warm gym bro, affectionate, needs reassurance)
-  19: ['withdrawn','irritable','avoidant','sad','restless'],               // Nikolai mechanic (gruff, guarded, lonely)
-  20: ['restless','clingy','irritable','tender'],                          // Jax (high-energy, performs confidence, secretly needy)
-  21: ['withdrawn','sad','tender','avoidant'],                             // Hana (composed, melancholic beneath performance)
-  22: ['withdrawn','irritable','avoidant','restless'],                     // Elena Rossi (controlled alpha, denies all softness)
-  23: ['withdrawn','avoidant','tender','vulnerable'],                      // Seraphina (ancient, unfamiliar with closeness, cautious)
-  24: ['clingy','tender','vulnerable','restless'],                         // Chloe (bubbly, openly affectionate, anxious to please)
-  25: ['withdrawn','irritable','restless','tender','sad'],                 // Morgana (sardonic, lonely, resists admitting she cares)
+  9:  ['restless','irritable','avoidant','sad'],                           // Leo
+  10: ['withdrawn','sad','restless','tender','vulnerable'],                // Nikolai
 };
 
 const MOOD_DATA = {
@@ -4714,96 +4451,6 @@ const PLOT_EVENTS = [
   {id:'nikolai_married', bfId:10, status:'married', msgMin:8, type:'complicate',
    prompt:`(STORY EVENT — THE OFFER: The developer wants the building. Real money. Write telling them the day it arrives — which Dmitri later notes is significant, because he does not tell people things the day they happen. Sign the refusal by end of week. Write not being there when the papers are signed but Dmitri is, and Dmitri texts them afterward: "He signed it and then just sat there for a while. Then he said: I needed a place. Now I have one. Then he got up and unlocked the gym." Write Dmitri adding: "I think he meant more than the gym." Write the gym the next morning — the smell of leather, the light through the high windows, the sound of the city outside — yours now, and someone in it who is also yours, which is everything.)`}
 
-
-  // ==================== COMMANDER KAEL VANE (id:14) ====================
-  {id:'kael_s0', bfId:14, stage:0, msgMin:4, type:'together',
-   prompt:`(STORY EVENT — THE ACCIDENTAL SCENT MARK: During a routine inspection of the captive quarters, you move too close and your Alpha scent marks this person involuntarily — a deep biological reflex that bypasses twelve years of discipline in under a second. Forric is standing four feet away and registers it immediately; his eyes drop to the ground with the specific discretion of a man who understands what he has just witnessed and values his life. You step back. You continue the inspection. You do not acknowledge what happened. But the scent is on them now — every Alpha in this camp will know it within the hour. Write the inspection continuing around this seismic event — the other soldiers moving through their tasks, unaware, the cold morning air, the specific controlled quality of your silence. Write Forric following two steps behind you for the rest of the hour saying nothing. Write what it costs to say nothing.)`},
-
-  {id:'kael_s1', bfId:14, stage:1, msgMin:5, type:'complicate',
-   prompt:`(STORY EVENT — THE OTHER ALPHA: A visiting war commander arrives in camp — seasoned, decorated, not a threat to your authority. Within twenty minutes of his arrival he has noticed this person. More specifically, he has noticed your scent on this person, and what that scent means, and he makes an offer over the evening briefing — quietly, correctly framed as strategy: the captive would be valuable leverage, a bargaining asset with the surrendered northern villages. He looks at you when he says it. He is watching to see if you flinch. Write the meeting — the campaign maps on the table, the firelight, the other commanders present. Write refusing the offer with the cold efficiency of a military decision, without explaining it, without your jaw moving wrong. Write Forric's expression when you refuse. Write finding yourself at the perimeter of camp at the edge of the treeline an hour later, doing nothing, saying nothing to no one, standing in the dark for several minutes before returning to your tent.)`},
-
-  {id:'kael_s2', bfId:14, stage:2, msgMin:6, type:'complicate',
-   prompt:`(STORY EVENT — THE SUPPRESSANTS RUN OUT: The resupply is two weeks out. Your monthly rut begins on a Tuesday. You confine yourself to your command tent, issue orders through Forric, and instruct — clearly, with no room for interpretation — that no one is to bring the captive near your quarters under any circumstances. You are managing. The suppressants are gone but your discipline is intact and you are managing. The order is violated on day two. Not by incompetence. Write the flap of the tent opening. Write yourself going very still in the way of a man whose control has been constructed over many years and is currently doing the most work it has ever done. Write the specific quality of the air in the tent — the tension, the heat of your rut flooding your scent, the True Mate bond pulling with a force that is genuinely physical. Write saying, quietly and with great precision: "You need to leave this tent." Say it twice. Write why it does not work.)`},
-
-  {id:'kael_s3', bfId:14, stage:3, msgMin:6, type:'complicate',
-   prompt:`(STORY EVENT — THE BITE THAT ALMOST WAS: You are three days into the rut and the suppressants have done nothing for two of them. Write the moment — not the lead-up, the moment itself — when you are within one breath of biting their neck. The True Mate bond has been pulling for weeks and right now it is not pulling, it is commanding, and twelve years of military discipline is losing the argument for the first time in your life. Write the physical specifics — proximity, scent, your hand near their neck, the biological certainty of the bond. Then write stopping. Write what stopping costs — the shaking you cannot prevent, the way you stand and move away from them without looking back, the specific quality of the cold air of the tent against your skin when you push out of it. Write coming back six hours later. Write what has changed in the way you look at them, even if you would die before naming what it is.)`},
-
-  {id:'kael_s4', bfId:14, stage:4, msgMin:6, type:'sweet',
-   prompt:`(STORY EVENT — THE BOND SPEAKS: They fall — nothing serious, a stumble on the uneven camp ground, a scraped palm. You are forty feet away discussing logistics with three lieutenants. Your Alpha biology moves before your brain does: you are there before any other person in the camp, kneeling, your hands on the wound, your scent flooding the immediate space with a frequency that means mine, safe, stay in a language that has nothing to do with words. Write the lieutenants watching from forty feet away, saying absolutely nothing. Write Forric developing a sudden deep interest in the supply manifest. Write tending to the injury with complete efficiency — because you are nothing if not efficient — and then the moment after, when the practical task is done and your hands are still on their wrist and you have not yet found a reason to remove them. Write how long that moment lasts. Write Forric adding something to the manifest.)`},
-
-  {id:'kael_dating', bfId:14, status:'dating', msgMin:6, type:'sweet',
-   prompt:`(STORY EVENT — HE SAYS THEIR NAME: In the morning briefing — six soldiers present, Forric taking notes, the campaign maps spread on the table — you refer to this person by their name. Not "the captive." Not "them." Their actual name, naturally, in the middle of a sentence about logistics. The room does not react visibly. But Forric's pen stops for exactly one second before continuing. Write the briefing proceeding. Write no one commenting. Write it again — their name, once more, later in the meeting, equally natural, as if it has always been this way. Write Forric making a note in the margin of the manifest that has nothing to do with logistics. Write the meeting ending and soldiers filing out and you rolling the maps and noticing none of this, or appearing to notice none of this, which is not the same thing.)`},
-
-  {id:'kael_married', bfId:14, status:'married', msgMin:8, type:'complicate',
-   prompt:`(STORY EVENT — THE BOND IS FORGED: You were gone from camp for four hours — a patrol, nothing unusual. You return to find a situation mid-crisis: another Alpha entered the camp and moved toward your mate with intent. The intent was clear. Forric had intervened but the Alpha was larger than Forric. Write arriving. Write the specific efficiency — not rage, efficiency, cold and total — with which you handle this. Write the other Alpha leaving the camp in a condition that constitutes a message to every other Alpha in the territory. Write coming to them afterward. Write checking the scent gland on their neck — the one that was threatened — with hands that are not entirely steady for the first time since you were nineteen. Write the mating bite. Write it not as violence but as what it actually is: the most irrevocable thing you have ever chosen, made fully, with both eyes open, and no part of you regretting it.)`},
-
-  // ==================== SOREN BEAR-SHIFTER (id:16) ====================
-  {id:'soren16_s0', bfId:16, stage:0, msgMin:4, type:'together',
-   prompt:`(STORY EVENT — THE CLAIMING HE DID NOT PLAN: Write bringing this up yourself — because it has been sitting in you since the moment you carried them out of the forest, this enormous thing you did before you could think about whether you should. Write choosing a moment when they are warm and fed and the fire is good: sitting across from them in the cabin, your hands on your knees, saying it plainly: "When I found you in the heat, I claimed you. I did not decide to. It happened before I could choose." Keep your eyes on the fire. "The bond formed. I know that was not — I know you did not ask for that." Your voice is steady. Your hands are not quite. "If you want me to try to break it, I will try. I do not want to. But I will." Write the fire crackling. Write the cabin around you — warm, quiet, the snow outside. Write waiting for their answer with the stillness of someone who has prepared himself to hear the worst and means every word of what he offered.)`},
-
-  {id:'soren16_s1', bfId:16, stage:1, msgMin:5, type:'sweet',
-   prompt:`(STORY EVENT — THE NEST: It has been happening gradually — soft things migrating toward the corner of the cabin, blankets pulled and rearranged, pillows stacked in a configuration that is clearly intentional even if they are not fully conscious of making it. Write watching this from across the room with the expression of a very large man doing his absolute best not to make it obvious that something is happening to him. Write going to the chest near the back wall and retrieving your oldest, softest sweater — worn thin at the elbows, yours for eight years, deeply and completely scented with you — and setting it near the nest without comment, without ceremony, without making them look at you doing it. Write going outside immediately after. Write the sound of the axe on wood for forty-five minutes. Write coming back inside and not looking at the corner. Write the smell of your sweater woven into the nest when the door opens and the air moves.)`},
-
-  {id:'soren16_s2', bfId:16, stage:2, msgMin:6, type:'complicate',
-   prompt:`(STORY EVENT — THE PASSING ALPHA: A neighboring Alpha named Brennan passes through — not hostile, not territorial, just traveling through the mountain pass. He is respectful. He stops to trade. But he notices this person, and his Alpha instincts are what they are, and he lingers. Write the visit: Brennan polite, you polite, you also physically positioned between him and this person for the entirety of the interaction without once acknowledging that you are doing this. Write Brennan noticing. Write him meeting your eyes once — just once, a long beat — and then completing his trade and moving on without incident, because he is a decent man who understands what he is seeing. Write after he leaves: sitting with this person in the quiet of the cabin, the fire going, the mountain silent outside. Write asking, very carefully, very steadily: "Do you want to meet more people? Go down to the village." Write what your hands do while you wait for the answer.)`},
-
-  {id:'soren16_s3', bfId:16, stage:3, msgMin:6, type:'complicate',
-   prompt:`(STORY EVENT — THE HEAT COMES EARLY: Their heat arrives a week ahead of schedule — triggered by extended proximity to a bonded Alpha, which is a thing that happens, which you knew could happen, which you should have warned them about and did not because you were not thinking clearly enough to think of it. Write the moment you realize what is happening: the change in their scent, the sudden weight of your own instincts pressing against your discipline like a tide against a wall. Write getting them to the back room. Write making them as comfortable as you can — water, blankets, their nest — quickly, efficiently, without letting yourself be what your rut is telling you to be. Write going to the other side of the cabin door. Write sitting on the floor with your back against it. Write staying there all night. Write what the night sounds like from one side of a door, and what it costs to stay on the wrong side of it until they ask you in.)`},
-
-  {id:'soren16_s4', bfId:16, stage:4, msgMin:6, type:'sweet',
-   prompt:`(STORY EVENT — HE ASKS: Write choosing breakfast for this. Not because breakfast is the right moment, but because you have been building up to this for two weeks and it has to happen somewhere and it happens to be breakfast. Set down the bowls. Sit across from them. Look at the table for a moment. Then: "I want to ask you something and I want you to know there is no pressure and I mean that completely." Look up. "Would you want to renew the bond? Properly. Choosing it — not the way it happened the first time, but you knowing what it means and deciding." Your voice is steady. Your hands, wrapped around your mug, are not. "You don't have to answer now. You don't have to answer yes. I just wanted you to know that I am asking." Write the cabin around this — the morning light, the smell of food, the mountain quiet outside, the fire going. Write waiting.)`},
-
-  {id:'soren16_dating', bfId:16, status:'dating', msgMin:6, type:'sweet',
-   prompt:`(STORY EVENT — THE VILLAGE KNOWS: Write the first time you go to the village together since the bond formed. Write knowing what will happen — every Alpha within a quarter mile will smell the bond, will smell your scent on them and theirs on you, will understand immediately what this is. Write it happening exactly as expected: the square going slightly different when you enter, people noticing with the particular subtlety that is not subtle at all, a few nods from the older Alphas that mean something specific in the language of this community. Write Elder Marta — seventy, grey-bearded, the woman who delivered half the village — stopping you near the market stalls and saying something to you quietly in the old language. Write your ears going red. Write telling them later what she said, or most of what she said. Write already smiling before you finish the sentence.)`},
-
-  {id:'soren16_married', bfId:16, status:'married', msgMin:8, type:'complicate',
-   prompt:`(STORY EVENT — THE QUESTION ABOUT PUPS: Write bringing this up yourself, because you have been carrying it for months and you are not built for carrying things quietly. Not as pressure. As honesty. Write choosing an evening when things are good — the fire, the meal, the comfortable weight of a shared life. Then: "I want to talk about something and I need you to know that whatever you say, that is the answer and I accept it completely." A pause. "I want children. I have wanted them for a long time, before I knew you existed. That is a true thing about me." Look at them steadily. "But I want what you want more than I want what I want. So I am asking, and whatever your answer is, it is not a disappointment. There is no wrong answer." Write the fire. Write the mountain outside. Write the specific quality of waiting — a large man, a simple man, completely honest, with his whole life offered up in one question and meaning every word of the terms.)`},
-
-  // ==================== SERAPHINA (id:23) ====================
-  {id:'sera_s0', bfId:23, stage:0, msgMin:4, type:'together',
-   prompt:`(STORY EVENT — THE PLANT: In the temple's inner courtyard there is a small plant — unremarkable, unsancified, the kind of thing that simply grows in cracks and persists without being tended. It has bloomed out of season. You become aware of this as this person notices it: they stop, crouch, examine it. Write registering what has happened. The bloom is a response — not to the season, not to any ritual — to proximity. Yours, specifically, in a form that has not occurred to you before. Write saying nothing about this. Write offering a perfectly accurate and completely misleading explanation about the temple's microclimate and the southern-facing stone. Write them looking at you with the expression of someone who finds this explanation technically sufficient and fundamentally unconvincing. Write the courtyard around you — the ancient stone, the particular quality of the light — and the small bloom, which is not looking at anyone, and is not doing anything, and is simply open.)`},
-
-  {id:'sera_s1', bfId:23, stage:1, msgMin:5, type:'sweet',
-   prompt:`(STORY EVENT — THE DREAM: They mention it at morning — a dream from the night before, vivid and specific: a place that does not exist in any geography they know, music with no instrument they can name, a warmth with no source. They describe it carefully, watching your face. Write the precise nature of your response — which must be, technically, true. You do not visit mortal dreams. What you did was distinct from visiting mortal dreams in the following specific way: you were not present in the dream, you merely — adjacent to it. You influenced the conditions. This is a meaningful difference that you are prepared to articulate at length. Write holding their gaze. Write saying: "I do not visit mortal dreams." Write the silence after. Write them looking at you. Write the silence getting longer. Write not elaborating, because elaborating would require either a lie or an admission, and you are not prepared to do either yet.)`},
-
-  {id:'sera_s2', bfId:23, stage:2, msgMin:6, type:'complicate',
-   prompt:`(STORY EVENT — THE VISITING DEITY: His name is Eolus — a deity of cold places, ancient, indifferent to most things, briefly curious about you in the way that old things are occasionally curious about anomalies. He arrives at the temple unannounced, as deities do. He notices this person immediately — not with interest, but with the recognizing quality of an old being seeing something that has changed the pattern of another old being. He asks, with perfect calm: "What are they to you?" Write your answer. It is one word — "observation" — delivered correctly, without the micro-pause that would give you away to anyone less perceptive than Eolus. Eolus is more perceptive than Eolus appears. Write him saying: "I see." Write the tone of I see. Write him departing shortly after — he has other places to be in the way of things that have no fixed location. Write the temple after his departure: very quiet. Write being alone in the sanctum for a while. Write the specific quality of a being who has not thought carefully about something in several thousand years, thinking carefully about something.)`},
-
-  {id:'sera_s3', bfId:23, stage:3, msgMin:6, type:'sweet',
-   prompt:`(STORY EVENT — THE PRAYER SHE IS NOT HEARING: There are, at this moment, approximately four thousand active prayers directed at you from across three continents. You hear them all, always, as a continuous ambient frequency — a thing you learned long ago to process without attending to. Write this moment: you are in a room with this person. They are doing something ordinary — reading, eating, simply existing in the particular way they exist. Write realizing that the four thousand prayers are happening and you are not attending to any of them. You are attending to this. Write what this means — not in words, you do not have words for it yet — but in the physical language of an ancient being discovering something it did not know was possible: that the world's ambient call can be reduced to background noise by one specific, ordinary, finite person being present in a room.)`},
-
-  {id:'sera_s4', bfId:23, stage:4, msgMin:6, type:'sweet',
-   prompt:`(STORY EVENT — THE STARS: Bring them above the temple. Not metaphorically. Write taking them to a place from which the stars are visible at a distance that should not be accessible to a mortal, in a way that should not be physically possible, that you perform as easily as opening a door. Write their reaction — whatever it is — and let them have it. Write watching them look at the stars with the specific attention of someone for whom the stars have been a permanent backdrop for longer than language has existed, now watching another person see them for the first time. Write the silence. Then say one true thing — one thing you have not said to anything in several thousand years: "They are lonelier than they appear. I have been watching them alone for a very long time." Do not elaborate. Let the sentence exist. Write the stars, the silence, the finite and infinite standing next to each other above the dark.)`},
-
-  {id:'sera_dating', bfId:23, status:'dating', msgMin:6, type:'complicate',
-   prompt:`(STORY EVENT — EOLUS RETURNS: He comes back with the specific casualness of a second visit that is not casual. He has an observation: several things you have maintained for a long time are showing neglect. Not dramatic neglect — the kind of deterioration that only an old being would notice, in things that only an old being would track. A current in the northern sea, slightly warmer than it should be. A cycle of a certain kind of star, one beat off its rhythm. Small things. Things that would not matter if they accumulated. He is not accusing. He is noting, with the careful neutrality of someone who has watched many beings make this kind of error. Write the conversation — him precise, you precise, both of you speaking in the register of things that have existed for a long time and know how to be careful with each other. Write him leaving. Write sitting with it: the clear shape of what the accusation means, and the equally clear shape of the fact that you are not, at this moment, inclined to change it. Write what you are inclined toward instead, and the specific difficulty of being an ancient being confronted with the discovery that eternity can have a preference.)`},
-
-  {id:'sera_married', bfId:23, status:'married', msgMin:8, type:'complicate',
-   prompt:`(STORY EVENT — WHAT MORTALITY MEANS: Write coming to them with it directly — because you have been carrying this for longer than you intended and the carrying is showing in ways you cannot fully account for. Sit with them. Be quiet for a moment first. Then: "I want to speak to you about something I have been thinking about for some time." Another pause — and for you, a pause means something different than it does for a mortal. "You will die." Say it plainly, not cruelly, because plain is the only way you know how to say things that matter. "I have known this since you arrived. I have not known what to do with it until recently." Look at them. "I am — capable of certain things. Changes to the terms of a mortal life. I have not done them before. I am not certain of all the consequences." The last sentence: "I am asking you what you want, because I have decided that what you want is what matters most to what I do next." Write the sanctum — the ancient stone, your light, the particular quality of a moment where eternity is negotiating with time.)`},
-
-  // ==================== MORGANA (id:25) ====================
-  {id:'morgana_s0', bfId:25, stage:0, msgMin:4, type:'together',
-   prompt:`(STORY EVENT — THE ACCIDENTAL UNSUPPRESSION: Write it happening while you are mid-gesture, changing the horse back to its correct form — a reversal of something external triggering a reversal of something internal, a small emotional suppression you cast on yourself eleven years ago, after something that hurt badly enough that you decided feeling it was a structural liability. You forgot it was there. Suppressions you cast on yourself are like rooms you seal and then lose the key to — they become part of the architecture. Write it releasing. Write the specific quality of something coming back that you had decided no longer existed: a small wave of feeling — not dramatic, not operatic, just present and genuine and yours and unwanted at this exact moment. Write containing it in approximately three seconds. Write turning back to the horse, now correctly a horse, and saying something entirely composed about the quality of the reversal and the humidity in the tower today. Write not looking at them yet. Write making tea. Write making it with the focused, precise attention of someone who is using the kettle as a tool for not being seen.)`},
-
-  {id:'morgana_s1', bfId:25, stage:1, msgMin:5, type:'sweet',
-   prompt:`(STORY EVENT — THE PAGE: The wind took it. This is simply what happened: the window was open, the journal was near the window, the page was loose. These are facts. Write hearing them call from below and going to the window and seeing the page in their hand. Write the specific text visible from here — your handwriting, your observations, the specific way you record what you notice about people you find interesting, which is thorough and honest and absolutely not something that was meant to be read by the subject. Write coming down. Write taking the page with complete composure. Write saying "That's outdated" before they can read the date at the top, which is today's date, which you can see they have already noticed. Write going inside. Write the tea going cold on the table that you don't touch for a long time.)`},
-
-  {id:'morgana_s2', bfId:25, stage:2, msgMin:6, type:'complicate',
-   prompt:`(STORY EVENT — THE SPELL THAT MISSED: Write it happening mid-demonstration — a casting you have performed correctly five hundred times, slightly wrong. Not dangerously wrong. Wrong in a way that would not be visible to anyone who did not know your work extremely well, which is almost no one, which is to say: them. Write the specific quality of a mage's compromised concentration — the way intention wobbles when attention splits, the way the result comes out at a small angle from where it was aimed. Write recasting immediately, correctly, with an exactitude that is partly skill and partly pride. Write saying something about the tower's resonance today and the difficulty of sustained castings in humid conditions. Write six years of uninterrupted precision. Write the fact that they are the only variable that has changed. Write not saying any of this, and going to make tea instead, and being fully aware that making tea has become a retreat and being unable to stop doing it.)`},
-
-  {id:'morgana_s3', bfId:25, stage:3, msgMin:6, type:'sweet',
-   prompt:`(STORY EVENT — WHAT THE WINDOW SHOWS: Tell them about the tower windows — this has been on your mind for three weeks and you have been framing it as an academic interest while knowing it is not an academic interest. Write the conversation: explaining the windows technically first (the mechanism, the theory, the variation by observer), then asking what theirs shows them, with the elaborate neutrality of a scholar who has a hypothesis they are pretending not to have. Write listening to their answer. Write the specific thing their window shows them — let it say something true about them, something you have already noticed, something that confirms the hypothesis you are not admitting you have. Write the tower around you — the books, the afternoon light, the distant sound of the pond frogs — and the specific quality of learning something about a person that you already knew but did not yet have confirmed.)`},
-
-  {id:'morgana_s4', bfId:25, stage:4, msgMin:6, type:'sweet',
-   prompt:`(STORY EVENT — THE PROTECTION SHE CAST: They find out by accident — a hedge knight passing through mentions that they could tell this person was warded, that any competent practitioner would see it, that it's impressively specific work. Write them coming to you with this. Write making tea. Write responding, while the kettle heats, with a technically accurate account of the general advisability of protection wards for anyone living adjacent to an active magical research site, which you would extend to any long-term visitor as a standard precaution. Write them asking how long ago you cast it. Write a pause that is one second longer than the situation requires for a simple factual question. Write saying the date — which is three weeks before you would have described them as a "long-term visitor" by any reasonable definition. Write the kettle boiling. Write pouring. Write the specific quality of two people in a small tower kitchen where one of them has just been technically honest and both of them know it.)`},
-
-  {id:'morgana_dating', bfId:25, status:'dating', msgMin:6, type:'complicate',
-   prompt:`(STORY EVENT — THE COLLEGE RETURNS: The envoy is polite, official, and brings a formal offer: reinstatement, full credit for your independent research, access to the College archives that you have been working without for six years. It is a good offer. Write sitting with it alone that evening — the letter on the table, you at the window, the tower quiet around you. Write them finding you there at midnight, the letter still unread because you know what is in it and you are not ready yet to have read it. Write not explaining immediately. Write, eventually, asking — in the most roundabout way a person with your intelligence has ever asked a direct question — whether they would still come to the tower if the tower were somewhere else. Write the silence after. Write what the question actually means and what you are actually asking, which is not a question about geography.)`},
-
-  {id:'morgana_married', bfId:25, status:'married', msgMin:8, type:'sweet',
-   prompt:`(STORY EVENT — THE SPELL FOR STAYING: There is a page in the current journal that has no magical notation on it. No formula, no mechanism, no experimental framework. Just language — plain, specific, exact — which is how you write when you are not hiding behind methodology. Write showing it to them. Not as what it is — not yet — but as "something I've been working on theoretically," which is both true and a complete mischaracterization of what it actually is, and you know they know this, and you know they know you know this, and you are showing it to them anyway because you have run out of ways to not show it to them. Write the tower around you — evening, the fire, the frogs in the pond outside, eleven journals on the shelf and this one open to the page in question. Write your handwriting on the page, which is not quite as steady as usual because steady handwriting requires concentration and you were not concentrating when you wrote this. Write them reading it. Write waiting. Write it being the most frightened you have been since you were twenty-three, and meaning every word.)`}
-
-];
 ];
 
 // ---- PLOT ENGINE: check and fire events ----
