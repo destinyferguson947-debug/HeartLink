@@ -972,13 +972,13 @@
 <!-- CHAT -->
 <!-- MY RELATIONSHIPS PAGE -->
 <div id="page-relationships" class="page">
-  <div style="max-width:1100px;margin:0 auto;padding:2.5rem 1.5rem">
+  <div style="padding:2rem 1.5rem">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
       <h2 style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--rose-dark);font-weight:400">💞 My Relationships</h2>
       <button class="btn-secondary" style="font-size:0.82rem;padding:0.4rem 1rem" onclick="showPage('browse')">+ Add Character</button>
     </div>
     <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:2rem">All your connections — click a profile to see milestones &amp; goals.</p>
-    <div id="rel-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.2rem"></div>
+    <div id="rel-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.2rem;width:100%"></div>
     <div id="rel-empty" style="display:none;text-align:center;padding:4rem 2rem;color:var(--text-muted)">
       <div style="font-size:3rem;margin-bottom:1rem">💔</div>
       <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--rose-dark);margin-bottom:0.5rem">No relationships yet</h3>
@@ -2491,11 +2491,20 @@ function openModal(id){
   const tags=[bf.tag, bf.difficulty].filter(Boolean);
   tagsRow.innerHTML=tags.map((t,i)=>`<span class="modal-pill ${i===0?'highlight':''}">${t}</span>`).join('');
 
-  // Stage meter
-  const stageIdx=getStage(bf);
+  // Stage meter — use savedBFs version so plot-event gating and live progress is reflected
+  const liveBf = savedBFs.find(b=>b.id===bf.id) || bf;
+  const stageIdx=getStage(liveBf);
+  const liveRel = getRelHealth(liveBf.id);
+  const stageLabel = liveRel.status === 'dating' ? 'DATING'
+    : liveRel.status === 'fiance' ? 'ENGAGED'
+    : liveRel.status === 'married' ? 'MARRIED'
+    : liveRel.status === 'complicated' ? 'COMPLICATED'
+    : liveRel.status === 'broken_up' ? 'BROKEN UP'
+    : liveRel.status === 'divorced' ? 'DIVORCED'
+    : STAGES[stageIdx].toUpperCase();
   const bar=document.getElementById('modal-stage-bar');
   bar.innerHTML=STAGES.map((_,i)=>`<div class="stage-pip ${i<=stageIdx?'filled':''}"></div>`).join('');
-  document.getElementById('modal-stage-name').textContent=`Current: ${STAGES[stageIdx].toUpperCase()}`;
+  document.getElementById('modal-stage-name').textContent=`Current: ${stageLabel}`;
 
   // Scenario section
   const scenarioText=bf.scenario||'';
@@ -5507,7 +5516,7 @@ function saveGoals(bfId, arr){
 
 // Auto-generate goals from context using AI
 async function autoGenerateGoals(bfId){
-  if(!apiKey) return;
+  if(!apiKey && !proxyMode) return;  // fixed: was missing proxyMode check
   const bf = savedBFs.find(b=>b.id===bfId);
   if(!bf) return;
   const history = chatHistory[bfId]||[];
@@ -5598,6 +5607,17 @@ function openRelProfile(bfId){
         </div>
         ${relData.tooltipMsg ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;font-style:italic">${relData.tooltipMsg}</div>` : ''}
       </div>
+      <!-- Relationship Stage Progress -->
+      <div style="margin-bottom:1.4rem">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase">Relationship Progress</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${STAGES.map((s,i)=>`
+            <div style="flex:1;text-align:center">
+              <div style="height:6px;border-radius:3px;background:${i<=stageIdx?color:'var(--border)'};transition:background 0.4s;margin-bottom:4px"></div>
+              <div style="font-size:0.58rem;color:${i<=stageIdx?color:'var(--text-muted)'};font-weight:${i===stageIdx?700:400};text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s}</div>
+            </div>`).join('')}
+        </div>
+      </div>
       <!-- Two-column: Milestones + Goals -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem">
         <div>
@@ -5606,7 +5626,7 @@ function openRelProfile(bfId){
         </div>
         <div>
           <div class="rp-section-title">🎯 ${bf.name.split(' ')[0]}'s Goals</div>
-          <div class="rp-section-body">${goalsHtml}</div>
+          <div class="rp-section-body" id="rp-goals-body">${goalsHtml}</div>
           <button onclick="refreshGoals(${bf.id})" style="margin-top:0.6rem;font-size:0.72rem;background:none;border:1px solid var(--border);border-radius:1rem;padding:3px 10px;cursor:pointer;color:var(--text-muted);font-family:'DM Sans',sans-serif">↻ Refresh Goals</button>
         </div>
       </div>
@@ -5623,11 +5643,18 @@ function openRelProfile(bfId){
   `;
 
   overlay.style.display = 'block';
-  // Auto-generate goals if none exist
+  // Auto-generate goals if none exist — update goals section only, no full re-render
   if(!goals.length) autoGenerateGoals(bf.id).then(()=>{
-    // Only re-render if the panel is still open — prevents flicker after user closes it
     const ov = document.getElementById('rel-profile-overlay');
-    if(ov && ov.style.display !== 'none') openRelProfile(bfId);
+    if(!ov || ov.style.display === 'none') return;
+    // Only refresh the goals section in-place instead of re-rendering the whole panel
+    const freshGoals = getGoals(bf.id);
+    const goalsEl = document.getElementById('rp-goals-body');
+    if(goalsEl){
+      goalsEl.innerHTML = freshGoals.length
+        ? freshGoals.map(g=>`<div class="rp-goal-item"><span style="color:var(--rose);margin-right:6px">✦</span>${g.text}</div>`).join('')
+        : '<div style="color:var(--text-muted);font-size:0.83rem;font-style:italic">Goals will generate automatically every 20 messages.</div>';
+    }
   });
 }
 
