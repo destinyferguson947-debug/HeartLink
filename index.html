@@ -1381,18 +1381,22 @@ function getStage(bf){
   else if(msgs >= 30)  rawStage = 2;
   else if(msgs >= 10)  rawStage = 1;
 
-  // ALL characters: gate stages 1, 2, 3 behind their story events
+  // ALL characters: gate stages 1, 2, 3 behind their story events.
   // No relationship stage advances until the corresponding plot event has fired.
-  // Easy chars advance quickly because their events fire early and smoothly.
-  // Hard/VH chars advance slowly because their events are harder to reach.
   const gates = STAGE_GATE_EVENTS[bf.id];
+
+  // Hard / Very Hard characters ALSO require health === 100 before each stage transition.
+  // They won't get closer until the bond is genuinely solid — not just time passing.
+  const hard = isHardChar(bf);
+  const health = hard ? (getRelHealth(bf.id).health || 0) : 100;
+
   if(gates){
-    // Stage 0→1 requires s0 event to have fired
-    if(rawStage >= 1 && !getPlotFired(gates[0])) return 0;
-    // Stage 1→2 requires s1 event
-    if(rawStage >= 2 && !getPlotFired(gates[1])) return Math.min(rawStage, 1);
-    // Stage 2→3 requires s2 event
-    if(rawStage >= 3 && !getPlotFired(gates[2])) return Math.min(rawStage, 2);
+    // Stage 0->1: requires s0 event fired + (Hard/VH: health must be 100)
+    if(rawStage >= 1 && (!getPlotFired(gates[0]) || (hard && health < 100))) return 0;
+    // Stage 1->2: requires s1 event fired + (Hard/VH: health must be 100)
+    if(rawStage >= 2 && (!getPlotFired(gates[1]) || (hard && health < 100))) return Math.min(rawStage, 1);
+    // Stage 2->3: requires s2 event fired + (Hard/VH: health must be 100)
+    if(rawStage >= 3 && (!getPlotFired(gates[2]) || (hard && health < 100))) return Math.min(rawStage, 2);
   }
   return rawStage;
 }
