@@ -4846,8 +4846,7 @@ async function checkVulnerabilityScanner(bf){
   localStorage.setItem(key, assistantMsgs.toString());
 
   // Build recent exchange for AI to read
-  const recent = history.slice(-20).map(m=>(m.role==='user'?'Them':'Char')+': '+m.content.substring(0,200)).join('
-');
+  const recent = history.slice(-20).map(m=>(m.role==='user'?'Them':'Char')+': '+m.content.substring(0,200)).join('\n');
   const scanPrompt = `You are reading a chat log between a user and a fictional character. Determine whether, in the last 20 messages, BOTH the user AND the character have shown genuine emotional vulnerability with each other — not just surface warmth, but real openness: sharing fears, admitting feelings, showing hurt, expressing care that cost them something to say.
 
 CHAT LOG:
