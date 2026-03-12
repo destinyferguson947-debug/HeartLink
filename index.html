@@ -3639,8 +3639,27 @@ function cancelEdit(idx, encodedOriginal){
 
 function deleteMessage(idx){
   if(!currentBF) return;
-  chatHistory[currentBF.id].splice(idx, 1);
+  const bfId = currentBF.id;
+  chatHistory[bfId].splice(idx, 1);
   saveHistory();
+
+  // Reindex msgAlts so cached alt responses don't bleed onto the wrong messages
+  // after deletion. Remove the entry at idx, shift all higher indices down by 1.
+  if(msgAlts[bfId]){
+    const newAlts = {};
+    const newAltIdx = {};
+    for(const key of Object.keys(msgAlts[bfId])){
+      const k = parseInt(key);
+      if(k === idx) continue;           // deleted — discard its alts
+      const newK = k > idx ? k - 1 : k; // shift down
+      newAlts[newK] = msgAlts[bfId][k];
+      newAltIdx[newK] = msgAltIdx[bfId]?.[k] ?? 0;
+    }
+    msgAlts[bfId] = newAlts;
+    msgAltIdx[bfId] = newAltIdx;
+    saveMsgAlts(bfId);
+  }
+
   renderMessages();
 }
 
