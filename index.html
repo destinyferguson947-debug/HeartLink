@@ -3496,17 +3496,20 @@ function renderMessages(){
   const c=document.getElementById('chat-msgs');
   if(!c||!currentBF) return;
   const history=chatHistory[currentBF.id]||[];
-  const userAvatarHtml = userPersona?.imgUrl
-    ? `<img src="${userPersona.imgUrl}" alt="you" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-    : (userPersona?.name?.charAt(0).toUpperCase()||'🙋');
   const bfAvatarHtml = currentBF.image && !currentBF.image.startsWith('PLACEHOLDER')
     ? `<img src="${currentBF.image}" alt="${currentBF.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
     : (currentBF.emoji||'💝');
 
   c.innerHTML = history.map((m, idx) => {
     const isUser = m.role === 'user';
+    // Use per-message persona snapshot if available, fall back to current active persona
+    const msgPersonaImg  = isUser ? (m.personaImg  || userPersona?.imgUrl  || '') : '';
+    const msgPersonaName = isUser ? (m.personaName || userPersona?.name || '') : '';
+    const userAvatarHtml = msgPersonaImg
+      ? `<img src="${msgPersonaImg}" alt="${msgPersonaName}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      : (msgPersonaName?.charAt(0)?.toUpperCase() || '🙋');
     const avatarHtml = isUser ? userAvatarHtml : bfAvatarHtml;
-    const avatarStyle = isUser && userPersona?.imgUrl ? 'overflow:hidden;padding:0;' : '';
+    const avatarStyle = isUser && msgPersonaImg ? 'overflow:hidden;padding:0;' : '';
     // Format message content: *actions* → grey italic, `thoughts` → italic muted
     function formatMsg(text){
       // Escape HTML first
@@ -3891,7 +3894,11 @@ async function sendMessage(){
 function addMessage(role,content,isGreeting=false){
   if(!currentBF) return;
   if(!chatHistory[currentBF.id]) chatHistory[currentBF.id]=[];
-  chatHistory[currentBF.id].push({role,content});
+  // Snapshot persona on user messages so avatar is preserved even if persona changes later
+  const msgObj = role === 'user' && userPersona
+    ? {role, content, personaName: userPersona.name, personaImg: userPersona.imgUrl || ''}
+    : {role, content};
+  chatHistory[currentBF.id].push(msgObj);
   saveHistory();
   renderMessages();
   // Boost health when assistant sends a meaningful message (engagement)
