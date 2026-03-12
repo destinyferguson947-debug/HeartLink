@@ -2604,8 +2604,9 @@ function confirmPersonaPicker(){
   const idx = _personaPickerSelected >= 0 ? _personaPickerSelected : activePersonaIndex;
   if(_personaPickerBfId !== null) setCharPersonaIdx(_personaPickerBfId, idx);
   applyPersonaByIdx(idx);
+  const cb = _personaPickerCallback; // save before closePersonaPicker nulls it
   closePersonaPicker();
-  _personaPickerCallback && _personaPickerCallback(idx);
+  cb && cb(idx);
 }
 
 function closePersonaPicker(){
@@ -2625,8 +2626,9 @@ function addAndChat(id){
   const exists=savedBFs.find(b=>b.id===id);
   if(!exists){ savedBFs.push({...bf,isCustom:false,systemPrompt:generateSystemPrompt(bf)}); saveBFs(); showToast(`${bf.name} added! 💕`); }
   showPage('chat');
-  // Show persona picker if multiple personas exist
-  if(allPersonas.length > 1){
+  // Show persona picker only for brand-new characters (no history yet)
+  const hasHistory = (chatHistory[id] || []).length > 0;
+  if(!hasHistory && allPersonas.length > 1){
     setTimeout(()=>openPersonaPicker(id, ()=>openChat(id)), 100);
   } else {
     setTimeout(()=>openChat(id),100);
@@ -3403,7 +3405,9 @@ function renderSidebar(){
 
 // ---- CHAT ----
 function openChatWithPersona(id){
-  if(allPersonas.length > 1){
+  // Only show picker if this character has no chat history yet (first time chatting)
+  const hasHistory = (chatHistory[id] || []).length > 0;
+  if(!hasHistory && allPersonas.length > 1){
     openPersonaPicker(id, ()=>openChat(id));
   } else {
     openChat(id);
