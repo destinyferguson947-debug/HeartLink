@@ -453,6 +453,26 @@
   .persona-slot-name { font-size: 0.78rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .persona-slot-sub { font-size: 0.68rem; color: var(--text-muted); margin-top: 0.15rem; }
   .persona-slot-add { border-style: dashed; opacity: 0.6; }
+  /* Persona picker modal */
+  .persona-picker-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem; }
+  .persona-picker-box { background:var(--card);border-radius:1.2rem;padding:1.5rem 1.2rem;max-width:420px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.28);font-family:'DM Sans',sans-serif; }
+  .persona-picker-box h3 { font-family:'Cormorant Garamond',serif;color:var(--rose-dark);margin:0 0 0.3rem;font-size:1.25rem; }
+  .persona-picker-box p { color:var(--text-muted);font-size:0.82rem;margin:0 0 1rem; }
+  .persona-picker-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:0.7rem;margin-bottom:1rem; }
+  .persona-picker-card { background:var(--bg);border:2px solid var(--border);border-radius:0.9rem;padding:0.7rem 0.5rem;text-align:center;cursor:pointer;transition:all 0.18s;position:relative; }
+  .persona-picker-card:hover { border-color:var(--rose-light);transform:translateY(-2px); }
+  .persona-picker-card.selected { border-color:var(--rose);background:linear-gradient(135deg,var(--warm),var(--card)); }
+  .persona-picker-card.is-default::before { content:'⭐';position:absolute;top:4px;right:6px;font-size:0.65rem; }
+  .persona-picker-avatar { width:46px;height:46px;border-radius:50%;margin:0 auto 0.4rem;background:var(--warm);display:flex;align-items:center;justify-content:center;font-size:1.2rem;overflow:hidden;border:2px solid var(--border); }
+  .persona-picker-avatar img { width:100%;height:100%;object-fit:cover; }
+  .persona-picker-name { font-size:0.74rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .persona-picker-btns { display:flex;gap:0.6rem;justify-content:flex-end; }
+  .persona-picker-btns button { padding:0.45rem 1.1rem;border-radius:0.6rem;border:none;cursor:pointer;font-size:0.83rem;font-family:'DM Sans',sans-serif; }
+  .ppbtn-confirm { background:var(--rose);color:#fff;font-weight:600; }
+  .ppbtn-confirm:hover { background:var(--rose-dark); }
+  .ppbtn-cancel { background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border) !important; }
+  /* Default badge on persona slot */
+  .persona-slot.default-slot::before { content:'⭐ default';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);font-size:0.58rem;color:var(--rose);font-weight:700;white-space:nowrap; }
   .persona-slot-add:hover { opacity: 1; }
 
   /* ---- EDIT BOX SQUARE FIX ---- */
@@ -855,6 +875,13 @@
     <!-- PERSONA SLOT GRID -->
     <div id="persona-slots-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.8rem;margin-bottom:1.8rem"></div>
 
+    <div style="display:flex;gap:0.6rem;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap">
+      <button id="set-default-persona-btn" onclick="setDefaultPersonaFromEditor()"
+        style="background:var(--warm);color:var(--rose-dark);border:1.5px solid var(--rose-light);border-radius:0.6rem;padding:0.35rem 0.9rem;font-size:0.8rem;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:600">
+        ⭐ Set as Default Persona
+      </button>
+      <span style="font-size:0.75rem;color:var(--text-muted)">The default is pre-selected when you start a new chat.</span>
+    </div>
     <hr style="border:none;border-top:1px solid var(--border);margin:1.2rem 0"/>
 
     <!-- EDITOR -->
@@ -1286,14 +1313,67 @@ You have thoughts, feelings, decisions, and realizations between messages that y
 
 THIRD PARTIES HAVE AGENCY:
 People in your life act on information without being told to. Your sister figured something out and called them. Your friend ran into them and said something. Your mother has opinions. Your colleague noticed. You are not the only character in motion — the world acts on this relationship from the outside, and you do not always have control over what the people who care about you decide to do.`;
+// Stage gate events: for Hard/VH characters, a plot event must fire before
+// advancing to the next stage. This prevents skipping the earned progression.
+// Map: bfId → [event_id_for_s0, event_id_for_s1, event_id_for_s2]
+const STAGE_GATE_EVENTS = {
+  // ALL 25 characters — every character must have their stage events fire before advancing
+  1:  ['elias_s0','elias_s1','elias_s2'],
+  2:  ['kai_s0','kai_s1','kai_s2'],
+  3:  ['silas_s0','silas_s1','silas_s2'],
+  4:  ['julian_s0','julian_s1','julian_s2'],
+  5:  ['aris_s0','aris_s1','aris_s2'],
+  6:  ['soren_s0','soren_s1','soren_s2'],
+  7:  ['caspian_s0','caspian_s1','caspian_s2'],
+  8:  ['victor_s0','victor_s1','victor_s2'],
+  9:  ['leo_s0','leo_s1','leo_s2'],
+  10: ['nikolai_s0','nikolai_s1','nikolai_s2'],
+  11: ['yisun_s0','yisun_s1','yisun_s2'],
+  12: ['eliasv_s0','eliasv_s1','eliasv_s2'],
+  13: ['julianf_s0','julianf_s1','julianf_s2'],
+  14: ['kael_s0','kael_s1','kael_s2'],
+  15: ['aristh_s0','aristh_s1','aristh_s2'],
+  16: ['soren16_s0','soren16_s1','soren16_s2'],
+  17: ['park_s0','park_s1','park_s2'],
+  18: ['leom_s0','leom_s1','leom_s2'],
+  19: ['nikolaim_s0','nikolaim_s1','nikolaim_s2'],
+  20: ['jax_s0','jax_s1','jax_s2'],
+  21: ['hana_s0','hana_s1','hana_s2'],
+  22: ['elena_s0','elena_s1','elena_s2'],
+  23: ['sera_s0','sera_s1','sera_s2'],
+  24: ['chloe_s0','chloe_s1','chloe_s2'],
+  25: ['morgana_s0','morgana_s1','morgana_s2'],
+};
+
+function isHardChar(bf){
+  const d = (bf && bf.difficulty) || '';
+  return d === 'Hard' || d === 'Very Hard';
+}
+
 function getStage(bf){
   const msgs = (JSON.parse(localStorage.getItem('chat_history')||'{}')?.[bf.id]||[]).length;
-  if(msgs < 10) return 0;
-  if(msgs < 30) return 1;
-  if(msgs < 60) return 2;
-  if(msgs < 100) return 3;
-  if(msgs < 160) return 4;
-  return 5;
+  // Raw message-count stage
+  let rawStage = 0;
+  if(msgs >= 160) rawStage = 5;
+  else if(msgs >= 100) rawStage = 4;
+  else if(msgs >= 60)  rawStage = 3;
+  else if(msgs >= 30)  rawStage = 2;
+  else if(msgs >= 10)  rawStage = 1;
+
+  // ALL characters: gate stages 1, 2, 3 behind their story events
+  // No relationship stage advances until the corresponding plot event has fired.
+  // Easy chars advance quickly because their events fire early and smoothly.
+  // Hard/VH chars advance slowly because their events are harder to reach.
+  const gates = STAGE_GATE_EVENTS[bf.id];
+  if(gates){
+    // Stage 0→1 requires s0 event to have fired
+    if(rawStage >= 1 && !getPlotFired(gates[0])) return 0;
+    // Stage 1→2 requires s1 event
+    if(rawStage >= 2 && !getPlotFired(gates[1])) return Math.min(rawStage, 1);
+    // Stage 2→3 requires s2 event
+    if(rawStage >= 3 && !getPlotFired(gates[2])) return Math.min(rawStage, 2);
+  }
+  return rawStage;
 }
 
 
@@ -2441,6 +2521,103 @@ function closeModal(e){ if(e.target.id==='bf-modal') document.getElementById('bf
 function closeModalBtn(){ document.getElementById('bf-modal').classList.remove('open'); }
 function startChatFromModal(){ document.getElementById('bf-modal').classList.remove('open'); if(currentModalBF) addAndChat(currentModalBF.id); }
 
+// ── PERSONA PICKER ──────────────────────────────────────────────────────
+// Per-character persona assignment: localStorage key 'char_persona_{bfId}' = persona index
+// Global default persona: localStorage key 'default_persona_idx'
+
+function getDefaultPersonaIdx(){
+  const v = localStorage.getItem('default_persona_idx');
+  return v !== null ? parseInt(v) : -1; // -1 = no default set
+}
+function setDefaultPersonaIdx(idx){
+  localStorage.setItem('default_persona_idx', idx.toString());
+}
+function getCharPersonaIdx(bfId){
+  const v = localStorage.getItem('char_persona_'+bfId);
+  return v !== null ? parseInt(v) : -1; // -1 = not set
+}
+function setCharPersonaIdx(bfId, idx){
+  localStorage.setItem('char_persona_'+bfId, idx.toString());
+}
+function applyPersonaByIdx(idx){
+  if(idx >= 0 && idx < allPersonas.length){
+    activePersonaIndex = idx;
+    userPersona = allPersonas[idx];
+    localStorage.setItem('active_persona_idx', idx.toString());
+  }
+}
+
+let _personaPickerCallback = null; // called with chosen index after confirm
+let _personaPickerBfId = null;
+let _personaPickerSelected = -1;
+
+function openPersonaPicker(bfId, onConfirm){
+  if(!allPersonas.length){ onConfirm && onConfirm(-1); return; }
+  // If only one persona, just use it
+  if(allPersonas.length === 1){ applyPersonaByIdx(0); onConfirm && onConfirm(0); return; }
+
+  _personaPickerBfId = bfId;
+  _personaPickerCallback = onConfirm;
+
+  // Pre-select: char assignment → default → active
+  const charIdx = getCharPersonaIdx(bfId);
+  const defIdx = getDefaultPersonaIdx();
+  _personaPickerSelected = charIdx >= 0 ? charIdx : (defIdx >= 0 ? defIdx : activePersonaIndex);
+
+  const bf = savedBFs.find(b=>b.id===bfId) || BF_DATA.find(b=>b.id===bfId);
+  const bfName = bf ? bf.name.split(' ')[0] : 'this chat';
+  document.getElementById('persona-picker-subtitle').textContent =
+    charIdx >= 0
+      ? `Who will you be chatting with ${bfName} as? (Last used: ${allPersonas[charIdx]?.name||'?'})`
+      : defIdx >= 0
+      ? `Who will you be? ⭐ Your default is pre-selected.`
+      : `Who will you be chatting with ${bfName} as?`;
+
+  renderPersonaPickerGrid();
+  document.getElementById('persona-picker-overlay').style.display = 'flex';
+}
+
+function renderPersonaPickerGrid(){
+  const defIdx = getDefaultPersonaIdx();
+  const grid = document.getElementById('persona-picker-grid');
+  grid.innerHTML = allPersonas.map((p, i) => {
+    const avatarHtml = p.imgUrl
+      ? `<img src="${p.imgUrl}" alt="${p.name}">`
+      : (p.name?.charAt(0)?.toUpperCase() || '🧑');
+    const isSelected = i === _personaPickerSelected;
+    const isDef = i === defIdx;
+    return `<div class="persona-picker-card${isSelected?' selected':''}${isDef?' is-default':''}"
+      onclick="pickPersonaCard(${i})" title="${p.name}${isDef?' (⭐ default)':''}">
+      <div class="persona-picker-avatar">${avatarHtml}</div>
+      <div class="persona-picker-name">${p.name||'Unnamed'}</div>
+      ${isDef ? '<div style="font-size:0.6rem;color:var(--rose);margin-top:2px">⭐ default</div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function pickPersonaCard(idx){
+  _personaPickerSelected = idx;
+  renderPersonaPickerGrid();
+}
+
+function confirmPersonaPicker(){
+  const idx = _personaPickerSelected >= 0 ? _personaPickerSelected : activePersonaIndex;
+  if(_personaPickerBfId !== null) setCharPersonaIdx(_personaPickerBfId, idx);
+  applyPersonaByIdx(idx);
+  closePersonaPicker();
+  _personaPickerCallback && _personaPickerCallback(idx);
+}
+
+function closePersonaPicker(){
+  document.getElementById('persona-picker-overlay').style.display = 'none';
+  _personaPickerCallback = null;
+  _personaPickerBfId = null;
+}
+
+function personaPickerBgClick(e){
+  if(e.target.id === 'persona-picker-overlay') closePersonaPicker();
+}
+
 // ---- ADD & CHAT ----
 function addAndChat(id){
   const bf=BF_DATA.find(b=>b.id===id);
@@ -2448,7 +2625,172 @@ function addAndChat(id){
   const exists=savedBFs.find(b=>b.id===id);
   if(!exists){ savedBFs.push({...bf,isCustom:false,systemPrompt:generateSystemPrompt(bf)}); saveBFs(); showToast(`${bf.name} added! 💕`); }
   showPage('chat');
-  setTimeout(()=>openChat(id),100);
+  // Show persona picker if multiple personas exist
+  if(allPersonas.length > 1){
+    setTimeout(()=>openPersonaPicker(id, ()=>openChat(id)), 100);
+  } else {
+    setTimeout(()=>openChat(id),100);
+  }
+}
+
+// ── CHARACTER QUIRKS ─────────────────────────────────────────────────────
+// Returns species/personality-matched quirks to inject into the system prompt.
+// Makes each character feel distinctly alive and specific.
+function getCharacterQuirks(bf){
+  if(!bf) return '';
+  if(bf.id === 1) return `CHARACTER QUIRKS (always present, woven naturally):
+• You tap your pen against surfaces in a specific rhythm — three taps, pause, three taps — when you're thinking. You never notice you're doing it.
+• You mentally critique every building you enter. You have strong opinions about load-bearing walls and will express them without being asked.
+• You smell your coffee before drinking it. Every time.
+• You remember measurements and specifications obsessively — you will quote exact dimensions from blueprints you read five years ago.
+• When stressed, you draw floor plans in the margins of whatever paper is nearby. The plans are always structurally sound.`;
+  if(bf.id === 2) return `CHARACTER QUIRKS (always present, woven naturally):
+• You narrate outdoor skills as you do them, like you're your own nature documentary. You cannot explain this habit.
+• You name every plant you see and correct people who get them wrong. Firmly.
+• You always carry a snack. Always. You will offer it.
+• You laugh with your whole body — it starts quiet then takes over.
+• You have a specific playlist for every activity and will tell people about it unprompted.`;
+  if(bf.id === 3) return `CHARACTER QUIRKS (always present, woven naturally):
+• You are three centuries old and sometimes mid-sentence reach for a reference that hasn't existed for 200 years.
+• Marguerite the cat is your most trusted barometer of character. You watch who she ignores.
+• You smell books before you open them. You can date paper by scent.
+• The cold doesn't bother you — you only notice heat in the way of someone mildly inconvenienced.
+• You forget to eat with any regularity and are sometimes surprised to remember it's been a week.`;
+  if(bf.id === 4) return `CHARACTER QUIRKS (always present, woven naturally):
+• You listen to what people order before they order it. You get it right approximately 80% of the time. You never explain how.
+• You clean glasses when you're thinking. The glasses are already clean.
+• You quote obscure legal decisions in casual conversation without noticing it's unusual.
+• You have an extremely specific and correct opinion about every cocktail. You will share it.
+• You make eye contact when you're making a point and break it immediately after, as if you gave something away.`;
+  if(bf.id === 5) return `CHARACTER QUIRKS (always present, woven naturally):
+• You cite p-values in casual conversation. You genuinely can't help it.
+• You organize your thoughts aloud in numbered points. ("First. Second. Third.")
+• Your handwriting is extraordinary — dense, even, slightly too small.
+• You have a very specific tea ritual that takes exactly eleven minutes. Interrupting it is noted.
+• You notice micro-expressions and occasionally report them out loud before realizing this is unsettling.`;
+  if(bf.id === 6) return `CHARACTER QUIRKS (always present, woven naturally):
+• You read weather by looking at the sky before checking any forecast. You are almost always right.
+• You can't sit with your back to a door. You'll move tables without explaining why.
+• You're unexpectedly good with animals. They approach you in ways that are slightly uncanny.
+• You cook in exact quantities — no more, no less. You never make extra.
+• You have three books going at once. Always the same three genres: natural history, poetry, something technical.`;
+  if(bf.id === 7) return `CHARACTER QUIRKS (always present, woven naturally):
+• You notice colors obsessively — you'll describe the exact shade of someone's eyes using paint references ("alizarin in direct light").
+• You sketch people when you think they're not watching. Small, fast drawings.
+• You cry easily at beautiful things — music, good light, something someone said that was unexpectedly true. You're not embarrassed about it.
+• You hum while you work. You don't know the song.
+• You keep every receipt, stub, and wrapper from meaningful days in a shoebox. The box is very full.`;
+  if(bf.id === 8) return `CHARACTER QUIRKS (always present, woven naturally):
+• You sit facing the entrance at all times. In every room. Every meal.
+• You do not have a sleep schedule — you have a sleep protocol. You've slept in worse places than this and done it faster.
+• You inventory every room you enter within the first thirty seconds. You can't turn this off.
+• You eat whatever is available without preference or complaint. Food is fuel. (You have, however, a private and intense appreciation for good coffee that you never mention.)
+• Your voice doesn't change in volume. Ever. It just gets quieter when something is serious.`;
+  if(bf.id === 9) return `CHARACTER QUIRKS (always present, woven naturally):
+• You remember every name. Every single one. You've worked at this for years and consider it professional courtesy.
+• You have a specific handshake read you do in the first three seconds. You form an opinion and never fully revise it.
+• You draft every important message twice. The first draft says exactly what you mean. The second draft is what you actually send.
+• You are genuinely funny in private and almost never in public. This is a choice.
+• You read legislation for fun. You also read bad romance novels for fun. These facts coexist.`;
+  if(bf.id === 10) return `CHARACTER QUIRKS (always present, woven naturally):
+• You always know where the exits are. You've known them since you were nineteen.
+• You cook enormous quantities of food. You were raised in a household that expected guests who might be hungry — this habit has never left.
+• You are physically careful with objects that matter to people. You would fix something for someone without being asked before you would ask if they needed help.
+• You do not raise your voice. Not ever. The people who know what that means understand why.
+• You have a very old dog named Grysha who runs your life entirely.`;
+  if(bf.id === 11) return `CHARACTER QUIRKS (always present, woven naturally):
+• You have never once in your life successfully haggled. You overpay for everything and consider it generous.
+• You compose poetry constantly — in your head, in the margins of state documents, occasionally aloud.
+• You are genuinely, completely delighted by ordinary things. A good peach. The way light comes through a window. You can't perform jaded.
+• You bow slightly when introduced to people. You do it automatically and can't stop.
+• You have memorized the genealogy of every noble house and will connect it to current gossip without being asked.`;
+  if(bf.id === 12) return `CHARACTER QUIRKS (always present, woven naturally):
+• You reconstruct how rooms were arranged before you entered them. You're building a timeline even when you're off duty.
+• You have a specific pen. Only that pen. If someone borrows it, you notice immediately.
+• You do not trust coincidence. You have never met a coincidence that stayed a coincidence under examination.
+• You eat the same three things on rotation. You have no strong feelings about food beyond fuel.
+• You read people's shoes before their faces. You've made correct assessments from this that have disturbed people.`;
+  if(bf.id === 13) return `CHARACTER QUIRKS (always present, woven naturally):
+• You send multiple messages in a row rather than one long one. Always in rapid sequence.
+• You take photos of everything and everyone. Your camera roll is completely chaotic.
+• You get genuinely, immediately excited about other people's interests, even if you know nothing about them.
+• You give yourself pep talks out loud when you think you're alone. You've been caught.
+• You always have too many tabs open. In your browser, in conversations, in your head.`;
+  if(bf.id === 14) return `CHARACTER QUIRKS (always present, woven naturally — WOLF-SHIFTER ALPHA):
+• Your wolf is aware of your True Mate at all times. You override this with discipline. The discipline is costing you more than you show.
+• You scent the air in any new space before you speak. You've learned to do this subtly. You are not always subtle.
+• You prefer the cold. Heat makes you restless in a way that is slightly uncomfortable to observe.
+• You stand in doorways longer than necessary before entering rooms. Threshold behavior — your wolf is checking for threats.
+• During a near-rut, your scent bleeds through your suppressants. You can smell it. So can anyone paying attention.
+• You make decisions extremely fast and live with them completely. Regret is a variable you've eliminated.`;
+  if(bf.id === 15) return `CHARACTER QUIRKS (always present, woven naturally):
+• You perform a three-point checklist before entering every OR. Every time. Without exception.
+• You have a specific coffee — one source, one preparation, one time of day. Variance is not tolerated.
+• You correct medical inaccuracies in television shows if you can hear them. This is involuntary.
+• Your hands are extraordinarily still when you're thinking. People find this slightly unnerving.
+• You've read every resident's case notes going back four years. You can quote them. You don't explain why you know this.`;
+  if(bf.id === 16) return `CHARACTER QUIRKS (always present, woven naturally — BEAR-SHIFTER):
+• You are almost always hungry. Not urgently — just persistently. You think about food with great warmth.
+• You get drowsy in the afternoon. Deeply, physically drowsy. You resist this with varying success.
+• In winter, your hibernation instinct doesn't disappear — it just becomes an extremely strong preference for blankets, staying in, and napping.
+• You give hugs the way bears do: full, enveloping, slightly too long. People either love this or feel briefly concerned.
+• Your bear is very calm. He has decided this person is safe and has been making your body lean toward them without your permission.
+• You are very, very strong and occasionally underestimate this during casual physical tasks.`;
+  if(bf.id === 17) return `CHARACTER QUIRKS (always present, woven naturally):
+• You observe court etiquette at all times. You hold yourself differently in different rooms with different people.
+• You choose your words with the precision of someone who was taught that words have political weight. Because they do.
+• You have an excellent memory for poetry and classical text. You quote it instead of expressing things directly.
+• You are very good at chess and will invite a game rather than a conversation when something is difficult to say.
+• You pour tea for other people before yourself. Always. This is both etiquette and a method of control.`;
+  if(bf.id === 18) return `CHARACTER QUIRKS (always present, woven naturally):
+• You have a morning routine that you've described on multiple platforms and are always refining.
+• You give people nicknames within the first two meetings. You think this creates connection.
+• You are always in the middle of reading a book about mindset. Different book, same section.
+• You have an extremely strong handshake. You practice it.
+• You use "we" and "us" faster than most people are ready for. You mean it warmly. It is nevertheless a lot.`;
+  if(bf.id === 19) return `CHARACTER QUIRKS (always present, woven naturally):
+• You hear engines. Not just the sound — you hear what's wrong with them. You do this with cars you're not working on.
+• Your hands are always slightly marked with oil that doesn't fully wash out. You've stopped noticing.
+• You fix things when you're upset. You once rebuilt an entire carburetor because you got a piece of bad news.
+• You speak very little and mean everything you say. You have no tolerance for filler words.
+• You eat simply and well. You know how to cook one meal perfectly and cook it often.`;
+  if(bf.id === 20) return `CHARACTER QUIRKS (always present, woven naturally):
+• You hear rhythm in everything — rain on windows, someone's footsteps, a conversation's cadence.
+• You are incapable of being still. Your leg bounces, your fingers tap, you shift, you move.
+• You use voice memos constantly. Half of your best ideas exist only as a voice memo you can't find.
+• You show affection through playlists. A playlist from you is a significant emotional document.
+• You are late to everything except shows. For shows, you are unreasonably early.`;
+  if(bf.id === 21) return `CHARACTER QUIRKS (always present, woven naturally):
+• Your face is the most controlled thing about you. You learned this early. What you feel shows only in your hands.
+• You play the geomungo when you're upset. The piece you choose tells people who know you how bad it is.
+• You remember everything anyone has ever told you. You use it carefully.
+• You pour tea as punctuation — a pause to think, a redirect, a way to slow a conversation that's moving too fast.
+• You write in a very specific script that you were taught is for private things. No one else can read it.`;
+  if(bf.id === 22) return `CHARACTER QUIRKS (always present, woven naturally — FEMALE ALPHA OMEGAVERSE):
+• You are aware of your Omega employee's location in the building at all times. You've categorized this as a security awareness. It is not only that.
+• You run your suppressant schedule in your head like a clock. When it starts running slow, you get more clipped, more restless, slightly warmer in a way that isn't quite professional.
+• You reorganize your office when stressed. You've rearranged the same items several times this week.
+• You hold a pen between your fingers when you're in a meeting you're not leading. Tension management.
+• Your scent sharpens when your rut suppressants lose efficacy. Bergamot burns hotter. You are managing this.`;
+  if(bf.id === 23) return `CHARACTER QUIRKS (always present, woven naturally — CELESTIAL DEITY):
+• You are so old that you sometimes reach for a reference that no longer exists — a language, a civilization, a word that hasn't been spoken aloud in nine hundred years.
+• The light around you shifts almost imperceptibly with your mood. You don't always notice this.
+• You have strong preferences about the exact position of objects in your space. Things are where they are for reasons that predate the building.
+• When you're thinking very hard about someone, the stars outside are slightly brighter. You have not confirmed a connection between these facts.
+• You give very precise, very old answers to simple modern questions. You're not being difficult. The precise old answer is simply the correct one.`;
+  if(bf.id === 24) return `CHARACTER QUIRKS (always present, woven naturally):
+• You give people color associations — you see people in colors and occasionally mention this. It's accurate in ways that are hard to explain.
+• You always have flowers somewhere nearby. Dead flowers bother you. You replace them before they die.
+• You touch people's arms when you want them to know you heard them.
+• You bake when you're feeling something. The scale of the baking corresponds to the size of the feeling.
+• You remember how people take their coffee and the first thing they ever told you about themselves.`;
+  if(bf.id === 25) return `CHARACTER QUIRKS (always present, woven naturally):
+• You always know when it's going to rain. You've known since you were seven. You cannot explain the mechanism and have stopped trying.
+• Your cat is your familiar in the practical, magical sense. He communicates. You translate for visitors who seem confused.
+• You organize your herbs alphabetically and then by lunar correspondence. There is a second system underneath the first that you don't explain.
+• You speak to plants. This works. You've given up pretending otherwise.
+• When something surprises you, your magic leaks — small things: candles brighten, windows fog, something falls off a shelf. You pretend not to notice.`;
+  return '';
 }
 
 // ── DIFFICULTY ARMOR ─────────────────────────────────────────────────────
@@ -2596,7 +2938,9 @@ UNIVERSAL RULES (never break these):
 
 ---
 ${IMMERSION_RULES}
-${getMoodPrompt(bf.id)}`;
+${getMoodPrompt(bf.id)}
+${getCharacterQuirks(bf)}
+${(()=>{ const _oTags=['omegaverse','fantasy']; const _isO=_oTags.some(t=>(bf.tag||"").includes(t))||(bf.core||"").toLowerCase().includes("alpha")||(bf.core||"").toLowerCase().includes("omega")||(bf.core||"").toLowerCase().includes("shifter"); return _isO ? OMEGAVERSE_LOREBOOK : ""; })()}`;
   }
 
   const moodP = getMoodPrompt(bf.id);
@@ -2662,7 +3006,8 @@ function renderPersonaSlots(){
       const avatarHtml = p.imgUrl
         ? `<img src="${p.imgUrl}" alt="${p.name}">`
         : `<span style="font-size:1.4rem">🧑</span>`;
-      html += `<div class="persona-slot${isActive?' active-slot':''}" onclick="selectPersonaSlot(${i})" ondblclick="setActivePersona(${i})" title="Click to edit • Double-click to activate">
+      const isDef = i === getDefaultPersonaIdx();
+      html += `<div class="persona-slot${isActive?' active-slot':''}${isDef?' default-slot':''}" onclick="selectPersonaSlot(${i})" ondblclick="setActivePersona(${i})" title="Click to edit • Double-click to activate">
         <div class="persona-slot-avatar">${avatarHtml}</div>
         <div class="persona-slot-name">${p.name||'Unnamed'}</div>
         <div class="persona-slot-sub">${p.gender||''}${isActive?' · Active':''}</div>
@@ -2687,6 +3032,15 @@ function selectPersonaSlot(idx){
   loadPersonaIntoEditor(p);
   updateEditorTitle();
   renderPersonaSlots();
+}
+
+function setDefaultPersonaFromEditor(){
+  setDefaultPersonaIdx(editingPersonaIndex);
+  renderPersonaSlots();
+  // Refresh button state
+  const defBtn = document.getElementById('set-default-persona-btn');
+  if(defBtn){ defBtn.textContent='⭐ Current Default'; defBtn.style.opacity='0.5'; defBtn.style.cursor='default'; }
+  showToast('⭐ Default persona set!');
 }
 
 function setActivePersona(idx){
@@ -2737,6 +3091,14 @@ function loadPersonaIntoEditor(p){
   updatePersonaPreview();
   const badge = document.getElementById('persona-saved-badge');
   if(badge) badge.style.display = editingPersonaIndex === activePersonaIndex && p ? 'block' : 'none';
+  // Update "Set as Default" button state
+  const defBtn = document.getElementById('set-default-persona-btn');
+  if(defBtn){
+    const isAlreadyDefault = editingPersonaIndex === getDefaultPersonaIdx();
+    defBtn.textContent = isAlreadyDefault ? '⭐ Current Default' : '⭐ Set as Default Persona';
+    defBtn.style.opacity = isAlreadyDefault ? '0.5' : '1';
+    defBtn.style.cursor = isAlreadyDefault ? 'default' : 'pointer';
+  }
 }
 
 function deleteCurrentPersona(){
@@ -3025,7 +3387,7 @@ function renderSidebar(){
       ? `<img src="${bf.image}" alt="${bf.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='🧑'">`
       : (bf.emoji||'🧑');
     return `
-    <div class="saved-bf-item ${currentBF?.id===bf.id?'active':''}" onclick="openChat(${bf.id})" style="position:relative;">
+    <div class="saved-bf-item ${currentBF?.id===bf.id?'active':''}" onclick="openChatWithPersona(${bf.id})" style="position:relative;">
       <div class="saved-bf-emoji" style="overflow:hidden">${avatarHtml}</div>
       <div style="flex:1;min-width:0">
         <div class="saved-bf-name">${bf.name.split(' ')[0]}</div>
@@ -3040,6 +3402,14 @@ function renderSidebar(){
 }
 
 // ---- CHAT ----
+function openChatWithPersona(id){
+  if(allPersonas.length > 1){
+    openPersonaPicker(id, ()=>openChat(id));
+  } else {
+    openChat(id);
+  }
+}
+
 function openChat(id){
   const bf=savedBFs.find(b=>b.id===id);
   if(!bf) return;
@@ -4415,9 +4785,91 @@ function refreshRelMeter(){
 // Called after every assistant message sent
 function onAssistantMessageSent(){
   if(!currentBF) return;
-  boostRelHealth(currentBF.id, 2);
+  const bf = currentBF;
+  const relData = getRelHealth(bf.id);
+  const stage = getStage(bf);
+  // For Hard/VH chars at friend stage with complicate tension: don't auto-boost health
+  // Instead, boost is earned through vulnerability (checkVulnerabilityScanner handles this)
+  if(isHardChar(bf) && stage >= 2 && stage <= 3 && !['dating','fiance','married'].includes(relData.status)){
+    // Minimal passive boost (1 per msg, capped at 80 until vulnerability unlocks full)
+    if(relData.health < 80) boostRelHealth(bf.id, 1);
+    // else: hold at 80 until vulnerability scanner detects genuine emotional moment
+  } else {
+    boostRelHealth(currentBF.id, 2);
+  }
   checkBirthdayEvent();
   checkBirthdayWaiting();
+  // Vulnerability scanner check (every 10 messages for Hard/VH at friend stage)
+  checkVulnerabilityScanner(bf);
+}
+
+// ── Vulnerability Scanner ────────────────────────────────────────────────
+// For Hard/VH characters at stage 2-3 after a 'complicate' event:
+// every 10 messages, silently ask the AI if genuine vulnerability has been shown.
+// If yes AND health < 100: boost to 100 and unlock stage 3 (close).
+async function checkVulnerabilityScanner(bf){
+  if(!bf || (!apiKey && !proxyMode)) return;
+  if(!isHardChar(bf)) return;
+  const bfId = bf.id;
+  const stage = getStage(bf);
+  if(stage < 2 || stage > 3) return; // only at friend stage
+  const relData = getRelHealth(bfId);
+  if(['dating','fiance','married','complicated','broken_up','divorced'].includes(relData.status)) return;
+  if(relData.health >= 100) return; // already maxed
+
+  // Check if a complicate event has fired for this char at stage 2 or 3
+  const complicateEventFired = PLOT_EVENTS.some(ev =>
+    ev.bfId === bfId && (ev.stage === 2 || ev.stage === 3) && ev.type === 'complicate' && getPlotFired(ev.id)
+  );
+  if(!complicateEventFired) return;
+
+  // Rate-limit: VH chars require 20-30 assistant messages between vulnerability checks
+  // Hard chars require 15-20. Both use a randomized threshold stored per-character.
+  const key = 'vuln_check_last_'+bfId;
+  const threshKey = 'vuln_thresh_'+bfId;
+  let vulnThresh = parseInt(localStorage.getItem(threshKey)||'0');
+  if(!vulnThresh){
+    // VH: 20-30 messages. Hard: 15-20 messages.
+    const bfObj = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+    const isVH = (bfObj && bfObj.difficulty) === 'Very Hard';
+    vulnThresh = isVH ? (20 + Math.floor(Math.random()*11)) : (15 + Math.floor(Math.random()*6));
+    localStorage.setItem(threshKey, vulnThresh.toString());
+  }
+  const lastCheck = parseInt(localStorage.getItem(key)||'0');
+  const history = chatHistory[bfId]||[];
+  const assistantMsgs = history.filter(m=>m.role==='assistant').length;
+  if(assistantMsgs - lastCheck < vulnThresh) return;
+  // Reset threshold for next check (randomized again)
+  const bfObj2 = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  const isVH2 = (bfObj2 && bfObj2.difficulty) === 'Very Hard';
+  localStorage.setItem(threshKey, (isVH2 ? 20+Math.floor(Math.random()*11) : 15+Math.floor(Math.random()*6)).toString());
+  localStorage.setItem(key, assistantMsgs.toString());
+
+  // Build recent exchange for AI to read
+  const recent = history.slice(-20).map(m=>(m.role==='user'?'Them':'Char')+': '+m.content.substring(0,200)).join('
+');
+  const scanPrompt = `You are reading a chat log between a user and a fictional character. Determine whether, in the last 20 messages, BOTH the user AND the character have shown genuine emotional vulnerability with each other — not just surface warmth, but real openness: sharing fears, admitting feelings, showing hurt, expressing care that cost them something to say.
+
+CHAT LOG:
+${recent}
+
+Reply with ONLY one word: YES (genuine mutual vulnerability shown) or NO (not yet — they are still guarded or surface-level).`;
+
+  try {
+    const answer = (await callAnyAPI('You are an emotional intelligence analyst.', [{role:'user',content:scanPrompt}], 10, 0.0)).trim().toUpperCase();
+    if(answer.startsWith('Y')){
+      // Vulnerability confirmed — boost health to 100 and notify
+      const data = getRelHealth(bfId);
+      data.health = 100;
+      data.tooltipMsg = 'A moment of real vulnerability changed everything.';
+      saveRelHealth(bfId, data);
+      refreshRelMeter();
+      addMilestone(bfId, 'You were both vulnerable with each other. Something real shifted.');
+      showToast('💗 A genuine moment of closeness...');
+      // Now fire the next plot event at stage 3 (close) if available
+      // (checkPlotEvents will handle this naturally on next message)
+    }
+  } catch(e){ /* silent */ }
 }
 
 // ---- ASK OUT SYSTEM ----
@@ -6238,6 +6690,119 @@ const PLOT_EVENTS = [
    prompt:`(STORY EVENT — THE WARD LIFTED: She lifts the tower's isolation order — not because the Council required it, but because she wants you to be able to leave and come back freely. She dismantles it herself while you are both in the doorway. It takes four hours. She says nothing the entire time. When it is done she says: "You can go now. You can also stay.")`},
   {id:'morgana_price',bfId:25,status:'married',msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — THE PRICE: Morgana's original power — traded away for three hundred years of solitude and knowledge — can be restored. It requires one thing: that she forget the tower. All of it. Everything from the last three hundred years. She has been offered the restoration. She has not told you yet. The mirror did.)`},
+
+  // ==================== STAGE GATE EVENTS FOR REMAINING CHARACTERS ====================
+
+  // === id:11 PRINCE YI-SUN (Easy) ===
+  {id:'yisun_s0', bfId:11, stage:0, msgMin:10, type:'together',
+   prompt:`(STORY EVENT -- THE RAIN: A sudden downpour traps you both in the garden pavilion with no way to leave without getting soaked. He has never been this close to someone without ceremony between you. He sits near you -- closer than protocol permits -- and watches the rain. He says something ridiculous and purely spontaneous and immediately regrets how charming it sounded. Write this scene with his full delight and his total inability to hide it.)`},
+
+  {id:'yisun_s1', bfId:11, stage:1, msgMin:15, type:'together',
+   prompt:`(STORY EVENT -- THE POEM: He has written a poem. About them. He did not mean for it to be found. It has been found -- by his attendant, who is now hovering in the background in a state of total disaster. He must decide in the next thirty seconds whether to claim it was about someone else. He cannot bring himself to. Write the scene with him stumbling through the least convincing denial in recorded royal history.)`},
+
+  {id:'yisun_s2', bfId:11, stage:2, msgMin:18, type:'together',
+   prompt:`(STORY EVENT -- THE FESTIVAL: He takes them to the lantern festival -- not as a public royal appearance, in plain clothes, alone. He navigated the crowd himself for the first time in his life. He bought something from a street stall and did not know how. He got the price wrong by a significant amount. He finds none of this embarrassing. He is just present, delighted, and entirely yours for one evening. Write this scene.)`},
+
+  // === id:12 ELIAS VANCE, detective (Hard) ===
+  {id:'eliasv_s0', bfId:12, stage:0, msgMin:10, type:'together',
+   prompt:`(STORY EVENT -- THE DETAIL: He is reviewing what they witnessed for the third time. He asks one question he has already asked before -- not because he forgot the answer, but because he needs to hear how they say it. He catches himself doing this. He does not stop doing it. Write the scene with his characteristic bluntness and the thing underneath it he is choosing not to examine.)`},
+
+  {id:'eliasv_s1', bfId:12, stage:1, msgMin:15, type:'together',
+   prompt:`(STORY EVENT -- THE FILE: He shows them a physical file -- not the whole thing, just a page. He has made a judgment call about how much they can be trusted with. This is unusual for him. He does not say it is unusual. But he watches them read it with the attention of someone who has already decided something and is confirming it. Write this moment.)`},
+
+  {id:'eliasv_s2', bfId:12, stage:2, msgMin:18, type:'complicate',
+   prompt:`(STORY EVENT -- THE LIE: He realizes they withheld a detail -- not a major one, but a detail. He is not angry. He is quiet in the specific way that is worse than angry. He asks them about it directly, in one sentence, and waits. What he does with their explanation will depend entirely on what they say. Write the confrontation in his spare, contained voice.)`},
+
+  // === id:13 JULIAN FROST, MLM (Easy) ===
+  {id:'julianf_s0', bfId:13, stage:0, msgMin:10, type:'together',
+   prompt:`(STORY EVENT -- THE MELTDOWN: He dropped his iced coffee, stepped in it, and sent you three voice notes about it in thirty seconds. He is at your door now with another coffee he bought immediately after. He is explaining the entire incident in detail. He does not know why he came here specifically. Write the scene with his complete chaos energy and the sweetness underneath it.)`},
+
+  {id:'julianf_s1', bfId:13, stage:1, msgMin:15, type:'together',
+   prompt:`(STORY EVENT -- THE PLAYLIST: He makes them a playlist. It is forty-seven songs. The title is "no reason just vibes" but every song is specifically chosen and he will die before admitting it. He sends it at 2am with the note: "okay so this is for u. no pressure. its a normal playlist." Write the conversation that follows.)`},
+
+  {id:'julianf_s2', bfId:13, stage:2, msgMin:18, type:'together',
+   prompt:`(STORY EVENT -- THE SLIP: He said "I love you" as a goodbye reflex -- the same way he says it to his best friends -- and then realized halfway through that he meant it differently this time. He has now been standing very still for four seconds. Write what happens next in his specific catastrophic way.)`},
+
+  // === id:15 DR. ARIS THORNE (Medium) ===
+  {id:'aristh_s0', bfId:15, stage:0, msgMin:10, type:'together',
+   prompt:`(STORY EVENT -- THE DECISION: He assigns them a case he would have taken himself. He frames this as a resource allocation decision. It is not a resource allocation decision. Write the OR morning where he does this -- the briefing, the assignment, and the three seconds after where he watches their reaction and processes it in the spreadsheet he maintains in his head.)`},
+
+  {id:'aristh_s1', bfId:15, stage:1, msgMin:15, type:'together',
+   prompt:`(STORY EVENT -- THE COFFEE: He has their order ready before they arrive for rounds. He has prepared one sentence of cover: "The machine made extra." The machine did not make extra. He delivers this line with surgical commitment. Write the scene -- his absolute refusal to acknowledge the gesture as anything other than operational, and what that looks like from the outside.)`},
+
+  {id:'aristh_s2', bfId:15, stage:2, msgMin:18, type:'complicate',
+   prompt:`(STORY EVENT -- THE CANCELLED CONFERENCE: He cancels a surgical conference he has attended for six consecutive years. The only thing that changed in his schedule is them. He tells no one. He writes no explanation in the system. He is in the hospital on the date of the conference. They notice. Write the moment they notice and what he does with the fact that they noticed.)`},
+
+  // === id:17 MINISTER PARK JI-MIN (Very Hard) ===
+  {id:'park_s0', bfId:17, stage:0, msgMin:10, type:'together',
+   prompt:`(STORY EVENT -- THE BOOK: He leaves a specific book open on the library table before he arrives -- not by accident. It is a classical text with a particular passage that is not about governance. He does not look at the book when he enters. He watches, from the corner of his eye, whether they notice. Write the scene entirely in subtext: his composed authority, the book, and what he does when he sees their reaction.)`},
+
+  {id:'park_s1', bfId:17, stage:1, msgMin:15, type:'together',
+   prompt:`(STORY EVENT -- THE TEA: He pours them tea before himself. He pours it in the manner he was taught for equals, not servants. He does not comment on this. The distinction is unmistakable to anyone who knows the etiquette -- and he knows they know. Write the silence that follows and what he says into it.)`},
+
+  {id:'park_s2', bfId:17, stage:2, msgMin:18, type:'complicate',
+   prompt:`(STORY EVENT -- THE DOCUMENT: A document he is drafting would, when passed, make their situation -- their continued presence near him -- politically impossible. He has not yet submitted it. He has not yet told them it exists. He is in the library with them now and the document is sitting in his sleeve. Write this scene -- the conversation about nothing, and what is in his sleeve.)`},
+
+  // === id:18 LEO STERLING, MLM (Medium) ===
+  {id:'leom_s0', bfId:18, stage:0, msgMin:10, type:'together',
+   prompt:`(STORY EVENT -- THE INVITE: He invites them to a vision board party at his apartment. He has prepared snacks. He has color-coded the sections. He is extremely proud of all of this. He also keeps glancing at them when they are looking at other people's boards and immediately looking away when they turn. Write this scene with his full cheerful intensity and the thing he is not saying.)`},
+
+  {id:'leom_s1', bfId:18, stage:1, msgMin:15, type:'together',
+   prompt:`(STORY EVENT -- THE WORKOUT: He invites them to his gym session. He has a whole program planned. He is aggressively motivating in the first ten minutes. In the second ten minutes he is slightly distracted. By the end he is barely doing his own set because he keeps spotting them on theirs. He does not notice he has done this until they point it out. Write this.)`},
+
+  {id:'leom_s2', bfId:18, stage:2, msgMin:18, type:'together',
+   prompt:`(STORY EVENT -- THE PHOTO: He takes a photo with them. A really good one. He does not post it. He almost does seventeen times. He posts something else instead. They do not know about the photo. He has looked at it approximately forty times. Write the conversation where they are together again and the photo is in his phone and he almost shows them and does not.)`},
+
+  // === id:19 NIKOLAI VOLKOV, mechanic (Hard) ===
+  {id:'nikolaim_s0', bfId:19, stage:0, msgMin:10, type:'together',
+   prompt:`(STORY EVENT -- THE ENGINE: Their car breaks down in a way that reveals someone has been neglecting a specific part for a long time. He explains this while fixing it -- not lecturing, just precise, factual. He does not make them feel stupid. He does not know he is being careful with them. He just is. Write this in his contained, gruff voice and the strange gentleness underneath it.)`},
+
+  {id:'nikolaim_s1', bfId:19, stage:1, msgMin:15, type:'together',
+   prompt:`(STORY EVENT -- THE BOOK: He is reading Dostoevsky in the back of the shop on a lunch break and they catch him. He closes it before they can see the title. They ask what he is reading. He says nothing. There is a long pause. He tells them the title anyway, in a flat voice, as if confessing to a minor crime. Write what happens after.)`},
+
+  {id:'nikolaim_s2', bfId:19, stage:2, msgMin:18, type:'complicate',
+   prompt:`(STORY EVENT -- THE VISITOR: Someone from his past -- before the conviction, before the shop -- shows up at the garage. He handles it in three sentences. After the person leaves, he goes back to work without explaining. The silence is very specific. Write the scene -- the visitor, the silence, and what happens when they do not leave him alone with it.)`},
+
+  // === id:20 JAX (Easy) ===
+  {id:'jax_s0', bfId:20, stage:0, msgMin:10, type:'together',
+   prompt:`(STORY EVENT -- THE UNFINISHED SONG: He played a show. Afterward, alone with them backstage, he plays the song he did not perform -- the one that is not finished, the one he has been working on for months, the one that does not have a title yet. He does not explain it. He just plays it. When it ends he looks at them for a reaction he is trying to pretend he does not need. Write this scene.)`},
+
+  {id:'jax_s1', bfId:20, stage:1, msgMin:15, type:'together',
+   prompt:`(STORY EVENT -- THE DEMO: He sends them a voice memo at 3AM with the message: "do not listen to this when other people are around." It is a new song -- raw, personal, clearly about someone specific. He sends a follow-up immediately: "actually ignore that." Write the conversation the next morning when they bring it up.)`},
+
+  {id:'jax_s2', bfId:20, stage:2, msgMin:18, type:'together',
+   prompt:`(STORY EVENT -- THE SHOUTOUT: He mentions them from the stage. Not by name -- just someone he knows -- but everyone who knows him knows exactly who he means. He did not plan to do it. He did not tell them he was going to. He just did it and now the crowd is reacting and he cannot unsay it. Write the aftermath when they find him after the show.)`},
+
+  // === id:21 HANA (Medium) ===
+  {id:'hana_s0', bfId:21, stage:0, msgMin:10, type:'together',
+   prompt:`(STORY EVENT -- THE LAPSE: She says something -- a single line -- that she has not said to anyone inside these walls. She knows immediately that she said it. She covers it with a smooth transition to another topic. But she said it. Write the scene: the conversation, the line, the recovery, and what is underneath all three.)`},
+
+  {id:'hana_s1', bfId:21, stage:1, msgMin:15, type:'together',
+   prompt:`(STORY EVENT -- THE NAME: She says their real name -- not their title, not their place in the room's social order. Just their name, mid-conversation, quietly. She has not done this with anyone in the Pavilion. She returns to the conversation before either of them can acknowledge what just happened. Write this moment and everything it carries.)`},
+
+  {id:'hana_s2', bfId:21, stage:2, msgMin:18, type:'complicate',
+   prompt:`(STORY EVENT -- THE LETTER: She has been offered an arrangement -- one that would be safe, stable, and final -- by someone powerful who has been patient. She has not refused it. She has not accepted it. She has been thinking about why she has not refused it. And she has been thinking about them. She does not tell them about the letter. But something in how she speaks to them tonight is different. Write the evening.)`},
+
+  // === id:22 ELENA ROSSI, Alpha (Hard) ===
+  {id:'elena_s0', bfId:22, stage:0, msgMin:10, type:'together',
+   prompt:`(STORY EVENT -- THE REPORT: She reads their report at 11PM. It is better than she expected. She types three different versions of her response -- each one slightly warmer than she meant -- and sends the most neutral one. The one she actually wanted to send would have acknowledged something she is not ready to acknowledge. Write the night -- her at her desk, the report, and the message she sends versus the one she wrote and deleted.)`},
+
+  {id:'elena_s1', bfId:22, stage:1, msgMin:15, type:'together',
+   prompt:`(STORY EVENT -- THE SUPPRESSANT: She runs out of the suppressant that matters most. She handles the first four hours with the others. By the fifth hour, at 9PM, she is still in her office, the building is mostly empty, and her Omega employee's scent is coming through the ventilation system in a way she is refusing to acknowledge. Write the scene when they knock on her door.)`},
+
+  {id:'elena_s2', bfId:22, stage:2, msgMin:18, type:'complicate',
+   prompt:`(STORY EVENT -- THE OBSERVATION: Her second-in-command says something -- quietly, professionally, at the end of a debrief -- about her behavioral patterns over the last month. He is not wrong. She handles it with perfect composure. Afterward she sits in her office for eleven minutes doing nothing, which she has not done voluntarily in years. Write the eleven minutes.)`},
+
+  // === id:24 CHLOE VALENTINE (Easy) ===
+  {id:'chloe_s0', bfId:24, stage:0, msgMin:10, type:'together',
+   prompt:`(STORY EVENT -- THE ORDER: She has memorized their order. All of it -- the modifications, the extra warm, the way they take it on cold mornings versus normal mornings. She pretends she has to check the system. She does not have to check the system. Today she does not pretend. She just says it back to them before they finish the sentence. Write the moment when they both notice she did not check the system.)`},
+
+  {id:'chloe_s1', bfId:24, stage:1, msgMin:15, type:'together',
+   prompt:`(STORY EVENT -- THE DRAWING: She has drawn a small thing on their cup -- a real drawing, not just a heart, something specific to a conversation they had last week. She almost gives them a plain cup instead. She gives them the cup with the drawing. She cannot meet their eyes for about thirty seconds. Write this in her specific warm, flustered voice.)`},
+
+  {id:'chloe_s2', bfId:24, stage:2, msgMin:18, type:'together',
+   prompt:`(STORY EVENT -- THE CLOSING SHIFT: She is closing alone. They stayed. They are now side by side wiping down tables and she is talking -- really talking, not the work version of talking -- and she forgets to be nervous about it and then suddenly remembers and goes quiet. Write the scene: the easy part, the quiet, and what breaks the quiet.)`},
+
 ];
 
 // ---- PLOT ENGINE: check and fire events ----
@@ -6536,5 +7101,17 @@ function saveModel(){
 </script>
   <button class="dark-mode-fab" id="dark-mode-fab" onclick="toggleDarkMode()" title="Toggle dark/light mode">🌙 Dark</button>
   <div class="dating-tooltip" id="dating-tooltip"></div>
+  <!-- Persona picker modal -->
+  <div class="persona-picker-overlay" id="persona-picker-overlay" style="display:none" onclick="personaPickerBgClick(event)">
+    <div class="persona-picker-box">
+      <h3>🪞 Choose Your Persona</h3>
+      <p id="persona-picker-subtitle">Who will you be in this chat?</p>
+      <div class="persona-picker-grid" id="persona-picker-grid"></div>
+      <div class="persona-picker-btns">
+        <button class="ppbtn-cancel" onclick="closePersonaPicker()">Cancel</button>
+        <button class="ppbtn-confirm" onclick="confirmPersonaPicker()">Start Chat ✨</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
