@@ -5607,16 +5607,55 @@ function openRelProfile(bfId){
         </div>
         ${relData.tooltipMsg ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;font-style:italic">${relData.tooltipMsg}</div>` : ''}
       </div>
-      <!-- Relationship Stage Progress -->
+      <!-- Relationship Stage Progress — two-row system -->
       <div style="margin-bottom:1.4rem">
         <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase">Relationship Progress</div>
-        <div style="display:flex;gap:6px;align-items:center">
-          ${STAGES.map((s,i)=>`
-            <div style="flex:1;text-align:center">
-              <div style="height:6px;border-radius:3px;background:${i<=stageIdx?color:'var(--border)'};transition:background 0.4s;margin-bottom:4px"></div>
-              <div style="font-size:0.58rem;color:${i<=stageIdx?color:'var(--text-muted)'};font-weight:${i===stageIdx?700:400};text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s}</div>
-            </div>`).join('')}
-        </div>
+        ${(()=>{
+          const isCommitted = ['dating','fiance','married','complicated','separation','divorced','broken_up'].includes(relData.status);
+          // ROW 1: pre-relationship stages (always shown; dim all if committed)
+          const row1Stages = ['Stranger','Acquaintance','Friend','Close','Romantic Interest','Partner'];
+          const row1Html = '<div style="display:flex;gap:5px;margin-bottom:10px">' +
+            row1Stages.map((s,i)=>{
+              const isActive = !isCommitted && i === stageIdx;
+              const isPast   = !isCommitted && i < stageIdx;
+              const isAllPast = isCommitted; // all filled if committed
+              const bg = (isActive||isPast||isAllPast) ? color : 'var(--border)';
+              const textColor = (isActive||isPast||isAllPast) ? color : 'var(--text-muted)';
+              const fw = isActive ? 700 : 400;
+              return '<div style="flex:1;text-align:center">' +
+                '<div style="height:5px;border-radius:3px;background:'+bg+';margin-bottom:3px"></div>' +
+                '<div style="font-size:0.55rem;color:'+textColor+';font-weight:'+fw+';text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+s+'</div>' +
+              '</div>';
+            }).join('') +
+          '</div>';
+          // ROW 2: committed arc — only shown once they reach dating+
+          // Order: Dating → Fiancé → Married  (or negative arc: Complicated → Separated → Divorced)
+          const positiveArc = ['dating','fiance','married'];
+          const negativeArc = ['complicated','separation','divorced','broken_up'];
+          const arcStages = negativeArc.includes(relData.status)
+            ? [{id:'dating',label:"Dating"},{id:'complicated',label:"Complicated"},{id:'separation',label:"Separated"},{id:'divorced',label:"Divorced"}]
+            : [{id:'dating',label:"Dating"},{id:'fiance',label:"Fiancé"},{id:'married',label:"Married"}];
+          const arcOrder = arcStages.map(a=>a.id);
+          const currentArcIdx = arcOrder.indexOf(relData.status);
+          const row2Html = isCommitted
+            ? '<div style="display:flex;gap:5px">' +
+                arcStages.map((a,i)=>{
+                  const isActive = i === currentArcIdx;
+                  const isPast   = i < currentArcIdx;
+                  const isNeg    = negativeArc.includes(a.id);
+                  const segColor = isNeg ? '#c94f4f' : color;
+                  const bg = (isActive||isPast) ? segColor : 'var(--border)';
+                  const textColor = (isActive||isPast) ? segColor : 'var(--text-muted)';
+                  const fw = isActive ? 700 : 400;
+                  return '<div style="flex:1;text-align:center">' +
+                    '<div style="height:5px;border-radius:3px;background:'+bg+';margin-bottom:3px"></div>' +
+                    '<div style="font-size:0.55rem;color:'+textColor+';font-weight:'+fw+';text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+a.label+'</div>' +
+                  '</div>';
+                }).join('') +
+              '</div>'
+            : '';
+          return row1Html + row2Html;
+        })()}
       </div>
       <!-- Two-column: Milestones + Goals -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem">
