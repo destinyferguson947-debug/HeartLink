@@ -3427,6 +3427,13 @@ function openChat(id){
   const bf=savedBFs.find(b=>b.id===id);
   if(!bf) return;
   currentBF=bf;
+  // Restore the persona assigned to this specific character
+  // so switching chats never bleeds one persona's avatar into another chat
+  const charPersonaIdx = getCharPersonaIdx(id);
+  if(charPersonaIdx >= 0 && charPersonaIdx < allPersonas.length){
+    activePersonaIndex = charPersonaIdx;
+    userPersona = allPersonas[charPersonaIdx];
+  }
   renderSidebar();
   if(!chatHistory[id]) chatHistory[id]=[];
   const stageIdx=getStage(bf);
@@ -3502,8 +3509,9 @@ function renderMessages(){
 
   c.innerHTML = history.map((m, idx) => {
     const isUser = m.role === 'user';
-    // Use per-message persona snapshot if available, fall back to current active persona
-    const msgPersonaImg  = isUser ? (m.personaImg  || userPersona?.imgUrl  || '') : '';
+    // Use per-message persona snapshot. If none (old messages before this feature),
+    // fall back to the character-assigned persona (restored in openChat), not the global.
+    const msgPersonaImg  = isUser ? (m.personaImg  || '') : '';
     const msgPersonaName = isUser ? (m.personaName || userPersona?.name || '') : '';
     const userAvatarHtml = msgPersonaImg
       ? `<img src="${msgPersonaImg}" alt="${msgPersonaName}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
