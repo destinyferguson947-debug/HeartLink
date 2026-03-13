@@ -3970,6 +3970,11 @@ async function rerollMessage(idx){
   showTyping();
   await callGemini(lastUserMsg.content);
 
+  // Detect date proposal in rerolled reply too
+  const _rerollReply = (chatHistory[currentBF.id]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
+  if(_rerollReply) detectAndScheduleDateProposal(currentBF.id, _rerollReply.content);
+  checkDateArrival(currentBF.id);
+
   if(sendBtn) sendBtn.disabled = false;
 }
 
@@ -4091,11 +4096,18 @@ async function sendMessage(){
   const cutOffPrefix = wasCutOff ? getCutOffReaction(currentBF) + '\n\n' : '';
   await callGemini(text, cutOffPrefix);
   document.getElementById('send-btn').disabled=false;
+  // Auto-detect date proposal in the AI's latest reply and schedule it
+  const _latestReply = (chatHistory[currentBF.id]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
+  if(_latestReply) detectAndScheduleDateProposal(currentBF.id, _latestReply.content);
+  // Check if a scheduled date has now arrived
+  checkDateArrival(currentBF.id);
   // Check confession / ask-out response flow
   checkAskOut();
   checkAskOutResponse();
   checkDatingConfession();
   checkConfessionResponse();
+  // Check if user forgot the anniversary
+  checkAnniversaryForgotten();
   // Check if user forgot the anniversary
   checkAnniversaryForgotten();
   // Check proposal progression
@@ -4354,6 +4366,33 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
     } catch(e){}
   }
 
+
+  // ── Scheduled future date enforcement ──────────────────────────────────────
+  const _pendSchedRaw = localStorage.getItem('pending_scheduled_date_'+currentBF.id);
+  if(_pendSchedRaw){
+    try {
+      const _ps = JSON.parse(_pendSchedRaw);
+      const _psMonthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const _psToday = getInGameDate(currentBF.id);
+      const _psTodayAbs = _psToday.year*12*30 + _psToday.month*30 + _psToday.day;
+      const _psSchedAbs = _ps.year*12*30 + _ps.month*30 + _ps.day;
+      const _psDaysLeft = _psSchedAbs - _psTodayAbs;
+      if(_psDaysLeft > 0){
+        fullSystem += `
+
+--- SCHEDULED DATE — STRICT RULE ---
+You have a date planned with the user on ${_ps.dowName}, ${_psMonthNames[_ps.month]} ${_ps.day} (in ${_psDaysLeft} day${_psDaysLeft===1?'':'s'}).
+ABSOLUTE RULES until that day arrives:
+1. DO NOT write the date scene yet. DO NOT time-skip to the date. DO NOT describe arriving at the date location.
+2. The date is in the future. Today is NOT that day.
+3. You may talk about the date — excitement, what to wear, where you will go, nervousness — but you are in the present, not on the date.
+4. Keep chatting normally. The story stays in the present moment.
+5. If the user tries to fast-forward or skip to the date, gently stay in the present.
+--- END SCHEDULED DATE RULE ---`;
+      }
+    } catch(e){}
+  }
+
   fullSystem += _calSection;
 
   // Pending calendar note (date scheduled or birthday acknowledgment)
@@ -4361,18 +4400,39 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   if(_pendingCal){ fullSystem += '\n\n'+_pendingCal; localStorage.removeItem('pending_date_note_'+currentBF.id); }
 
   const history = chatHistory[currentBF.id]||[];
-  // Smart context window: keep summary + last 30 messages to avoid token overflow
-  const recentHistory = history.slice(-100); // Max context window
+  // Smart context window: keep summary + last 100 messages to avoid token overflow
+  const recentHistory = history.slice(-100);
   const contents = [];
   const histToSend = recentHistory.slice(0,-1);
+
+  // ── Alt substitution: replace assistant messages with their selected alt ──
+  // If the user cycled to alt 2 or 3, the AI must see that version as context,
+  // not the original. Otherwise the next reply responds to the wrong message.
+  const bfAlts = msgAlts[currentBF.id] || {};
+  const bfAltIdx = msgAltIdx[currentBF.id] || {};
+  // histToSend indices are relative to the end of history; map back to absolute
+  const histOffset = history.length - recentHistory.length;
+  function _getActiveContent(msg, absoluteIdx){
+    if(msg.role !== 'assistant') return msg.content;
+    const alts = bfAlts[absoluteIdx];
+    const chosen = bfAltIdx[absoluteIdx];
+    if(alts && alts.length > 1 && chosen !== undefined && chosen !== null){
+      return alts[chosen] || msg.content;
+    }
+    return msg.content;
+  }
+
   for(const msg of histToSend){
     contents.push({role:msg.role==='user'?'user':'model', parts:[{text:msg.content}]});
   }
   contents.push({role:'user', parts:[{text:userMessage}]});
 
   try{
-    // Route through central API handler (Gemini or proxy)
-    const msgObjs = histToSend.map(m=>({role:m.role, content:m.content}));
+    // Route through central API handler — use alt-substituted content
+    const msgObjs = histToSend.map((m, i) => ({
+      role: m.role,
+      content: _getActiveContent(m, histOffset + i)
+    }));
     msgObjs.push({role:'user', content:userMessage});
     const reply = await callAnyAPI(fullSystem, msgObjs, 8192, 1.0);
     hideTyping();
@@ -5007,6 +5067,96 @@ function checkAnniversaryForgotten(){
   // Inject a pending note so the character reacts in character
   localStorage.setItem('pending_date_note_'+bfId,
     `(ANNIVERSARY FORGOTTEN: Today is your ${yearsTogetherVal === 1 ? '1st' : yearsTogetherVal === 2 ? '2nd' : yearsTogetherVal === 3 ? '3rd' : yearsTogetherVal+'th'} anniversary — ${mNames[_anniv.month]} ${_anniv.day}. The person you are with has not acknowledged it after several messages. React as your character naturally would — hurt, disappointed, quietly cold, passive aggressive, or directly upset depending on your personality. Do NOT let this go unnoticed. This matters to you. Do not be dramatic for no reason but do let them know, in your own way, that you noticed they forgot. The relationship health took a hit.)`);
+}
+
+// ── AUTO DATE SCHEDULING FROM CHAT ─────────────────────────────────────────
+// Detects when the AI proposes a date for a specific day, auto-schedules it
+// to the calendar, and blocks time-skipping until that day arrives.
+
+function _dayNameToInGameDate(dayName, bfId){
+  const today = getInGameDate(bfId);
+  const dowNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const todayAbsDay = today.year*12*30 + today.month*30 + today.day;
+  const firstDow = ((today.year*12+today.month)*2) % 7;
+  const todayDow = (firstDow + today.day - 1) % 7;
+  const targetDow = dowNames.indexOf(dayName.toLowerCase());
+  if(targetDow === -1) return null;
+  let daysUntil = (targetDow - todayDow + 7) % 7;
+  if(daysUntil === 0) daysUntil = 7;
+  const targetAbsDay = todayAbsDay + daysUntil;
+  const targetYear = Math.floor(targetAbsDay / (12*30));
+  const remainder = targetAbsDay % (12*30);
+  const targetMonth = Math.floor(remainder / 30);
+  const targetDay = Math.max(1, Math.min(30, remainder % 30 || 30));
+  return { year: targetYear, month: targetMonth, day: targetDay, daysUntil };
+}
+
+function detectAndScheduleDateProposal(bfId, replyText){
+  if(!bfId || !replyText) return;
+  if(localStorage.getItem('pending_scheduled_date_'+bfId)) return;
+  const lower = replyText.toLowerCase();
+  const dowNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const hasDateContext = ['date','meet','free','see you','come over','dinner','lunch','coffee',
+    'walk','show','movie','plans','together','pick you up','i will pick'].some(w=>lower.includes(w));
+  if(!hasDateContext) return;
+  let foundDay = null;
+  for(const dow of dowNames){
+    if(lower.includes(dow)){
+      const idx = lower.indexOf(dow);
+      const before = lower.slice(Math.max(0,idx-12), idx);
+      if(/(last|that|this past)/.test(before)) continue;
+      foundDay = dow;
+      break;
+    }
+  }
+  if(!foundDay && /this weekend|next weekend/.test(lower)) foundDay = 'saturday';
+  if(!foundDay && lower.includes('tomorrow') && hasDateContext){
+    const today = getInGameDate(bfId);
+    const absDay = today.year*12*30 + today.month*30 + today.day + 1;
+    const yr = Math.floor(absDay/(12*30));
+    const rem = absDay%(12*30);
+    const mo = Math.floor(rem/30);
+    const dy = Math.max(1, rem%30||30);
+    _autoScheduleDate(bfId, {year:yr, month:mo, day:dy, daysUntil:1});
+    return;
+  }
+  if(!foundDay) return;
+  const target = _dayNameToInGameDate(foundDay, bfId);
+  if(!target || target.daysUntil < 1) return;
+  _autoScheduleDate(bfId, target);
+}
+
+function _autoScheduleDate(bfId, target){
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dowNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const existing = getCalDates(bfId);
+  if(existing.some(e=>e.day===target.day&&e.month===target.month&&e.year===target.year&&e.type==='date')) return;
+  existing.push({day:target.day, month:target.month, year:target.year, type:'date', autoScheduled:true});
+  saveCalDates(bfId, existing);
+  if(typeof renderCalendar === 'function') renderCalendar(bfId);
+  const firstDow = ((target.year*12+target.month)*2) % 7;
+  const dow = (firstDow + target.day - 1) % 7;
+  const dowName = dowNames[dow];
+  const rule = JSON.stringify({year:target.year, month:target.month, day:target.day, dowName, daysUntil:target.daysUntil});
+  localStorage.setItem('pending_scheduled_date_'+bfId, rule);
+  showToast(`💗 Date auto-scheduled for ${dowName}, ${monthNames[target.month]} ${target.day}!`);
+}
+
+function checkDateArrival(bfId){
+  const raw = localStorage.getItem('pending_scheduled_date_'+bfId);
+  if(!raw) return;
+  try {
+    const sched = JSON.parse(raw);
+    const today = getInGameDate(bfId);
+    const todayAbs = today.year*12*30 + today.month*30 + today.day;
+    const schedAbs = sched.year*12*30 + sched.month*30 + sched.day;
+    if(todayAbs >= schedAbs){
+      localStorage.removeItem('pending_scheduled_date_'+bfId);
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      localStorage.setItem('pending_date_note_'+bfId,
+        `(TODAY is the day of your planned date — ${sched.dowName}, ${monthNames[sched.month]} ${sched.day}. The day has finally arrived. React as your character naturally would: excited, nervous, casual — whatever fits you. You can now write the date scene.)`);
+    }
+  } catch(e){ localStorage.removeItem('pending_scheduled_date_'+bfId); }
 }
 
 function checkProposal(){
