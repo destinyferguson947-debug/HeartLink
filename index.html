@@ -4130,6 +4130,7 @@ async function sendMessage(){
   checkProposalResponse();
   checkWedding();
   // Check pre-written story plot events (async — context gate may defer)
+  await sleep(1500); // stagger: avoid rate limit burst
   await checkPlotEvents();
 }
 
@@ -4190,6 +4191,10 @@ function hideTyping(){ document.getElementById('typing-msg')?.remove(); }
 // ============================================================
 
 // Low-level: sends a request and returns the reply text (or throws)
+
+// Small delay helper to stagger background API calls and avoid per-minute rate limits
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
 async function callAnyAPI(systemPrompt, messages, maxTokens=8192, temperature=1.0){
   if(proxyMode && proxyUrl){
     // ── OpenAI-compatible proxy format ─────────────────────────
@@ -4362,14 +4367,13 @@ ${_annivNote}`;
     // Auto-summarise every 20 messages + refresh goals
     const totalMsgs = (chatHistory[currentBF.id]||[]).length;
     if(totalMsgs > 0 && totalMsgs % 20 === 0){
-      autoSummarize();
-      autoGenerateGoals(currentBF.id);
+      // Stagger background calls to avoid per-minute rate limit bursts
+      setTimeout(() => autoSummarize(), 3000);
+      setTimeout(() => autoGenerateGoals(currentBF.id), 5000);
       // Auto-extract memories silently every 10-20 msgs (randomized)
       const memInterval = getOrSetMemInterval(currentBF.id);
       if(totalMsgs > 0 && totalMsgs % memInterval === 0){
-        autoExtractMemoriesSilent();
-        // Re-roll interval for next time (10-20)
-        resetMemInterval(currentBF.id);
+        setTimeout(() => { autoExtractMemoriesSilent(); resetMemInterval(currentBF.id); }, 7000);
       }
     }
   }catch(e){
@@ -5062,7 +5066,7 @@ function onAssistantMessageSent(){
   checkBirthdayEvent();
   checkBirthdayWaiting();
   // Vulnerability scanner check (every 10 messages for Hard/VH at friend stage)
-  checkVulnerabilityScanner(bf);
+  setTimeout(() => checkVulnerabilityScanner(bf), 2000); // stagger: avoid rate limit burst
 }
 
 // ── Vulnerability Scanner ────────────────────────────────────────────────
