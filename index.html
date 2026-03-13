@@ -677,11 +677,6 @@
 
 <nav>
   <div class="nav-logo">Heart<span>link</span></div>
-  <div style="display:flex;align-items:center;gap:0.7rem">
-  </div>
-  <div style="display:flex;align-items:center;gap:0.5rem;">
-    <span style="font-size:0.68rem;font-weight:600;background:#2d9e6b;color:#fff;padding:2px 9px;border-radius:1rem;letter-spacing:0.04em;opacity:0.92;">✓ Updated</span>
-  </div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('home')">✨ Home</button>
     <button class="nav-tab" onclick="showPage('browse')">💝 Browse</button>
@@ -3974,7 +3969,6 @@ async function rerollMessage(idx){
   const _rerollReply = (chatHistory[currentBF.id]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
   if(_rerollReply) detectAndScheduleDateProposal(currentBF.id, _rerollReply.content);
   checkDateArrival(currentBF.id);
-  checkMissedDate();
 
   if(sendBtn) sendBtn.disabled = false;
 }
@@ -4109,8 +4103,6 @@ async function sendMessage(){
   checkConfessionResponse();
   // Check if user forgot the anniversary
   checkAnniversaryForgotten();
-  // Check if user missed / was stood up for a date
-  checkMissedDate();
   // Check if user forgot the anniversary
   checkAnniversaryForgotten();
   // Check proposal progression
@@ -4369,28 +4361,6 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
     } catch(e){}
   }
 
-
-  // ── Stood-up / apology window enforcement ───────────────────────────────────
-  const _stoodUpRaw = localStorage.getItem('stood_up_'+currentBF.id);
-  if(_stoodUpRaw){
-    try {
-      const _su = JSON.parse(_stoodUpRaw);
-      const _suHistory = chatHistory[currentBF.id]||[];
-      const _suUserMsgs = _suHistory.slice(_su.apologyStart).filter(m=>m.role==='user').length;
-      const _suMsgsLeft = Math.max(0, 3 - _suUserMsgs);
-      fullSystem += `
-
---- STOOD UP — YOU ARE WAITING FOR AN APOLOGY ---
-They stood you up on your date (${_su.dateLabel}). You are hurt and you have not forgiven them.
-RULES:
-1. Stay cold, guarded, or hurt. Do NOT pretend everything is fine.
-2. You are waiting to see if they will apologize. You will not prompt them to do so — that is their job.
-3. If they apologize sincerely, you may begin to soften — but slowly. You are not immediately over it.
-4. If they keep chatting as if nothing happened, let your distance show. Short answers. Less warmth.
-5. They have ${_suMsgsLeft} message${_suMsgsLeft===1?'':'s'} left before you stop waiting for an apology entirely.
---- END STOOD UP RULE ---`;
-    } catch(e){}
-  }
 
   // ── Scheduled future date enforcement ──────────────────────────────────────
   const _pendSchedRaw = localStorage.getItem('pending_scheduled_date_'+currentBF.id);
@@ -5178,141 +5148,10 @@ function checkDateArrival(bfId){
     if(todayAbs >= schedAbs){
       localStorage.removeItem('pending_scheduled_date_'+bfId);
       const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-      const dateLabel = `${sched.dowName}, ${monthNames[sched.month]} ${sched.day}`;
-      // Start the missed-date watch — track msg count from this moment
-      const watchKey = 'date_arrived_watch_'+bfId;
-      const history = chatHistory[bfId]||[];
-      if(!localStorage.getItem(watchKey)){
-        localStorage.setItem(watchKey, JSON.stringify({
-          startMsg: history.length,
-          dateLabel,
-          month: sched.month,
-          day: sched.day,
-          year: sched.year
-        }));
-      }
       localStorage.setItem('pending_date_note_'+bfId,
-        `(TODAY is the day of your planned date — ${dateLabel}. The day has finally arrived. React as your character naturally would: excited, nervous, casual — whatever fits you. You can now write the date scene. If they seem to be ignoring the date or not engaging with it after a message or two, begin to show subtle signs of waiting — checking your phone, getting ready, wondering if they forgot.)`);
+        `(TODAY is the day of your planned date — ${sched.dowName}, ${monthNames[sched.month]} ${sched.day}. The day has finally arrived. React as your character naturally would: excited, nervous, casual — whatever fits you. You can now write the date scene.)`);
     }
   } catch(e){ localStorage.removeItem('pending_scheduled_date_'+bfId); }
-}
-
-// ── MISSED DATE SYSTEM ──────────────────────────────────────────────────────
-// If the date day arrives and the user ignores it for 6 messages (3 exchanges),
-// the character reacts as if they were stood up. Health damage is applied and
-// a 1-3 message apology window opens. If the user apologizes in time, some
-// health is recovered. If not, the damage is permanent for now.
-
-function checkMissedDate(){
-  if(!currentBF) return;
-  const bfId = currentBF.id;
-  const watchKey = 'date_arrived_watch_'+bfId;
-  const raw = localStorage.getItem(watchKey);
-  if(!raw) return;
-
-  // If already stood-up or in apology window, hand off to apology checker
-  if(localStorage.getItem('stood_up_'+bfId)){
-    checkDateApology(bfId);
-    return;
-  }
-
-  let watch;
-  try { watch = JSON.parse(raw); } catch(e){ localStorage.removeItem(watchKey); return; }
-
-  const history = chatHistory[bfId]||[];
-  const msgsSinceArrival = history.length - watch.startMsg;
-
-  // Check if user engaged with the date in these messages
-  const recentMsgs = history.slice(watch.startMsg);
-  const dateEngageWords = [
-    'date','ready','where','meet','pick','on my way','heading','leaving','here',
-    'excited','nervous','wear','outfit','restaurant','place','tonight','see you',
-    'coming','arrived','there','wait','looking forward','dressed','get ready',
-    'reservation','table','movie','dinner','lunch','coffee','walk','show'
-  ];
-  const userEngaged = recentMsgs
-    .filter(m => m.role === 'user')
-    .some(m => dateEngageWords.some(w => m.content.toLowerCase().includes(w)));
-
-  if(userEngaged){
-    // User showed up! Clear the watch, give a health boost
-    localStorage.removeItem(watchKey);
-    boostRelHealth(bfId, 8);
-    const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
-    if(bf) showToast(`💗 ${bf.name.split(' ')[0]} is so glad you came!`);
-    return;
-  }
-
-  // 6 messages (3 user turns) passed without engagement — stood up
-  if(msgsSinceArrival < 6) return;
-
-  // Mark as stood up and deal damage
-  localStorage.removeItem(watchKey);
-  const relData = getRelHealth(bfId);
-  const dmg = relData.status === 'married' ? 22 : relData.status === 'fiance' ? 18 : 15;
-  decayRelHealth(bfId, dmg, 'You stood them up. They waited and you never showed.');
-  localStorage.setItem('stood_up_'+bfId, JSON.stringify({
-    dateLabel: watch.dateLabel,
-    apologyStart: history.length,
-    apologyMsgsLeft: 3   // user has 3 messages to apologize
-  }));
-
-  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
-  const firstName = bf ? bf.name.split(' ')[0] : 'They';
-  showToast(`💔 You stood up ${firstName}. They're hurt.`);
-
-  // Character reacts — stood up, waiting, hurt
-  localStorage.setItem('pending_date_note_'+bfId,
-    `(STOOD UP: The date was today and they never showed up, never reached out, never explained. You waited. React as your character naturally would to being stood up — hurt, cold, quietly devastated, or trying to hold it together depending on your personality. Do NOT pretend it is fine. Do NOT immediately forgive them. You are upset and they need to know. Make them feel the weight of what they did — in your own voice.)`);
-}
-
-function checkDateApology(bfId){
-  const stoodUpRaw = localStorage.getItem('stood_up_'+bfId);
-  if(!stoodUpRaw) return;
-
-  let stoodUp;
-  try { stoodUp = JSON.parse(stoodUpRaw); } catch(e){ localStorage.removeItem('stood_up_'+bfId); return; }
-
-  const history = chatHistory[bfId]||[];
-  const msgsSinceStoodUp = history.length - stoodUp.apologyStart;
-
-  // Scan user messages since stood-up for an apology
-  const recentMsgs = history.slice(stoodUp.apologyStart);
-  const apologyWords = [
-    'sorry','apologize','apologi','forgive','my fault','i messed up','i forgot',
-    'i was wrong','please','i am so sorry','i'm so sorry','i feel terrible',
-    'i feel awful','i should have','shouldn't have','won't happen again',
-    'make it up','make up for','i know i hurt','i know that hurt'
-  ];
-  const userApologized = recentMsgs
-    .filter(m => m.role === 'user')
-    .some(m => apologyWords.some(w => m.content.toLowerCase().includes(w)));
-
-  const userMsgsSince = recentMsgs.filter(m => m.role === 'user').length;
-
-  if(userApologized){
-    // Apology received — partial health recovery, character softens
-    localStorage.removeItem('stood_up_'+bfId);
-    boostRelHealth(bfId, 7);
-    const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
-    const firstName = bf ? bf.name.split(' ')[0] : 'They';
-    showToast(`💔 ${firstName} heard your apology. It helps — a little.`);
-    localStorage.setItem('pending_date_note_'+bfId,
-      `(They just apologized for standing you up. You heard it. React as your character would — you are not instantly fine, but the apology means something. You might be guarded, quietly relieved, or still a little cold. Do not immediately forgive completely, but let the wall come down just slightly. This takes time.)`);
-    return;
-  }
-
-  // User has used up their apology window (3 user messages) without apologizing
-  if(userMsgsSince >= 3){
-    localStorage.removeItem('stood_up_'+bfId);
-    // Extra damage for not apologizing
-    decayRelHealth(bfId, 8, 'They stood you up and never apologized.');
-    const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
-    const firstName = bf ? bf.name.split(' ')[0] : 'They';
-    showToast(`💔 ${firstName} gave up waiting for an apology.`);
-    localStorage.setItem('pending_date_note_'+bfId,
-      `(They stood you up and then said nothing — no apology, no acknowledgment, nothing. You are done waiting for one. React as your character would after realizing they are not even going to say sorry. You can be cold, withdrawn, deeply hurt, or quietly cutting them off emotionally. This is a real wound.)`);
-  }
 }
 
 function checkProposal(){
