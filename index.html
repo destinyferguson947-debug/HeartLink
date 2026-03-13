@@ -720,7 +720,9 @@
       <label>🔑 Gemini API Key</label>
       <input type="password" id="api-key-input" placeholder="Paste your free Gemini API key here..." />
       <button class="api-save-btn" onclick="saveApiKey()">Save</button>
+      <button class="api-save-btn" id="check-api-btn" onclick="checkApiKey()" style="background:var(--text-muted);margin-left:2px;">Check</button>
       <span class="api-status" id="api-status">✓ Saved!</span>
+      <span id="api-check-result" style="font-size:0.82rem;font-weight:500;display:none;margin-left:4px;"></span>
     </div>
     <div class="api-banner" style="margin-top:-0.5rem;">
       <label>🤖 AI Model</label>
@@ -2385,6 +2387,60 @@ function showPage(id){
 }
 
 // ---- API KEY ----
+async function checkApiKey(){
+  const key = (document.getElementById('api-key-input').value.trim()) || apiKey;
+  const resultEl = document.getElementById('api-check-result');
+  const btn = document.getElementById('check-api-btn');
+  if(!key){ 
+    resultEl.style.display='inline';
+    resultEl.style.color='#c94f4f';
+    resultEl.textContent='⚠️ No API key entered.';
+    return;
+  }
+  btn.textContent='Checking…';
+  btn.disabled = true;
+  resultEl.style.display='none';
+  try{
+    const model = document.getElementById('model-select')?.value || 'gemini-2.5-flash';
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{role:'user',parts:[{text:'Hi'}]}],
+        generationConfig:{maxOutputTokens:5}
+      })
+    });
+    const data = await res.json();
+    resultEl.style.display='inline';
+    if(res.ok){
+      resultEl.style.color='#2d9e6b';
+      resultEl.textContent='✅ API key valid & working!';
+    } else {
+      const msg = data?.error?.message || '';
+      const status = data?.error?.status || '';
+      if(status === 'RESOURCE_EXHAUSTED' || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate')){
+        resultEl.style.color='#e8a838';
+        resultEl.textContent="⏳ Rate limited — you've hit your free quota. Try again later or switch models.";
+      } else if(status === 'INVALID_ARGUMENT' || msg.toLowerCase().includes('api key')){
+        resultEl.style.color='#c94f4f';
+        resultEl.textContent='❌ Invalid API key. Double-check and re-paste it.';
+      } else if(status === 'PERMISSION_DENIED'){
+        resultEl.style.color='#c94f4f';
+        resultEl.textContent='❌ Permission denied — this key may not have Gemini API access enabled.';
+      } else {
+        resultEl.style.color='#c94f4f';
+        resultEl.textContent=`❌ Error: ${msg || 'Unknown error ('+res.status+')'}`;
+      }
+    }
+  } catch(e){
+    resultEl.style.display='inline';
+    resultEl.style.color='#c94f4f';
+    resultEl.textContent='❌ Network error — check your connection.';
+  }
+  btn.textContent='Check';
+  btn.disabled = false;
+}
+
 function saveApiKey(){
   const v=document.getElementById('api-key-input').value.trim();
   if(!v){showToast('Please paste your API key first!');return;}
