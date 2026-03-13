@@ -3824,20 +3824,28 @@ function cancelEdit(idx, encodedOriginal){
 function deleteMessage(idx){
   if(!currentBF) return;
   const bfId = currentBF.id;
-  // Truncate: remove this message AND everything after it
-  chatHistory[bfId] = (chatHistory[bfId]||[]).slice(0, idx);
-  // Wipe alts at idx and above so they can't ghost back
+  chatHistory[bfId].splice(idx, 1);
+  saveHistory();
+
+  // Reindex msgAlts so cached alt responses don't bleed onto the wrong messages
+  // after deletion. Remove the entry at idx, shift all higher indices down by 1.
   if(msgAlts[bfId]){
-    Object.keys(msgAlts[bfId]).forEach(k=>{
-      if(parseInt(k)>=idx){ delete msgAlts[bfId][k]; if(msgAltIdx[bfId]) delete msgAltIdx[bfId][k]; }
-    });
+    const newAlts = {};
+    const newAltIdx = {};
+    for(const key of Object.keys(msgAlts[bfId])){
+      const k = parseInt(key);
+      if(k === idx) continue;           // deleted — discard its alts
+      const newK = k > idx ? k - 1 : k; // shift down
+      newAlts[newK] = msgAlts[bfId][k];
+      newAltIdx[newK] = msgAltIdx[bfId]?.[k] ?? 0;
+    }
+    msgAlts[bfId] = newAlts;
+    msgAltIdx[bfId] = newAltIdx;
     saveMsgAlts(bfId);
   }
-  localStorage.removeItem('summary_'+bfId);
-  saveHistory();
+
   renderMessages();
 }
-
 
 // ── ALT MESSAGE SYSTEM ─────────────────────────────────────────────────────
 async function genAlt(idx){
@@ -4088,6 +4096,8 @@ async function sendMessage(){
   checkAskOutResponse();
   checkDatingConfession();
   checkConfessionResponse();
+  // Check if user forgot the anniversary
+  checkAnniversaryForgotten();
   // Check proposal progression
   checkProposal();
   checkProposalResponse();
@@ -4274,19 +4284,26 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
     }
   }
 
-  // Dating anniversary
-  const _datingStart2 = parseInt(localStorage.getItem('dating_since_time_'+currentBF.id)||'0');
-  if(_datingStart2 && ['dating','fiance','married'].includes(getRelHealth(currentBF.id).status)){
-    const _firstChat2 = parseInt(localStorage.getItem('first_chat_ts_'+currentBF.id)||_datingStart2.toString());
-    const _realDaysAtStart2 = (_datingStart2 - _firstChat2) / (1000*60*60*24);
-    const _startMonth2 = Math.floor(_realDaysAtStart2) % 12;
-    const _startYear2 = 1 + Math.floor(Math.floor(_realDaysAtStart2)/12);
-    const _startDay2 = Math.floor(((_datingStart2 - _firstChat2) % (1000*60*60*24)) / (1000*60*60*24/30)) + 1;
-    const _startIG2 = { month: _startMonth2, year: _startYear2, day: Math.min(_startDay2, 28) };
-    _calSection += `\nYou started dating on ${_calMonthNames[_startIG2.month]} ${_startIG2.day}, Year ${_startIG2.year}.`;
-    if(_startIG2.month === _calIG.month && _startIG2.day === _calIG.day && _calIG.year > _startIG2.year){
-      _calSection += ` TODAY IS YOUR ANNIVERSARY. React naturally.`;
-    }
+  // Dating anniversary — read from stored source of truth
+  const _annivRaw = localStorage.getItem('anniv_day_'+currentBF.id);
+  if(_annivRaw && ['dating','fiance','married'].includes(getRelHealth(currentBF.id).status)){
+    try {
+      const _anniv = JSON.parse(_annivRaw);
+      const _annivMName = _calMonthNames[_anniv.month];
+      _calSection += `\nYour anniversary (the day you became a couple): ${_annivMName} ${_anniv.day}, Year ${_anniv.year}. This date is circled on your calendar. You know it by heart.`;
+      // Compute days until next anniversary (same month+day, any future year)
+      const _annivThisYearAbs = _calIG.year*12*30 + _anniv.month*30 + _anniv.day;
+      const _todayAbs2 = _calIG.year*12*30 + _calIG.month*30 + _calIG.day;
+      let _daysUntilAnniv = _annivThisYearAbs - _todayAbs2;
+      if(_daysUntilAnniv < 0) _daysUntilAnniv += 12*30; // next year
+      const _isAnnivToday = _anniv.month === _calIG.month && _anniv.day === _calIG.day && _calIG.year > _anniv.year;
+      const _annivSoon = _daysUntilAnniv > 0 && _daysUntilAnniv <= 5 && _calIG.year > _anniv.year;
+      if(_isAnnivToday){
+        _calSection += ` TODAY IS YOUR ANNIVERSARY.`;
+      } else if(_annivSoon){
+        _calSection += ` Your anniversary is in ${_daysUntilAnniv} day${_daysUntilAnniv===1?'':'s'}. You are aware of this. You may mention it naturally if it fits.`;
+      }
+    } catch(e){}
   }
 
   // Scheduled calendar events — dates, plans, anything the user has marked
@@ -4319,6 +4336,22 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
       });
       _calSection += `\nWhen discussing plans, always use the correct day name and distance based on the above. Never contradict these dates.`;
     }
+  }
+
+  // ── Anniversary day enforcement ─────────────────────────────────────────────
+  const _annivEnfRaw = localStorage.getItem('anniv_day_'+currentBF.id);
+  if(_annivEnfRaw && ['dating','fiance','married'].includes(getRelHealth(currentBF.id).status)){
+    try {
+      const _ae = JSON.parse(_annivEnfRaw);
+      const _aeToday = getInGameDate(currentBF.id);
+      const _isAnnivEnfToday = _ae.month === _aeToday.month && _ae.day === _aeToday.day && _aeToday.year > _ae.year;
+      const _aeYearsTogether = _aeToday.year - _ae.year;
+      const _aeMNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      if(_isAnnivEnfToday){
+        const _aeOrdinal = _aeYearsTogether===1?'1st':_aeYearsTogether===2?'2nd':_aeYearsTogether===3?'3rd':_aeYearsTogether+'th';
+        fullSystem += `\n\n--- ANNIVERSARY — IMPORTANT ---\nToday is your ${_aeOrdinal} anniversary with this person (${_aeMNames[_ae.month]} ${_ae.day}).\nRULES FOR TODAY:\n1. You are aware it is your anniversary. It is meaningful to you.\n2. If the user has not mentioned it, you are quietly waiting — noticing.\n3. Do not announce it bluntly first thing, but let it colour the conversation. Drop subtle hints. Let it surface naturally.\n4. If several messages pass and they have not acknowledged it, you will become visibly hurt or upset — in your own character voice.\n5. If they DO remember and acknowledge it, react warmly and in character. This is a good moment.\n6. This applies whether you are dating, engaged, or married. The anniversary always matters.\n--- END ANNIVERSARY RULE ---`;
+      }
+    } catch(e){}
   }
 
   fullSystem += _calSection;
@@ -4410,7 +4443,16 @@ function deleteMemory(bfId, memId){
 function renderMemoryPanel(){
   // Render calendar first
   const calEl = document.getElementById('calendar-widget');
-  if(calEl && currentBF){ calViewOffset=0; renderCalendar(currentBF.id); }
+  if(calEl && currentBF){
+    calViewOffset=0;
+    renderCalendar(currentBF.id);
+    // Backfill anniv_day_ from calendar entry if it was set before this key existed
+    if(!localStorage.getItem('anniv_day_'+currentBF.id)){
+      const _bfCalDates = getCalDates(currentBF.id);
+      const _bfAnniv = _bfCalDates.find(e=>e.type==='anniversary');
+      if(_bfAnniv) localStorage.setItem('anniv_day_'+currentBF.id, JSON.stringify({day:_bfAnniv.day,month:_bfAnniv.month,year:_bfAnniv.year}));
+    }
+  }
   const body=document.getElementById('memory-panel-body');
   if(!body||!currentBF) return;
   const memories=getMemories(currentBF.id);
@@ -4899,6 +4941,74 @@ function calScheduleDate(){
   }
 }
 
+// ── ANNIVERSARY MEMORY SYSTEM ───────────────────────────────────────────────
+// On anniversary day: if the user goes 3+ messages without acknowledging it,
+// the character gets upset and the relationship takes health damage.
+
+function checkAnniversaryForgotten(){
+  if(!currentBF) return;
+  const bfId = currentBF.id;
+  const relData = getRelHealth(bfId);
+  if(!['dating','fiance','married'].includes(relData.status)) return;
+
+  const _annivRaw = localStorage.getItem('anniv_day_'+bfId);
+  if(!_annivRaw) return;
+
+  let _anniv;
+  try { _anniv = JSON.parse(_annivRaw); } catch(e){ return; }
+
+  const today = getInGameDate(bfId);
+  // Only runs on anniversary day (not the original dating year)
+  const isAnnivToday = _anniv.month === today.month && _anniv.day === today.day && today.year > _anniv.year;
+  if(!isAnnivToday) return;
+
+  // If damage already dealt today, skip
+  const damageKey = 'anniv_damage_'+bfId+'_y'+today.year;
+  if(localStorage.getItem(damageKey)) return;
+
+  // Track how many messages have passed since anniversary day started
+  const history = chatHistory[bfId]||[];
+  const watchKey = 'anniv_watch_start_'+bfId+'_y'+today.year;
+  if(!localStorage.getItem(watchKey)){
+    localStorage.setItem(watchKey, history.length.toString());
+    return; // start the watch
+  }
+
+  const watchStart = parseInt(localStorage.getItem(watchKey)||'0');
+  const msgsSinceStart = history.length - watchStart;
+  if(msgsSinceStart < 6) return; // give them 6 exchanges (3 user + 3 AI) to remember
+
+  // Check if the user acknowledged the anniversary in recent messages
+  const recentMsgs = history.slice(watchStart);
+  const annivWords = ['anniversary','anniv','happy anniv','our day','this day','remember today',
+    'celebrate','celebrated','special day','first year','second year','third year','year together',
+    'we started','we became','official','officially','when we got together','since we'];
+  const userAcknowledged = recentMsgs
+    .filter(m => m.role === 'user')
+    .some(m => annivWords.some(w => m.content.toLowerCase().includes(w)));
+
+  if(userAcknowledged) {
+    // User remembered — clear the watch, no damage
+    localStorage.removeItem(watchKey);
+    return;
+  }
+
+  // User forgot — deal health damage and trigger upset reaction
+  localStorage.setItem(damageKey, '1');
+  localStorage.removeItem(watchKey);
+
+  const mNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const yearsTogetherVal = today.year - _anniv.year;
+  const dmgAmount = relData.status === 'married' ? 18 : 12;
+
+  decayRelHealth(bfId, dmgAmount, `They forgot your anniversary (${mNames[_anniv.month]} ${_anniv.day}).`);
+  showToast(`💔 ${currentBF.name.split(' ')[0]} noticed you forgot your anniversary.`);
+
+  // Inject a pending note so the character reacts in character
+  localStorage.setItem('pending_date_note_'+bfId,
+    `(ANNIVERSARY FORGOTTEN: Today is your ${yearsTogetherVal === 1 ? '1st' : yearsTogetherVal === 2 ? '2nd' : yearsTogetherVal === 3 ? '3rd' : yearsTogetherVal+'th'} anniversary — ${mNames[_anniv.month]} ${_anniv.day}. The person you are with has not acknowledged it after several messages. React as your character naturally would — hurt, disappointed, quietly cold, passive aggressive, or directly upset depending on your personality. Do NOT let this go unnoticed. This matters to you. Do not be dramatic for no reason but do let them know, in your own way, that you noticed they forgot. The relationship health took a hit.)`);
+}
+
 function checkProposal(){
   if(!currentBF||(!apiKey&&!proxyMode)) return;
   const relData = getRelHealth(currentBF.id);
@@ -5226,15 +5336,18 @@ function grantDatingStatus(bfId, milestoneText){
   if(!localStorage.getItem('dating_since_time_'+bfId)){
     localStorage.setItem('dating_since_time_'+bfId, Date.now().toString());
   }
-  // Mark anniversary on in-game calendar
+  // Mark anniversary on in-game calendar — store as source of truth
   (()=>{
     const _igStart = getInGameDate(bfId);
     const _calDates = getCalDates(bfId);
     const _filtered = _calDates.filter(e=>e.type!=='anniversary');
     _filtered.push({day:_igStart.day, month:_igStart.month, year:_igStart.year, type:'anniversary'});
     saveCalDates(bfId, _filtered);
+    // Also store as a dedicated key so it's always readable without re-deriving
+    localStorage.setItem('anniv_day_'+bfId, JSON.stringify({day:_igStart.day, month:_igStart.month, year:_igStart.year}));
+    const _mNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     localStorage.setItem('pending_date_note_'+bfId,
-      `(Today — ${['January','February','March','April','May','June','July','August','September','October','November','December'][_igStart.month]} ${_igStart.day}, Year ${_igStart.year} — is the day you officially became a couple. This date is now circled on your calendar. You are quietly aware of it. React as your character naturally would.)`);
+      `(Today — ${_mNames[_igStart.month]} ${_igStart.day}, Year ${_igStart.year} — is the day you officially became a couple. This date is now circled on your calendar. You hold onto it. React as your character naturally would — this is a moment that matters.)`);
   })();
   refreshRelMeter();
   showHeartRain();
@@ -7352,9 +7465,8 @@ async function checkPlotEvents(){
   if(pendingId) candidate = eligible.find(ev => ev.id === pendingId) || null;
   if(!candidate) candidate = eligible[0];
 
-  // Context gate removed — events fire as soon as stagnation threshold is reached.
-  // The bridge prompt handles graceful transitions so no extra API call is needed.
-  clearPendingPlot(bfId); // clear any previously deferred candidate
+  // Context gate removed — bridge prompt handles graceful transitions.
+  clearPendingPlot(bfId);
 
   // ── Fire the event ────────────────────────────────────────────────────────
   clearPendingPlot(bfId);
