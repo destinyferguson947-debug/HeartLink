@@ -679,6 +679,9 @@
   <div class="nav-logo">Heart<span>link</span></div>
   <div style="display:flex;align-items:center;gap:0.7rem">
   </div>
+  <div style="display:flex;align-items:center;gap:0.5rem;">
+    <span style="font-size:0.68rem;font-weight:600;background:#2d9e6b;color:#fff;padding:2px 9px;border-radius:1rem;letter-spacing:0.04em;opacity:0.92;">✓ Updated</span>
+  </div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('home')">✨ Home</button>
     <button class="nav-tab" onclick="showPage('browse')">💝 Browse</button>
@@ -3821,28 +3824,20 @@ function cancelEdit(idx, encodedOriginal){
 function deleteMessage(idx){
   if(!currentBF) return;
   const bfId = currentBF.id;
-  chatHistory[bfId].splice(idx, 1);
-  saveHistory();
-
-  // Reindex msgAlts so cached alt responses don't bleed onto the wrong messages
-  // after deletion. Remove the entry at idx, shift all higher indices down by 1.
+  // Truncate: remove this message AND everything after it
+  chatHistory[bfId] = (chatHistory[bfId]||[]).slice(0, idx);
+  // Wipe alts at idx and above so they can't ghost back
   if(msgAlts[bfId]){
-    const newAlts = {};
-    const newAltIdx = {};
-    for(const key of Object.keys(msgAlts[bfId])){
-      const k = parseInt(key);
-      if(k === idx) continue;           // deleted — discard its alts
-      const newK = k > idx ? k - 1 : k; // shift down
-      newAlts[newK] = msgAlts[bfId][k];
-      newAltIdx[newK] = msgAltIdx[bfId]?.[k] ?? 0;
-    }
-    msgAlts[bfId] = newAlts;
-    msgAltIdx[bfId] = newAltIdx;
+    Object.keys(msgAlts[bfId]).forEach(k=>{
+      if(parseInt(k)>=idx){ delete msgAlts[bfId][k]; if(msgAltIdx[bfId]) delete msgAltIdx[bfId][k]; }
+    });
     saveMsgAlts(bfId);
   }
-
+  localStorage.removeItem('summary_'+bfId);
+  saveHistory();
   renderMessages();
 }
+
 
 // ── ALT MESSAGE SYSTEM ─────────────────────────────────────────────────────
 async function genAlt(idx){
@@ -4253,57 +4248,80 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   if(extraPrompt){
     fullSystem += `\n\n--- MANDATORY CUSTOM INSTRUCTIONS (from user — you MUST follow these exactly, they override everything else) ---\n${extraPrompt}\n--- END CUSTOM INSTRUCTIONS ---`;
   }
-  // ── Birthday awareness ──────────────────────────────────────────────────
-  const _bfData = BF_DATA.find(b=>b.id===currentBF.id);
-  if(_bfData?.birthday){
-    const _bday = _bfData.birthday;
-    const _bdayMonthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  // ── Full calendar awareness ─────────────────────────────────────────────────
+  const _calIG = getInGameDate(currentBF.id);
+  const _calMonthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const _calDayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  // Compute day of week from the pseudo-random firstDayOfWeek formula used in renderCalendar
+  const _calFirstDow = ((_calIG.year*12+_calIG.month)*2) % 7;
+  const _calDow = (_calFirstDow + _calIG.day - 1) % 7;
+  const _calDowName = _calDayNames[_calDow];
+  let _calSection = `\n\n--- CALENDAR & DATE AWARENESS ---\nToday is ${_calDowName}, ${_calMonthNames[_calIG.month]} ${_calIG.day}, Year ${_calIG.year} (in-game).`;
+
+  // Birthday
+  const _bfData2 = BF_DATA.find(b=>b.id===currentBF.id);
+  if(_bfData2?.birthday){
+    const _bday = _bfData2.birthday;
     const _bdayInfo = getBirthdayInfo(currentBF.id);
-    const _todayIG = getInGameDate(currentBF.id);
-    const _bdayIGMonth = _bday.month - 1; // 0-indexed for in-game
-    const _todayIGMonthName = _bdayMonthNames[_todayIG.month];
-    const _bdayMonthName = _bdayMonthNames[_bdayIGMonth];
-    let _bdayNote = `YOUR BIRTHDAY: ${_bdayMonthName} ${_bday.day}. Today in-game is ${_todayIGMonthName} ${_todayIG.day}, Year ${_todayIG.year}.`;
+    const _bdayMonthName = _calMonthNames[_bday.month - 1];
+    _calSection += `\nYour birthday: ${_bdayMonthName} ${_bday.day}.`;
     if(_bdayInfo?.isToday){
-      _bdayNote += ` TODAY IS YOUR BIRTHDAY. You are aware of this. You may let it colour the scene in subtle or overt ways depending on your personality.`;
+      _calSection += ` TODAY IS YOUR BIRTHDAY. You are aware of this and it colours the scene.`;
     } else if(_bdayInfo){
       const _realHrsUntil = (_bdayInfo.next - Date.now()) / (1000*60*60);
       const _igDaysUntil = Math.round(_realHrsUntil * (30/24));
-      if(_igDaysUntil <= 7){
-        _bdayNote += ` Your birthday is in ${_igDaysUntil} in-game day${_igDaysUntil===1?'':'s'}. You may be quietly aware of it approaching.`;
-      }
+      if(_igDaysUntil <= 7) _calSection += ` Your birthday is in ${_igDaysUntil} in-game day${_igDaysUntil===1?'':'s'}.`;
     }
-    fullSystem += `
-
---- CALENDAR AWARENESS ---
-${_bdayNote}`;
   }
 
-  // ── Dating anniversary awareness ────────────────────────────────────────
-  const _datingStart = parseInt(localStorage.getItem('dating_since_time_'+currentBF.id)||'0');
-  if(_datingStart && ['dating','fiance','married'].includes(getRelHealth(currentBF.id).status)){
-    const _relData2 = getRelHealth(currentBF.id);
-    const _todayIG2 = getInGameDate(currentBF.id);
-    const _startIG = (() => {
-      // Reconstruct in-game date when dating began from the real timestamp
-      const _firstChat = parseInt(localStorage.getItem('first_chat_ts_'+currentBF.id)||_datingStart.toString());
-      const _realDaysAtStart = (_datingStart - _firstChat) / (1000*60*60*24);
-      const _startMonth = Math.floor(_realDaysAtStart) % 12;
-      const _startYear = 1 + Math.floor(Math.floor(_realDaysAtStart)/12);
-      const _startDay = Math.floor(((_datingStart - _firstChat) % (1000*60*60*24)) / (1000*60*60*24/30)) + 1;
-      return { month: _startMonth, year: _startYear, day: Math.min(_startDay, 28) };
-    })();
-    const _monthNames2 = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const _isAnniversary = _startIG.month === _todayIG2.month && _startIG.day === _todayIG2.day && _todayIG2.year > _startIG.year;
-    let _annivNote = `You started dating on ${_monthNames2[_startIG.month]} ${_startIG.day}, Year ${_startIG.year} (in-game). Today is ${_monthNames2[_todayIG2.month]} ${_todayIG2.day}, Year ${_todayIG2.year}.`;
-    if(_isAnniversary){
-      _annivNote += ` TODAY IS YOUR ANNIVERSARY. You remember this date. React naturally — warmly, emotionally, or with your characteristic style.`;
+  // Dating anniversary
+  const _datingStart2 = parseInt(localStorage.getItem('dating_since_time_'+currentBF.id)||'0');
+  if(_datingStart2 && ['dating','fiance','married'].includes(getRelHealth(currentBF.id).status)){
+    const _firstChat2 = parseInt(localStorage.getItem('first_chat_ts_'+currentBF.id)||_datingStart2.toString());
+    const _realDaysAtStart2 = (_datingStart2 - _firstChat2) / (1000*60*60*24);
+    const _startMonth2 = Math.floor(_realDaysAtStart2) % 12;
+    const _startYear2 = 1 + Math.floor(Math.floor(_realDaysAtStart2)/12);
+    const _startDay2 = Math.floor(((_datingStart2 - _firstChat2) % (1000*60*60*24)) / (1000*60*60*24/30)) + 1;
+    const _startIG2 = { month: _startMonth2, year: _startYear2, day: Math.min(_startDay2, 28) };
+    _calSection += `\nYou started dating on ${_calMonthNames[_startIG2.month]} ${_startIG2.day}, Year ${_startIG2.year}.`;
+    if(_startIG2.month === _calIG.month && _startIG2.day === _calIG.day && _calIG.year > _startIG2.year){
+      _calSection += ` TODAY IS YOUR ANNIVERSARY. React naturally.`;
     }
-    fullSystem += `
-
---- RELATIONSHIP ANNIVERSARY ---
-${_annivNote}`;
   }
+
+  // Scheduled calendar events — dates, plans, anything the user has marked
+  const _allCalDates = getCalDates(currentBF.id);
+  if(_allCalDates.length){
+    // Compute days from today for each event
+    const _todayAbsDay = _calIG.year * 12 * 30 + _calIG.month * 30 + _calIG.day;
+    const _upcoming = _allCalDates
+      .filter(e => e.type !== 'anniversary') // handled above
+      .map(e => {
+        const _absDay = (e.year || _calIG.year) * 12 * 30 + e.month * 30 + e.day;
+        const _diff = _absDay - _todayAbsDay;
+        return { ...e, diff: _diff };
+      })
+      .filter(e => e.diff >= 0 && e.diff <= 30) // only show events within 30 in-game days
+      .sort((a,b) => a.diff - b.diff);
+
+    if(_upcoming.length){
+      _calSection += `\nUpcoming plans and events you are aware of:`;
+      _upcoming.forEach(e => {
+        const _evMonthName = _calMonthNames[e.month];
+        const _evYear = e.year || _calIG.year;
+        // Compute day of week for this event
+        const _evFirstDow = ((_evYear*12+e.month)*2) % 7;
+        const _evDow = (_evFirstDow + e.day - 1) % 7;
+        const _evDowName = _calDayNames[_evDow];
+        const _diffLabel = e.diff === 0 ? 'TODAY' : e.diff === 1 ? 'tomorrow' : `in ${e.diff} day${e.diff===1?'':'s'} (${_evDowName})`;
+        const _label = e.type === 'date' ? 'Date planned' : e.type === 'birthday' ? 'Birthday' : e.type === 'anniversary' ? 'Anniversary' : 'Event';
+        _calSection += `\n• ${_label} on ${_evDowName} ${_evMonthName} ${e.day}${_evYear !== _calIG.year ? ', Year '+_evYear : ''} — ${_diffLabel}${e.note ? ': '+e.note : ''}.`;
+      });
+      _calSection += `\nWhen discussing plans, always use the correct day name and distance based on the above. Never contradict these dates.`;
+    }
+  }
+
+  fullSystem += _calSection;
 
   // Pending calendar note (date scheduled or birthday acknowledgment)
   const _pendingCal = localStorage.getItem('pending_date_note_'+currentBF.id);
@@ -7194,11 +7212,13 @@ function clearPendingPlot(bfId){ localStorage.removeItem('pending_plot_'+bfId); 
 function getLastPlotMsg(bfId){ return parseInt(localStorage.getItem('last_plot_msg_'+bfId)||'0'); }
 function setLastPlotMsg(bfId, msgCount){ localStorage.setItem('last_plot_msg_'+bfId, msgCount.toString()); }
 // Randomized stagnation threshold: 15-20 messages between events
+// For the very first event (nothing ever fired), use a shorter 10-12 message window
 function getStagnationThreshold(bfId){
   const key = 'stag_thresh_'+bfId;
   const stored = parseInt(localStorage.getItem(key)||'0');
-  if(stored >= 15 && stored <= 20) return stored;
-  const t = 15 + Math.floor(Math.random()*6); // 15-20
+  if(stored >= 8 && stored <= 20) return stored;
+  const anyFired = localStorage.getItem('any_plot_fired_'+bfId) === '1';
+  const t = anyFired ? 15 + Math.floor(Math.random()*6) : 10 + Math.floor(Math.random()*3); // 15-20 after first, 10-12 for first
   localStorage.setItem(key, t.toString());
   return t;
 }
@@ -7261,11 +7281,14 @@ async function checkPlotEvents(){
   // If 15-20 messages have passed since the last plot event, force one through
   // regardless of context gate. This prevents the story getting stuck in one scene.
   const lastPlotMsg = getLastPlotMsg(bfId);
+  const anyEventEverFired = localStorage.getItem('any_plot_fired_'+bfId) === '1';
   const msgsSinceLastEvent = totalMsgs - lastPlotMsg;
   const stagnationThreshold = getStagnationThreshold(bfId);
-  const isStagnant = lastPlotMsg > 0
+  // isStagnant: either it's been too long since the last event, OR
+  // no event has ever fired and we've exceeded the first threshold
+  const isStagnant = anyEventEverFired
     ? msgsSinceLastEvent >= stagnationThreshold
-    : totalMsgs >= stagnationThreshold; // no event ever fired — use absolute count
+    : totalMsgs >= stagnationThreshold;
 
   // Find eligible pre-written events for this character that haven't fired yet
   const eligible = PLOT_EVENTS.filter(ev => {
@@ -7329,36 +7352,14 @@ async function checkPlotEvents(){
   if(pendingId) candidate = eligible.find(ev => ev.id === pendingId) || null;
   if(!candidate) candidate = eligible[0];
 
-  // ── CONTEXT GATE — skipped entirely if story is stagnant ─────────────────
-  let contextOk = true;
-  if(!isStagnant){
-    const contextCheckPrompt = `You are a story director reviewing a conversation. Your job is to decide whether NOW is a good moment to introduce a pre-written story scene, or whether the conversation is in the middle of something that would make a scene transition feel jarring and confusing.
-
-RECENT CONVERSATION:
-${lastExchange}
-
-UPCOMING SCENE TYPE: ${candidate.type === 'together' ? 'a warm bonding moment' : candidate.type === 'sweet' ? 'a tender romantic scene' : 'a dramatic complication or conflict'}
-
-QUESTION: Is the conversation currently at a natural pause, resolution, or transition point where introducing a new scene would feel smooth — OR is it mid-action, mid-crisis, mid-argument, mid-joke, or clearly still going somewhere on its own?
-
-Reply with ONLY one word: YES (good moment to introduce the scene) or NO (conversation is still going somewhere, defer the scene).`;
-
-    try {
-      const answer = (await callAnyAPI('You are a story director.', [{role:'user',content:contextCheckPrompt}], 5, 0.0)).trim().toUpperCase();
-      contextOk = answer.startsWith('Y');
-    } catch(e){ contextOk = true; }
-  }
-  // If stagnant, always fire — story must move forward
-  // (bridge prompt will handle the transition gracefully)
-
-  if(!contextOk){
-    setPendingPlot(bfId, candidate.id);
-    return;
-  }
+  // Context gate removed — events fire as soon as stagnation threshold is reached.
+  // The bridge prompt handles graceful transitions so no extra API call is needed.
+  clearPendingPlot(bfId); // clear any previously deferred candidate
 
   // ── Fire the event ────────────────────────────────────────────────────────
   clearPendingPlot(bfId);
   markPlotFired(candidate.id);
+  localStorage.setItem('any_plot_fired_'+bfId, '1');
   setLastPlotMsg(bfId, totalMsgs);
   resetStagnationThreshold(bfId); // pick a new random window for next event
 
@@ -7367,10 +7368,13 @@ Reply with ONLY one word: YES (good moment to introduce the scene) or NO (conver
     showTyping();
     const freshHistory = (chatHistory[bfId] || []).slice(-4);
     const freshExchange = freshHistory.map(m => (m.role === 'user' ? 'Them: ' : 'You: ') + m.content.substring(0, 120)).join('\n');
-    // If stagnant, use a stronger time-skip bridge instruction
-    const bridgeInstruction = isStagnant
-      ? `(STORY PROGRESSION — the conversation has been in the same place for a while. You MUST move the story forward now. Write a brief time-skip or scene transition first (e.g. "A few days later...", "That evening...", "The following week..."), then deliver the scene below with your full personality and presence. Here is what was last discussed:\n${freshExchange}\n\nNow move the story forward into this scene:)`
-      : `(IMPORTANT TRANSITION INSTRUCTION: Before launching into the story scene below, you must first write a natural bridge — 1 to 3 sentences — that acknowledges what you were just talking about and transitions gracefully into the story event. This might be a brief time-skip ("A few days later..." or "The following week..."), a scene change ("You meet up the next afternoon..."), or simply a natural conversational moment that flows into the new scene. The bridge must make the story event feel like it belongs in the continuous story, not like a random interruption. Never start the scene abruptly. Here is what you were just discussing for context:\n${freshExchange}\n\nNow write your bridge, then deliver the full story scene:)`;
+    const _lastAiMsg = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
+    const _lastAiPreview = _lastAiMsg ? _lastAiMsg.content.substring(0,80) : '';
+    const bridgeInstruction = `(STORY TRANSITION: A new scene is beginning. Follow these rules exactly:
+1. DO NOT repeat, paraphrase, or echo your previous message. Your last message began: "${_lastAiPreview}..." — do not reuse any of its phrasing, opening, or content.
+2. Write a SHORT bridge of 1-2 sentences ONLY — a time-skip like "Three days later..." or a single line of physical action is enough.
+3. Then launch directly into the story scene.
+4. Recent context (do NOT repeat this): ${freshExchange})`;
     const bridgePrompt = bridgeInstruction + '\n\n' + candidate.prompt;
     await callGemini(bridgePrompt);
     const typeLabel = candidate.type === 'together' ? 'A moment drew you closer.' :
