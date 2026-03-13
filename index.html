@@ -405,8 +405,9 @@
   .rel-meter-bar { width: 110px; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; position: relative; }
   .rel-meter-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease, background 0.6s ease; }
   .rel-meter-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; color: var(--rose-dark); text-align: right; }
-  .rel-meter-tooltip { display: none; position: absolute; right: 0; top: 28px; background: #2a1a1f; color: #fff; font-size: 0.73rem; border-radius: 0.5rem; padding: 6px 10px; width: 180px; text-align: left; z-index: 50; line-height: 1.5; pointer-events: none; }
+  .rel-meter-tooltip { display: none; position: absolute; right: 0; top: 32px; background: #2a1a1f; color: #fff; font-size: 0.73rem; border-radius: 0.6rem; padding: 8px 12px; width: 220px; text-align: left; z-index: 50; line-height: 1.6; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
   .rel-meter-wrap:hover .rel-meter-tooltip { display: block; }
+  .rel-meter-tooltip .plot-moment { display: block; margin-top: 5px; padding-top: 5px; border-top: 1px solid rgba(255,255,255,0.15); font-style: italic; color: #f0c0cc; font-size: 0.7rem; line-height: 1.5; }
 
   /* ---- HEADER DROPDOWN ---- */
   .chat-header-clickable { cursor: pointer; display: flex; align-items: center; gap: 0.8rem; flex: 1; position: relative; }
@@ -3636,7 +3637,7 @@ function openChat(id){
         <div class="rel-meter-wrap">
           <div class="rel-meter-label">${getRelStatusName(relData.status, stageIdx, relData.health)}</div>
           <div class="rel-meter-bar"><div class="rel-meter-fill" style="width:${relData.health}%;background:${meterColor}"></div></div>
-          <div class="rel-meter-tooltip">${relData.tooltipMsg||'Your relationship is healthy.'}</div>
+          <div class="rel-meter-tooltip" id="rel-meter-tooltip-main">${relData.tooltipMsg||'Your relationship is healthy.'}${relData.plotMoment ? `<span class="plot-moment">${relData.plotMoment}</span>` : ''}</div>
         </div>
         <div class="auto-toggle-wrap" onclick="toggleAutoMsg()" title="Auto-continue: character messages you if you're away">
           <div class="auto-toggle-switch ${autoOn?'on':''}" id="auto-toggle-switch"><div class="auto-toggle-knob"></div></div>
@@ -5270,7 +5271,11 @@ function refreshRelMeter(){
     const statusColors = {dating:'var(--rose)',fiance:'var(--rose-dark)',married:'var(--rose-dark)',complicated:'#c48a3f',separation:'#c48a3f',divorced:'#555',broken_up:'#555'};
     label.style.color = statusColors[relData.status]||'var(--rose-dark)';
   }
-  if(tooltip) tooltip.textContent = relData.tooltipMsg||'Your relationship is healthy.';
+  if(tooltip){
+    const mainText = relData.tooltipMsg || 'Your relationship is healthy.';
+    const plotSpan = relData.plotMoment ? `<span class="plot-moment">${relData.plotMoment}</span>` : '';
+    tooltip.innerHTML = mainText + plotSpan;
+  }
   // Add/remove heart ring
   if(headerEmoji){
     if(relData.status === 'dating') headerEmoji.classList.add('avatar-heart-ring');
@@ -7638,15 +7643,52 @@ async function checkPlotEvents(){
                       candidate.type === 'sweet'    ? 'A tender moment you will not forget.' :
                                                       'Something happened that complicated everything.';
     addMilestone(bfId, typeLabel);
-    if(candidate.type === 'together'){ boostRelHealth(bfId, 6); forceMood(bfId, pickMood(bfId, 80)); }
-    else if(candidate.type === 'sweet'){ boostRelHealth(bfId, 8); forceMood(bfId, 'tender'); }
-    else if(candidate.type === 'complicate'){
+
+    // Plot moment messages — shown on health bar hover after the event
+    const _togetherMoments = [
+      'A moment brought you closer.',
+      'Something passed between you — unspoken, but felt.',
+      'You found your way back to each other.',
+      'A quiet moment changed things for the better.',
+      'The distance between you felt a little smaller.',
+    ];
+    const _sweetMoments = [
+      "A tender moment you won't soon forget.",
+      'Something soft and real happened between you.',
+      'It was a small thing — but it meant everything.',
+      'A memory was made today.',
+      'The warmth between you settled in deeper.',
+    ];
+    const _complicateMoments = [
+      'A moment brought tension between you.',
+      'Something happened that left a mark.',
+      'The air between you is heavier now.',
+      'A thread pulled loose — and you both felt it.',
+      'Not everything that happens is easy to undo.',
+    ];
+    const _momentPool = candidate.type === 'together' ? _togetherMoments :
+                        candidate.type === 'sweet'    ? _sweetMoments    : _complicateMoments;
+    const _plotMoment = _momentPool[Math.floor(Math.random() * _momentPool.length)];
+
+    if(candidate.type === 'together'){
+      boostRelHealth(bfId, 6);
+      forceMood(bfId, pickMood(bfId, 80));
+    } else if(candidate.type === 'sweet'){
+      boostRelHealth(bfId, 8);
+      forceMood(bfId, 'tender');
+    } else if(candidate.type === 'complicate'){
       decayRelHealth(bfId, 10, 'A story event created tension between you.');
       const negMoods = ['withdrawn','irritable','avoidant','sad'];
       const pool = MOOD_POOL[bfId] || negMoods;
       const available = negMoods.filter(m => pool.includes(m));
       forceMood(bfId, available[Math.floor(Math.random()*available.length)] || 'withdrawn');
     }
+
+    // Store plot moment on relData so it shows on health bar hover
+    const _pmData = getRelHealth(bfId);
+    _pmData.plotMoment = _plotMoment;
+    saveRelHealth(bfId, _pmData);
+    refreshRelMeter();
   }, 2500);
 }
 
