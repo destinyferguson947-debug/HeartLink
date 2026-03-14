@@ -3668,7 +3668,7 @@ function openChat(id){
   const isDating = relData.status === 'dating' || relData.status === 'complicated' || relData.status === 'broken up';
   const avatarWrapClass = (relData.status === 'dating') ? 'avatar-heart-ring' : '';
   const bfDesc = bf.personality || bf.core?.substring(0,300) || 'A fascinating person.';
-  const autoOn = getAutoMsgEnabled();
+  const autoOn = getAutoMsgEnabled(bf.id);
   main.innerHTML=`
     <div class="chat-header">
       <div class="chat-header-clickable" id="header-clickable" onclick="toggleHeaderDropdown(event)">
@@ -5817,21 +5817,34 @@ function generateJealousMessage(bf, isMarriedTrigger=false){
 // ---- AUTO-MESSAGE SYSTEM ----
 let autoMsgTimers = {};
 
-function getAutoMsgEnabled(){
-  return localStorage.getItem('auto_msg_enabled') !== 'false'; // default ON
+function getAutoMsgEnabled(bfId){
+  // Per-character: each character's auto-message is independent, default OFF.
+  const id = bfId || (currentBF && currentBF.id);
+  if(!id) return false;
+  return localStorage.getItem('auto_msg_enabled_'+id) === 'true';
 }
 
 function toggleAutoMsg(){
-  const current = getAutoMsgEnabled();
-  localStorage.setItem('auto_msg_enabled', current ? 'false' : 'true');
+  if(!currentBF) return;
+  const bfId = currentBF.id;
+  const current = getAutoMsgEnabled(bfId);
+  localStorage.setItem('auto_msg_enabled_'+bfId, current ? 'false' : 'true');
   const sw = document.getElementById('auto-toggle-switch');
   if(sw) sw.classList.toggle('on', !current);
-  showToast(current ? 'Auto-messages turned off' : 'Auto-messages turned on 💌');
+  const fn = currentBF.name.split(' ')[0];
+  showToast(current ? `Auto-messages off for ${fn}` : `Auto-messages on for ${fn} 💌`);
+  if(!current){
+    // Just turned on — schedule timers immediately
+    scheduleAutoMsg(bfId);
+  } else {
+    // Just turned off — cancel any pending timers
+    clearAutoMsgTimers(bfId);
+  }
 }
 
 function scheduleAutoMsg(bfId){
   clearAutoMsgTimers(bfId);
-  if(!getAutoMsgEnabled()) return;
+  if(!getAutoMsgEnabled(bfId)) return;
   if(isUserAway(bfId)) return; // user said goodbye — away system handles this
   const bf = savedBFs.find(b=>b.id===bfId);
   if(!bf) return;
@@ -5871,7 +5884,7 @@ function scheduleAutoMsg2hr(bfId){
   if(!bf) return;
   const t2Delay = 60 * 60 * 1000; // 1 more hour (= 2hr total)
   autoMsgTimers[bfId+'_2'] = setTimeout(async ()=>{
-    if(!apiKey||!getAutoMsgEnabled()) return;
+    if(!apiKey||!getAutoMsgEnabled(bfId)) return;
     const relData = getRelHealth(bfId);
     if(relData.status === 'broken_up') return;
     // Extra decay for being gone 2hr+
@@ -5968,7 +5981,7 @@ function scheduleAwayMsg(bfId){
     if(!apiKey) return;
     const relData = getRelHealth(bfId);
     if(relData.status === 'broken_up') return;
-    if(!getAutoMsgEnabled()) return;
+    if(!getAutoMsgEnabled(currentBF && currentBF.id)) return;
 
     const stage = getStage(bf);
     const stageLabel = STAGES[stage];
@@ -8281,7 +8294,7 @@ async function fireEndingScene(bf,age){
 function startRelDecayChecker(){
   if(relDecayInterval) clearInterval(relDecayInterval);
   relDecayInterval = setInterval(()=>{
-    if(!currentBF||!getAutoMsgEnabled()) return;
+    if(!currentBF||!getAutoMsgEnabled(currentBF.id)) return;
     const lastMsg = parseInt(localStorage.getItem('last_user_msg_'+currentBF.id)||'0');
     const sinceLastMsg = Date.now() - lastMsg;
     const relData = getRelHealth(currentBF.id);
