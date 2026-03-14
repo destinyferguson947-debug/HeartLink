@@ -801,6 +801,7 @@
   <!-- heartlink-build-v11 -->
   <!-- heartlink-build-v12 -->
   <!-- heartlink-build-v12 -->
+  <!-- heartlink-build-v13 -->
 </head>
 <body>
 
@@ -4451,7 +4452,12 @@ async function callStructuredJSON(systemPrompt, userPrompt, maxTokens=800){
   const data = await res.json();
   if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  if(!text) throw new Error('Empty response');
+  if(!text){
+    // Surface finish reason if available
+    const reason = data.candidates?.[0]?.finishReason || 'unknown';
+    const safety = data.candidates?.[0]?.safetyRatings ? JSON.stringify(data.candidates[0].safetyRatings) : '';
+    throw new Error('Empty response. finishReason='+reason+(safety?' safety='+safety:''));
+  }
   return text;
 }
 
@@ -4831,8 +4837,9 @@ async function autoExtractMemories(){
       showToast('No memories found — try after a longer chat!');
     }
   }catch(e){
+    const errMsg = e?.message || String(e);
     console.error('Memory extract error:',e);
-    showToast('Could not extract memories. Try again in a moment!');
+    showToast('Extract error: '+errMsg.substring(0,80));
   }
   btn.textContent='✦ Extract'; btn.disabled=false;
 }
@@ -8167,7 +8174,8 @@ async function sendGift(bfId){
     },800);
     input.value='';
   }catch(e){
-    feedback.textContent='Could not evaluate gift. Try again.';
+    const errMsg = e?.message || String(e);
+    feedback.textContent='Error: '+errMsg;
     console.error('Gift eval error:',e);
   }
   input.disabled=false;
