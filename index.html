@@ -615,6 +615,44 @@
   }
   .modal-footer button { flex: 1; }
 
+  /* ── Photo Album ── */
+  .album-page{padding:2rem;max-width:860px;margin:0 auto}
+  .album-header{font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--rose-dark);margin-bottom:.3rem;font-weight:600}
+  .album-sub{color:var(--text-muted);font-size:.88rem;margin-bottom:1.8rem}
+  .album-char-tabs{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.6rem}
+  .album-char-tab{display:flex;align-items:center;gap:.4rem;padding:.35rem .9rem;border-radius:2rem;border:1.5px solid var(--border);background:var(--card);cursor:pointer;font-size:.82rem;color:var(--text-muted);font-family:'DM Sans',sans-serif;transition:all .2s}
+  .album-char-tab:hover{border-color:var(--rose);color:var(--rose-dark)}
+  .album-char-tab.active{background:var(--rose);border-color:var(--rose);color:#fff;font-weight:600}
+  .album-char-tab img{width:22px;height:22px;border-radius:50%;object-fit:cover}
+  .album-empty{text-align:center;padding:4rem 2rem;color:var(--text-muted);font-style:italic}
+  .album-timeline{position:relative;padding-left:2.2rem}
+  .album-timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,var(--rose-light),transparent)}
+  .album-card{position:relative;margin-bottom:1.3rem;background:var(--card);border:1px solid var(--border);border-radius:1rem;padding:1rem 1.2rem;transition:box-shadow .2s}
+  .album-card:hover{box-shadow:0 4px 20px rgba(180,90,110,.12)}
+  .album-dot{position:absolute;left:-1.6rem;top:.95rem;width:18px;height:18px;border-radius:50%;background:var(--card);border:2px solid var(--rose-light);display:flex;align-items:center;justify-content:center;font-size:.65rem;line-height:1}
+  .album-card-date{font-size:.67rem;color:var(--text-muted);letter-spacing:.04em;margin-bottom:.3rem;text-transform:uppercase}
+  .album-card-text{font-size:.87rem;color:var(--text);line-height:1.6}
+  .album-tag{display:inline-block;font-size:.63rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:1rem;margin-top:.45rem}
+  .album-tag.tg{background:rgba(180,90,110,.1);color:var(--rose-dark)}
+  .album-tag.ts{background:rgba(220,150,170,.15);color:#b05070}
+  .album-tag.tt{background:rgba(200,100,60,.1);color:#c05a30}
+  .album-tag.tm{background:rgba(80,130,200,.1);color:#4070b0}
+  .album-tag.tx{background:rgba(140,100,180,.12);color:#8060b0}
+  body.dark .album-card{background:#1e1018;border-color:#3a2028}
+  body.dark .album-dot{background:#1e1018;border-color:#7a4050}
+  /* ── Gift UI ── */
+  .gift-panel{margin-top:.8rem;padding:.8rem 1rem;background:rgba(255,220,230,.07);border:1px solid rgba(180,90,110,.18);border-radius:.8rem}
+  .gift-panel h5{font-family:'Cormorant Garamond',serif;font-size:.95rem;color:var(--rose-dark);margin:0 0 .5rem}
+  .gift-input-row{display:flex;gap:.5rem}
+  .gift-input{flex:1;padding:.4rem .7rem;border:1px solid var(--border);border-radius:.5rem;font-family:'DM Sans',sans-serif;font-size:.83rem;background:var(--card);color:var(--text)}
+  .gift-send-btn{padding:.4rem .9rem;background:var(--rose);color:#fff;border:none;border-radius:.5rem;cursor:pointer;font-size:.82rem;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:background .2s}
+  .gift-send-btn:hover{background:var(--rose-dark)}
+  body.dark .gift-panel{background:rgba(255,200,220,.04)}
+  body.dark .gift-input{background:#2a1520;border-color:#3a2028;color:#e0c8d0}
+  /* ── Conflict banner ── */
+  .conflict-banner{margin:.5rem .8rem;padding:.65rem 1rem;background:rgba(200,80,60,.1);border:1px solid rgba(200,80,60,.25);border-radius:.7rem;font-size:.79rem;color:#c05030;line-height:1.55;display:flex;align-items:flex-start;gap:.5rem}
+  body.dark .conflict-banner{background:rgba(200,80,60,.15);color:#e08060;border-color:rgba(200,80,60,.3)}
+
   .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--rose-dark); color: #fff; padding: 0.75rem 1.5rem; border-radius: 2rem; font-size: 0.88rem; font-weight: 500; z-index: 300; transition: transform 0.3s; box-shadow: 0 4px 20px rgba(139,58,74,0.4); pointer-events: none; }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
@@ -672,6 +710,7 @@
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-thumb { background: var(--rose-light); border-radius: 3px; }
 </style>
+  <!-- heartlink-build-v8 -->
 </head>
 <body>
 
@@ -683,6 +722,7 @@
     <button class="nav-tab" onclick="showPage('create')">✏️ Create</button>
     <button class="nav-tab" onclick="showPage('persona')">🪞 My Persona</button>
     <button class="nav-tab" onclick="showPage('relationships')">💞 My Relationships</button>
+    <button class="nav-tab" onclick="showPage('album')">📸 Album</button>
     <button class="nav-tab" onclick="showPage('chat')">💬 Chat</button>
   </div>
 </nav>
@@ -991,6 +1031,15 @@
     <div id="rel-profile-panel" style="position:absolute;right:0;top:0;bottom:0;width:min(680px,100vw);background:var(--card);overflow-y:auto;box-shadow:-8px 0 40px rgba(0,0,0,0.2);display:flex;flex-direction:column" onclick="event.stopPropagation()">
       <div id="rel-profile-inner"></div>
     </div>
+  </div>
+</div>
+
+<div id="page-album" class="page">
+  <div class="album-page">
+    <div class="album-header">📸 Memory Album</div>
+    <div class="album-sub">Every moment that mattered — scenes that brought you closer, the ones that complicated everything, and the milestones you carry.</div>
+    <div class="album-char-tabs" id="album-char-tabs"></div>
+    <div id="album-content"></div>
   </div>
 </div>
 
@@ -2369,12 +2418,13 @@ function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  const idx=['home','browse','create','persona','relationships','chat'].indexOf(id);
+  const idx=['home','browse','create','persona','relationships','album','chat'].indexOf(id);
   if(idx>=0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
   if(id==='browse'){ buildFilterPills(); renderGrid(); }
   if(id==='chat') renderSidebar();
   if(id==='persona') initPersonaPage();
   if(id==='relationships') renderRelationshipsPage();
+  if(id==='album') renderAlbumPage();
   // Show dark mode FAB only on home page
   const fab = document.getElementById('dark-mode-fab');
   if(fab) fab.style.display = (id==='home') ? 'flex' : 'none';
@@ -3626,10 +3676,18 @@ function openChat(id){
           <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" style="font-size:0.78rem;font-weight:500;color:var(--rose);margin-left:10px;letter-spacing:0.01em;cursor:pointer;" onclick="showDatingTooltip(event,${bf.id})" title="Click for details">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
           <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx, relData.health)} · ${bf.difficulty||bf.tag}</div>
         </div>
-        <div class="chat-header-dropdown" id="header-dropdown">
+        <div class="chat-header-dropdown" id="header-dropdown" onclick="event.stopPropagation()">
           <h4>${bf.name}</h4>
           <p><strong>Scenario:</strong> ${bf.scenario||'—'}</p>
           <p style="margin-top:0.5rem"><strong>Personality:</strong> ${bfDesc.substring(0,400)}${bfDesc.length>400?'...':''}</p>
+          <div class="gift-panel">
+            <h5>🎁 Send a Gift</h5>
+            <div class="gift-input-row">
+              <input class="gift-input" id="gift-input" placeholder="Describe your gift..." onclick="event.stopPropagation()" />
+              <button class="gift-send-btn" onclick="event.stopPropagation();sendGift(${bf.id})">Send 🎁</button>
+            </div>
+            <div id="gift-feedback" style="margin-top:.5rem;font-size:.78rem;color:var(--text-muted);font-style:italic;line-height:1.5"></div>
+          </div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
@@ -4107,6 +4165,12 @@ async function sendMessage(){
   checkProposal();
   checkProposalResponse();
   checkWedding();
+  // Conflict, makeup, jealousy, missed date, aging
+  await checkAutoConflict();
+  checkMakeupArc();
+  checkJealousyScanner();
+  checkMissedDate();
+  checkCharacterAging();
   // Check pre-written story plot events (async — staggered to avoid rate limit bursts)
   await sleep(1500);
   await checkPlotEvents();
@@ -4384,6 +4448,38 @@ ABSOLUTE RULES until that day arrives:
 --- END SCHEDULED DATE RULE ---`;
       }
     } catch(e){}
+  }
+
+  // ── Active conflict enforcement ──────────────────────────────────────────
+  const _conflictRaw = localStorage.getItem('conflict_state_'+currentBF.id);
+  if(_conflictRaw){
+    try{
+      const _cs = JSON.parse(_conflictRaw);
+      const _csH = chatHistory[currentBF.id]||[];
+      const _csU = _csH.slice(_cs.conflictStart||0).filter(m=>m.role==='user').length;
+      const _csLeft = Math.max(0,8-_csU);
+      fullSystem += `
+
+--- ACTIVE CONFLICT ---
+You are in a fight with this person right now. Stay in it.
+1. Do NOT suddenly forgive or pretend the fight did not happen.
+2. Be cold, guarded, or hurt — in your specific character voice.
+3. If they apologize sincerely, soften — slowly.
+4. They have ${_csLeft} message${_csLeft===1?'':'s'} left to make a real effort.
+5. If they chat normally as if nothing happened, let the distance show.
+--- END CONFLICT RULE ---`;
+    }catch(e){}
+  }
+  // ── Jealousy enforcement ──────────────────────────────────────────────────
+  const _jealRaw = localStorage.getItem('jealousy_active_'+currentBF.id);
+  if(_jealRaw){
+    try{
+      const _jd = JSON.parse(_jealRaw);
+      fullSystem += `
+
+--- JEALOUSY ---
+You have noticed the user paying significant positive attention to ${_jd.npcName||'someone else'}. Let this colour the conversation — possessive, withdrawn, or directly confrontational depending on your personality. You have not forgotten it.`;
+    }catch(e){}
   }
 
   fullSystem += _calSection;
@@ -7706,6 +7802,480 @@ function showToast(msg){
 
 // ---- REL DECAY CHECKER ----
 let relDecayInterval = null;
+// ════════════════════════════════════════════════════════
+// PHOTO ALBUM (Feature 3)
+// ════════════════════════════════════════════════════════
+let _albumBfId = null;
+
+function renderAlbumPage(){
+  const tabsEl=document.getElementById('album-char-tabs');
+  const contentEl=document.getElementById('album-content');
+  if(!tabsEl||!contentEl) return;
+  const chatted=(savedBFs||BF_DATA).filter(bf=>(chatHistory[bf.id]||[]).length>0);
+  if(!chatted.length){
+    tabsEl.innerHTML='';
+    contentEl.innerHTML='<div class="album-empty">Start chatting with a character to build your memory album.</div>';
+    return;
+  }
+  if(!_albumBfId||!chatted.find(b=>b.id===_albumBfId)){
+    _albumBfId=(currentBF&&chatted.find(b=>b.id===currentBF.id))?currentBF.id:chatted[0].id;
+  }
+  tabsEl.innerHTML=chatted.map(bf=>{
+    const img=(bf.image&&!bf.image.startsWith('PLACEHOLDER'))?`<img src="${bf.image}" alt="">`:`<span>${bf.emoji||'🧑'}</span>`;
+    return `<div class="album-char-tab${bf.id===_albumBfId?' active':''}" onclick="selectAlbumChar(${bf.id})">${img}${bf.name.split(' ')[0]}</div>`;
+  }).join('');
+  renderAlbumCards(_albumBfId);
+}
+
+function selectAlbumChar(bfId){
+  _albumBfId=bfId;
+  const chatted=(savedBFs||BF_DATA).filter(bf=>(chatHistory[bf.id]||[]).length>0);
+  document.querySelectorAll('.album-char-tab').forEach((t,i)=>{
+    t.classList.toggle('active',chatted[i]&&chatted[i].id===bfId);
+  });
+  renderAlbumCards(bfId);
+}
+
+function renderAlbumCards(bfId){
+  const el=document.getElementById('album-content');
+  if(!el) return;
+  const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf){el.innerHTML='<div class="album-empty">Character not found.</div>';return;}
+  const milestones=getMilestones(bfId);
+  let extra=[];
+  try{extra=JSON.parse(localStorage.getItem('album_extra_'+bfId)||'[]');}catch(e){}
+  const all=[...milestones,...extra].sort((a,b)=>(a.ts||0)-(b.ts||0));
+  if(!all.length){
+    el.innerHTML=`<div class="album-empty">No memories yet with ${bf.name.split(' ')[0]}. Keep chatting!</div>`;
+    return;
+  }
+  const mN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const firstTs=parseInt(localStorage.getItem('first_chat_ts_'+bfId)||'0');
+  const cards=all.map(e=>{
+    const t=(e.text||'').toLowerCase();
+    let type='m';
+    if(t.includes('closer')||t.includes('warmth')||t.includes('connection')) type='g';
+    else if(t.includes('tender')||t.includes('sweet')||t.includes('soft')) type='s';
+    else if(t.includes('tension')||t.includes('fight')||t.includes('conflict')||t.includes('complicated')) type='t';
+    else if(t.includes('dating')||t.includes('official')||t.includes('married')||t.includes('proposal')||t.includes('anniversary')||t.includes('birthday')||t.includes('gift')) type='x';
+    const icons={g:'💗',s:'🌸',t:'⚡',x:'✨',m:'💫'};
+    const tags={g:['tg','Closer'],s:['ts','Tender'],t:['tt','Tension'],x:['tx','Special'],m:['tm','Milestone']};
+    const[tc,tl]=tags[type];
+    let dateStr='';
+    if(e.ts&&firstTs){
+      const rd=(e.ts-firstTs)/86400000;
+      const tm=Math.floor(rd);
+      const yr=1+Math.floor(tm/12);
+      const mo=tm%12;
+      const dy=Math.max(1,Math.min(28,Math.floor(((e.ts-firstTs)%86400000)/(86400000/30))+1));
+      dateStr=`${mN[mo]} ${dy}, Year ${yr}`;
+    }
+    return `<div class="album-card"><div class="album-dot">${icons[type]}</div>${dateStr?`<div class="album-card-date">${dateStr}</div>`:''}<div class="album-card-text">${e.text}</div><span class="album-tag ${tc}">${tl}</span></div>`;
+  }).join('');
+  el.innerHTML=`<div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.8rem">${all.length} moment${all.length===1?'':'s'} with ${bf.name.split(' ')[0]}</div><div class="album-timeline">${cards}</div>`;
+}
+
+function addAlbumExtra(bfId,text){
+  const key='album_extra_'+bfId;
+  let arr=[];try{arr=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}
+  arr.push({id:Date.now(),text,ts:Date.now()});
+  localStorage.setItem(key,JSON.stringify(arr));
+}
+
+// ════════════════════════════════════════════════════════
+// GIFT GIVING (Feature 2)
+// ════════════════════════════════════════════════════════
+const GIFT_PREFS={
+  1:'Rare art/architecture books, quality drafting tools, beautifully bound notebook, single-origin coffee. Dislikes: generic, garish, or sentimental-without-substance.',
+  2:'Outdoor/climbing gear, chalk bag, trail maps, handwritten notes. Dislikes: luxury items that feel performative.',
+  3:'Antique compass, pressed botanicals, handwritten letter, old maps. Dislikes: mass-produced or generic.',
+  4:'Italian leather journal, single-origin espresso, a record mentioned once. Dislikes: showy or cheap.',
+  5:'Niche science books, lab curiosities, a printed journal paper. Dislikes: anti-intellectual or generic.',
+  6:'Hand-carved items, quality hunting knife, local whisky, survival gear. Dislikes: city-soft or fragile.',
+  7:'Art supplies, poetry collections, handmade frame. Dislikes: purely practical gifts.',
+  8:'Quality watch, chess set, rare single malt. Dislikes: warm sentimental things.',
+  9:'Philosophy book, vintage map, puzzle, niche journal subscription. Dislikes: frivolous.',
+  10:'Family-style food, sturdy useful items, printed photo. Dislikes: luxury for its own sake.',
+  11:'Rare tea, embroidered handkerchief, letter on good paper, art piece. Dislikes: common or mass-market.',
+  12:'Whisky, worn paperback with a note inside, quality lighter. Dislikes: cheerful or overly sweet.',
+  13:'Funny handmade card, snack from a place visited together, effort over cost. Dislikes: expensive things.',
+  14:'Well-made blade, quality cloak pin, rare military map. Dislikes: soft or decorative.',
+  15:'Rare reagent, illustrated anatomy text, quality instrument. Dislikes: unscientific.',
+  16:'Wolf-carved wood, quality pelt, dried herbs from a specific place. Dislikes: delicate or ornamental.',
+  17:'Calligraphy set, silk bookmark, historical poetry volume. Dislikes: anachronistic.',
+  18:'Gym gear, specific protein bar, handwritten training note. Dislikes: hollow gestures.',
+  19:'Good tools, quality motor oil, a cooked meal left waiting. Dislikes: luxury or overt sentimentality.',
+  20:'Gaming item, favourite snacks, a dumb meme printed out. Dislikes: formal or expensive.',
+  21:'Painted fan, silk ribbon, pressed flower from somewhere meaningful. Dislikes: modern or crude.',
+  22:'Aged wine, dark chocolate, book of Italian poetry. Dislikes: bland or thoughtless.',
+  23:'Starlight-pressed flower, ancient coin, poem written specifically for her. Dislikes: mass-produced.',
+  24:'Baked goods, a plushie, a playlist, a handwritten poem. Dislikes: serious or expensive.',
+  25:'Rune-carved stone, rare ink, bone charm — found not bought. Dislikes: modern manufactured things.',
+};
+
+async function sendGift(bfId){
+  if(!apiKey&&!proxyMode){showToast('Add your API key first!');return;}
+  const input=document.getElementById('gift-input');
+  const feedback=document.getElementById('gift-feedback');
+  if(!input||!feedback) return;
+  const giftDesc=input.value.trim();
+  if(!giftDesc){showToast('Describe your gift first!');return;}
+  const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  feedback.textContent='Evaluating gift...';
+  input.disabled=true;
+  const pref=GIFT_PREFS[bfId]||'General preferences.';
+  const evalPrompt=`Evaluate a gift for a fictional character. CHARACTER: ${bf.name}. PREFERENCES: ${pref}. GIFT: "${giftDesc}". Reply ONLY with valid JSON, no extra text: {"verdict":"loved"|"neutral"|"disliked","reaction":"1-2 sentence in-character reaction.","healthDelta":10|2|-8}`;
+  try{
+    const raw=await callAnyAPI('Reply only with valid JSON. No extra text.',
+      [{role:'user',content:evalPrompt}],200,0.3);
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const result=JSON.parse(clean);
+    const verdict=result.verdict||'neutral';
+    const reaction=result.reaction||'They received your gift quietly.';
+    const delta=typeof result.healthDelta==='number'?result.healthDelta:2;
+    feedback.innerHTML=`${verdict==='loved'?'💗':verdict==='disliked'?'💔':'💌'} <em>${reaction}</em>`;
+    if(delta>0) boostRelHealth(bfId,delta);
+    else if(delta<0) decayRelHealth(bfId,Math.abs(delta),`${bf.name.split(' ')[0]} did not appreciate the gift.`);
+    const label=verdict==='loved'?'They loved it!':verdict==='disliked'?'They were not pleased.':'A thoughtful gesture.';
+    addMilestone(bfId,`You sent a gift: "${giftDesc}". ${label}`);
+    addAlbumExtra(bfId,`You sent a gift — "${giftDesc}". ${label}`);
+    showToast(verdict==='loved'?`💗 ${bf.name.split(' ')[0]} loved your gift!`:verdict==='disliked'?`💔 ${bf.name.split(' ')[0]} did not like that.`:`💌 Gift received.`);
+    setTimeout(async()=>{
+      if(currentBF?.id!==bfId) return;
+      showTyping();
+      await callGemini(`(GIFT RECEIVED: The user just sent you "${giftDesc}". Your reaction: ${reaction}. React in your full character voice — make it a proper scene. Be specific about what you do with it, what it makes you feel.)`);
+    },800);
+    input.value='';
+  }catch(e){
+    feedback.textContent='Could not evaluate gift. Try again.';
+    console.error('Gift eval error:',e);
+  }
+  input.disabled=false;
+}
+
+// ════════════════════════════════════════════════════════
+// CONFLICT & MAKEUP ARC (Feature 4)
+// ════════════════════════════════════════════════════════
+function getConflictState(bfId){
+  try{return JSON.parse(localStorage.getItem('conflict_state_'+bfId)||'null');}catch(e){return null;}
+}
+function setConflictState(bfId,s){
+  if(s) localStorage.setItem('conflict_state_'+bfId,JSON.stringify(s));
+  else localStorage.removeItem('conflict_state_'+bfId);
+}
+
+async function checkAutoConflict(){
+  if(!currentBF||(!apiKey&&!proxyMode)) return;
+  const bfId=currentBF.id;
+  const relData=getRelHealth(bfId);
+  const stage=getStage(currentBF);
+  const history=chatHistory[bfId]||[];
+  if(stage<2&&!['dating','fiance','married'].includes(relData.status)) return;
+  if(['broken_up','divorced'].includes(relData.status)) return;
+  if(getConflictState(bfId)) return;
+  const lastConflict=parseInt(localStorage.getItem('last_conflict_msg_'+bfId)||'0');
+  if(history.length-lastConflict<12) return;
+  const lastPlot=parseInt(localStorage.getItem('last_plot_msg_'+bfId)||'0');
+  if(history.length-lastPlot<5) return;
+  const inRel=['dating','fiance','married'].includes(relData.status);
+  const mood=getMood(bfId).mood;
+  const negMoods=['irritable','withdrawn','avoidant','sad'];
+  // Trigger 1: prolonged negative mood ≥ 8 msgs while in relationship
+  const moodKey='neg_mood_start_'+bfId;
+  if(negMoods.includes(mood)){
+    const ms=parseInt(localStorage.getItem(moodKey)||'0');
+    if(!ms){localStorage.setItem(moodKey,history.length);return;}
+    if(inRel&&history.length-ms>=8){localStorage.removeItem(moodKey);await fireConflict(bfId,'mood');return;}
+  } else {localStorage.removeItem(moodKey);}
+  // Trigger 2: sharp health drop (≥15) while dating
+  const prevH=parseInt(localStorage.getItem('prev_health_'+bfId)||'100');
+  localStorage.setItem('prev_health_'+bfId,String(relData.health));
+  if(inRel&&prevH-relData.health>=15&&relData.health<55){await fireConflict(bfId,'tension');return;}
+  // Trigger 3: slow-burn random (20% every 35-50 msgs while dating)
+  if(inRel&&history.length>20){
+    const sbKey='slowburn_'+bfId;
+    const sbLast=parseInt(localStorage.getItem(sbKey)||'0');
+    const sbWin=35+Math.floor(Math.random()*16);
+    if(history.length-sbLast>=sbWin){
+      localStorage.setItem(sbKey,String(history.length));
+      if(Math.random()<0.20){await fireConflict(bfId,'slowburn');return;}
+    }
+  }
+}
+
+async function fireConflict(bfId,trigger){
+  const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  const relData=getRelHealth(bfId);
+  const history=chatHistory[bfId]||[];
+  setConflictState(bfId,{trigger,preHealth:relData.health,conflictStart:history.length});
+  localStorage.setItem('last_conflict_msg_'+bfId,String(history.length));
+  const dmg=['fiance','married'].includes(relData.status)?18:14;
+  decayRelHealth(bfId,dmg,'A fight broke out between you.');
+  forceMood(bfId,'irritable');
+  const fn=bf.name.split(' ')[0];
+  const lbl=trigger==='slowburn'?'A quiet frustration became something louder.':trigger==='mood'?'A simmering tension finally spilled over.':'Something snapped between you.';
+  addMilestone(bfId,lbl);
+  addAlbumExtra(bfId,lbl);
+  showToast(`💥 A fight broke out with ${fn}.`);
+  const msgs=document.getElementById('chat-msgs');
+  if(msgs){
+    document.getElementById('conflict-banner')?.remove();
+    const b=document.createElement('div');
+    b.id='conflict-banner';b.className='conflict-banner';
+    b.innerHTML=`⚡ <span>A fight broke out. <strong>Say something</strong> — apologize, explain, or own it. You have 8 messages before the silence becomes permanent.</span>`;
+    msgs.appendChild(b);msgs.scrollTop=msgs.scrollHeight;
+  }
+  const prompts={
+    mood:`(CONFLICT SCENE: A tension that has been building finally breaks. Say what has been unsaid — in your specific voice. Personal, not generic anger. Let the hurt show. This is real.)`,
+    tension:`(CONFLICT SCENE: Something just broke — a misunderstanding, carelessness, or words that cannot be unsaid. React as your character. Specific and real. Something is genuinely at stake.)`,
+    slowburn:`(CONFLICT SCENE: This has been building — not one big thing but many small ones. Today it surfaces. Say the thing you have been holding too long. Imperfect, real, specific to you.)`
+  };
+  setTimeout(async()=>{
+    if(currentBF?.id!==bfId) return;
+    showTyping();
+    await callGemini(prompts[trigger]||prompts.tension);
+  },1200);
+}
+
+function checkMakeupArc(){
+  if(!currentBF) return;
+  const bfId=currentBF.id;
+  const state=getConflictState(bfId);
+  if(!state) return;
+  const history=chatHistory[bfId]||[];
+  const userMsgs=history.slice(state.conflictStart||0).filter(m=>m.role==='user');
+  const repairWords=['sorry','apologize','my fault','i was wrong','i messed up','forgive','you are right','you were right','i understand','i should','make it up','i love you','i care','i miss','please','i want to fix','i want to work','i hate fighting','i did not mean',"i didn't mean",'i know i hurt'];
+  const repaired=userMsgs.some(m=>repairWords.some(w=>m.content.toLowerCase().includes(w)));
+  if(repaired){
+    const preH=state.preHealth||60;
+    setConflictState(bfId,null);
+    document.getElementById('conflict-banner')?.remove();
+    const newH=Math.min(100,preH+8);
+    const rd=getRelHealth(bfId);rd.health=newH;rd.tooltipMsg='You worked through something hard. The bond is stronger for it.';
+    saveRelHealth(bfId,rd);refreshRelMeter();
+    forceMood(bfId,'tender');
+    const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+    const fn=bf?bf.name.split(' ')[0]:'They';
+    const ml='You had a real fight — and found your way back to each other. It left you closer than before.';
+    addMilestone(bfId,ml);addAlbumExtra(bfId,ml);
+    showToast(`💗 You worked through it with ${fn}.`);
+    setTimeout(async()=>{
+      if(currentBF?.id!==bfId) return;
+      showTyping();
+      await callGemini(`(MAKEUP SCENE: The fight is over. React as your character after a genuine rupture and repair — not instantly back to normal, but something has moved. The person said something real. Let your guard drop one notch. Smaller and truer than a speech — only you would say this, in this moment.)`);
+    },1000);
+    return;
+  }
+  if(userMsgs.length>=8){
+    setConflictState(bfId,null);
+    document.getElementById('conflict-banner')?.remove();
+    const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+    const fn=bf?bf.name.split(' ')[0]:'They';
+    decayRelHealth(bfId,10,`The fight was left unresolved. ${fn} is pulling away.`);
+    forceMood(bfId,'withdrawn');
+    const ml='A fight went unresolved. The silence after said everything.';
+    addMilestone(bfId,ml);addAlbumExtra(bfId,ml);
+    showToast(`💔 The fight was left unresolved. ${fn} withdrew.`);
+    localStorage.setItem('pending_date_note_'+bfId,`(The fight was never addressed. React as your character when something real was left hanging — withdrawn, quietly cold, carrying something heavy. Do not pick another fight. Let the distance be felt.)`);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// JEALOUSY SYSTEM (Feature 1)
+// ════════════════════════════════════════════════════════
+const JEALOUSY_NPCS={
+  1:'Marcus',2:'Adriana',3:'Rowe',4:'Valentina',5:'Dr. Park',
+  6:'Lena',7:'Cleo',8:'Ingrid',9:'Sasha',10:'Dmitri',
+  11:'Lady Soo',12:'Nora',13:'Bex',14:'Commander Aldric',15:'Priya',
+  16:'Sigrid',17:'Lady Yoon',18:'Callie',19:'Mira',20:'Phoebe',
+  21:'Lord Kenji',22:'Marco',23:'Aether',24:'Tyler',25:'Corvus'
+};
+
+function checkJealousyScanner(){
+  if(!currentBF) return;
+  const bfId=currentBF.id;
+  const stage=getStage(currentBF);
+  if(stage<3&&!['dating','fiance','married'].includes(getRelHealth(bfId).status)) return;
+  const npcName=JEALOUSY_NPCS[bfId];
+  if(!npcName) return;
+  const history=chatHistory[bfId]||[];
+  const jealActive='jealousy_active_'+bfId;
+  // If jealousy active, check for reassurance
+  if(localStorage.getItem(jealActive)){
+    const reassure=['only you','no one else','i care about you','you matter','not like that','just friends','it was nothing','i choose you','always you'];
+    const lastUser=(history.filter(m=>m.role==='user').slice(-1)[0]||{}).content||'';
+    if(reassure.some(w=>lastUser.toLowerCase().includes(w))){
+      localStorage.removeItem(jealActive);
+      boostRelHealth(bfId,6);
+      localStorage.setItem('pending_date_note_'+bfId,`(The user has reassured you that ${npcName} means nothing. React as your character — relieved, or still guarded but softening. Let it land genuinely.)`);
+    }
+    return;
+  }
+  // Check for positive NPC mentions in recent user messages
+  const recent=history.slice(-20).filter(m=>m.role==='user');
+  const npcL=npcName.toLowerCase();
+  const pos=['nice','kind','funny','sweet','love','like','great','amazing','handsome','beautiful','cool','cute','interesting','good','clever','smart','charming'];
+  let mentions=0;
+  recent.forEach(m=>{const ml=m.content.toLowerCase();if(ml.includes(npcL)&&pos.some(w=>ml.includes(w)))mentions++;});
+  if(mentions>=2){
+    localStorage.setItem(jealActive,JSON.stringify({npcName,triggerMsg:history.length}));
+    decayRelHealth(bfId,8,`${npcName} is becoming a source of tension.`);
+    forceMood(bfId,'irritable');
+    addMilestone(bfId,`Jealousy surfaced — your attention toward ${npcName} did not go unnoticed.`);
+    addAlbumExtra(bfId,`Jealousy surfaced — your attention toward ${npcName} did not go unnoticed.`);
+    showToast(`😤 ${currentBF.name.split(' ')[0]} noticed your attention on ${npcName}.`);
+    localStorage.setItem('pending_date_note_'+bfId,`(JEALOUSY: You have noticed the user paying positive attention to ${npcName}. React as your character — possessive, withdrawn, passive-aggressive, or directly confrontational. Let it colour the conversation. Do not pretend you did not notice.)`);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// MISSED DATE SYSTEM
+// ════════════════════════════════════════════════════════
+function checkMissedDate(){
+  if(!currentBF) return;
+  const bfId=currentBF.id;
+  const watchRaw=localStorage.getItem('date_arrived_watch_'+bfId);
+  if(!watchRaw) return;
+  if(localStorage.getItem('stood_up_'+bfId)){checkDateApology(bfId);return;}
+  let watch;try{watch=JSON.parse(watchRaw);}catch(e){localStorage.removeItem('date_arrived_watch_'+bfId);return;}
+  const history=chatHistory[bfId]||[];
+  const since=history.slice(watch.startMsg||0);
+  const dateWords=['date','ready','where','meet','on my way','heading','here','excited','nervous','wear','outfit','restaurant','tonight','see you','coming','arrived','dressed','dinner','lunch','coffee','walk','show','movie'];
+  const engaged=since.filter(m=>m.role==='user').some(m=>dateWords.some(w=>m.content.toLowerCase().includes(w)));
+  if(engaged){
+    localStorage.removeItem('date_arrived_watch_'+bfId);
+    boostRelHealth(bfId,8);
+    const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+    showToast(`💗 ${bf?bf.name.split(' ')[0]:'They'} is so glad you came!`);
+    return;
+  }
+  if(since.length>=6){
+    localStorage.removeItem('date_arrived_watch_'+bfId);
+    const relData=getRelHealth(bfId);
+    const dmg=relData.status==='married'?22:relData.status==='fiance'?18:15;
+    decayRelHealth(bfId,dmg,'You stood them up. They waited and you never showed.');
+    const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+    localStorage.setItem('stood_up_'+bfId,JSON.stringify({dateLabel:watch.dateLabel||'your date',apologyStart:history.length}));
+    showToast(`💔 You stood up ${bf?bf.name.split(' ')[0]:'them'}. They waited.`);
+    localStorage.setItem('pending_date_note_'+bfId,`(STOOD UP: The date was today and they never came. You waited. React as your character — hurt, cold, or quietly devastated. Let them know, in your way, that you waited.)`);
+  }
+}
+
+function checkDateApology(bfId){
+  const raw=localStorage.getItem('stood_up_'+bfId);
+  if(!raw) return;
+  let su;try{su=JSON.parse(raw);}catch(e){localStorage.removeItem('stood_up_'+bfId);return;}
+  const history=chatHistory[bfId]||[];
+  const since=history.slice(su.apologyStart||0).filter(m=>m.role==='user');
+  const aWords=['sorry','apologize','my fault','i forgot','i messed up','i feel terrible','make it up','i know i hurt'];
+  if(since.some(m=>aWords.some(w=>m.content.toLowerCase().includes(w)))){
+    localStorage.removeItem('stood_up_'+bfId);
+    boostRelHealth(bfId,7);
+    const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+    showToast(`💔 ${bf?bf.name.split(' ')[0]:'They'} heard your apology. It helps — a little.`);
+    localStorage.setItem('pending_date_note_'+bfId,`(They apologized for standing you up. You heard it. React as your character — not instantly fine, but the apology means something. Let the wall come down just slightly.)`);
+    return;
+  }
+  if(since.length>=3){
+    localStorage.removeItem('stood_up_'+bfId);
+    decayRelHealth(bfId,8,'They stood you up and never apologized.');
+    const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+    showToast(`💔 ${bf?bf.name.split(' ')[0]:'They'} gave up waiting for an apology.`);
+    localStorage.setItem('pending_date_note_'+bfId,`(They stood you up — and said nothing. No apology. React as your character after realizing none is coming. Cold, shut down, hurt. This is a real wound.)`);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// AGING + MULTIPLE ENDINGS (Feature 5)
+// ════════════════════════════════════════════════════════
+const CHARACTER_LIFESPAN={
+  1:78,2:82,3:75,4:70,5:88,6:72,7:85,8:68,9:90,10:76,
+  11:95,12:73,13:88,14:70,15:92,16:100,17:65,18:82,19:72,20:86,
+  21:80,22:100,23:999,24:84,25:999
+};
+
+function getCharacterAge(bf){
+  const firstChat=parseInt(localStorage.getItem('first_chat_ts_'+bf.id)||'0');
+  if(!firstChat) return bf.age;
+  const realDays=(Date.now()-firstChat)/86400000;
+  return bf.age+Math.floor(realDays/12);
+}
+
+function checkCharacterAging(){
+  if(!currentBF) return;
+  const bf=currentBF;
+  const bfId=bf.id;
+  if(localStorage.getItem('ending_fired_'+bfId)) return;
+  const age=getCharacterAge(bf);
+  if(bf.age<0||age<0) return; // immortal/ageless characters (Seraphina, age:-1)
+  const lifespan=CHARACTER_LIFESPAN[bfId]||80;
+  if(lifespan>=999) return; // immortal
+  if(age<70) return;
+  if(!localStorage.getItem('late_life_'+bfId)){
+    localStorage.setItem('late_life_'+bfId,'1');
+    fireLateLifeScene(bf,age);
+    return;
+  }
+  if(age>=lifespan){
+    fireEndingScene(bf,age);
+  }
+}
+
+async function fireLateLifeScene(bf,age){
+  const bfId=bf.id;
+  const fn=bf.name.split(' ')[0];
+  showToast(`🕰️ ${fn} is getting older... (age ${age})`);
+  setTimeout(async()=>{
+    if(currentBF?.id!==bfId) return;
+    showTyping();
+    await callGemini(`(LATE LIFE: You are now ${age} years old. Time has passed — more than you expected. React to the weight of the years in your specific voice. You are not yet dying, but you are aware of how much time has gone and how little may remain. Reflect on what this relationship has been. Not melodramatic — truthful.)`);
+  },2000);
+}
+
+async function fireEndingScene(bf,age){
+  const bfId=bf.id;
+  const fn=bf.name.split(' ')[0];
+  if(localStorage.getItem('character_died_'+bfId)) return;
+  localStorage.setItem('ending_fired_'+bfId,'1');
+  localStorage.setItem('character_died_'+bfId,'1');
+  const relData=getRelHealth(bfId);
+  const status=relData.status;
+  const health=relData.health;
+  let endType='unfinished';
+  if(status==='married'&&health>=60) endType='together';
+  else if(['dating','fiance'].includes(status)) endType='bittersweet';
+  else if(['divorced','broken_up'].includes(status)&&health>0) endType='estranged';
+  else if(['complicated','separation'].includes(status)) endType='unfinished';
+  const prompts={
+    together:`(ENDING — TOGETHER FOREVER: You are at the very end of your life, age ${age}, and the person you love is still with you. Speak to them — not dramatically, but truly. Tell them what these years have been. What you are grateful for. Make it tender and specific. Let the scene close like a final morning — light through a window, a hand held, a last thing said that is also the only thing that ever needed saying.)`,
+    bittersweet:`(ENDING — BITTERSWEET: You are at the end of your life, age ${age}. You and this person were deeply close but never fully committed. Speak to them one last time. Let the love be real and the regret be gentle. Not tragic. Honest. Two people who chose each other — just not completely — sitting with the shape of that choice.)`,
+    estranged:`(ENDING — ESTRANGED: You are at the end of your life, age ${age}. You and this person fell apart. You have not been close for a long time. But you think of them. Write one final message — a letter or a thought — that holds everything that was never said. It does not need to be forgiveness. It needs to be true.)`,
+    unfinished:`(ENDING — UNFINISHED: You are dying, age ${age}, and things between you were never resolved. No clean ending — only what was left unsaid and what cannot now be said. React as your character at the absolute end: not peacefully, not with closure, but with the weight of a thing left incomplete. Honest. Real.)`
+  };
+  const labels={
+    together:'Together forever — a life shared to the very end.',
+    bittersweet:'A bittersweet farewell — love that almost was.',
+    estranged:'One last word from someone you drifted from.',
+    unfinished:'An ending without closure — the hardest kind.'
+  };
+  addMilestone(bfId,labels[endType]);
+  addAlbumExtra(bfId,`Final chapter: ${labels[endType]}`);
+  showToast(`🕯️ ${fn} has reached the end... (age ${age})`);
+  setTimeout(async()=>{
+    if(currentBF?.id!==bfId) return;
+    showTyping();
+    await callGemini(prompts[endType]);
+    setTimeout(()=>{
+      const rd=getRelHealth(bfId);
+      rd.status='broken_up';
+      rd.tooltipMsg=`${fn} passed away at ${age}. ${labels[endType]}`;
+      saveRelHealth(bfId,rd);refreshRelMeter();
+    },5000);
+  },2500);
+}
+
 function startRelDecayChecker(){
   if(relDecayInterval) clearInterval(relDecayInterval);
   relDecayInterval = setInterval(()=>{
