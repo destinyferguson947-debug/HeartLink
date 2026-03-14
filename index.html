@@ -653,6 +653,94 @@
   .conflict-banner{margin:.5rem .8rem;padding:.65rem 1rem;background:rgba(200,80,60,.1);border:1px solid rgba(200,80,60,.25);border-radius:.7rem;font-size:.79rem;color:#c05030;line-height:1.55;display:flex;align-items:flex-start;gap:.5rem}
   body.dark .conflict-banner{background:rgba(200,80,60,.15);color:#e08060;border-color:rgba(200,80,60,.3)}
 
+  /* ══════════════════════════════════════════
+     TEXTING PAGE — WhatsApp-inspired design
+     ══════════════════════════════════════════ */
+  .texts-page { display:flex; height:calc(100vh - 64px); overflow:hidden; background:var(--cream); }
+
+  /* Left column — contact list */
+  .texts-sidebar { width:360px; flex-shrink:0; border-right:1px solid var(--border); display:flex; flex-direction:column; background:var(--card); }
+  .texts-sidebar-header { padding:1rem 1.2rem 0.8rem; border-bottom:1px solid var(--border); }
+  .texts-sidebar-title { font-family:'Cormorant Garamond',serif; font-size:1.5rem; font-weight:700; color:var(--rose-dark); }
+  .texts-sidebar-sub { font-size:0.75rem; color:var(--text-muted); margin-top:2px; }
+  .texts-search { margin:0.6rem 1rem 0.8rem; position:relative; }
+  .texts-search input { width:100%; padding:0.45rem 0.8rem 0.45rem 2.2rem; border-radius:2rem; border:1px solid var(--border); background:var(--warm); font-family:'DM Sans',sans-serif; font-size:0.83rem; color:var(--text); outline:none; box-sizing:border-box; }
+  .texts-search::before { content:'🔍'; position:absolute; left:0.7rem; top:50%; transform:translateY(-50%); font-size:0.78rem; pointer-events:none; }
+  body.dark .texts-search input { background:#2a1520; border-color:#3a2028; color:#e0c8d0; }
+  .texts-contact-list { overflow-y:auto; flex:1; }
+  .texts-contact { display:flex; align-items:center; gap:0.85rem; padding:0.75rem 1.2rem; cursor:pointer; border-bottom:1px solid var(--border); transition:background 0.15s; position:relative; }
+  .texts-contact:hover { background:var(--warm); }
+  .texts-contact.active { background:rgba(201,102,122,0.1); }
+  .texts-contact-avatar { width:48px; height:48px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--warm); display:flex; align-items:center; justify-content:center; font-size:1.4rem; position:relative; }
+  .texts-contact-avatar img { width:100%; height:100%; object-fit:cover; }
+  .texts-contact-online { position:absolute; bottom:2px; right:2px; width:11px; height:11px; border-radius:50%; background:#25d366; border:2px solid var(--card); }
+  .texts-contact-info { flex:1; min-width:0; }
+  .texts-contact-name { font-weight:600; font-size:0.88rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .texts-contact-preview { font-size:0.76rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+  .texts-contact-meta { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; }
+  .texts-contact-time { font-size:0.68rem; color:var(--text-muted); }
+  .texts-unread-badge { background:var(--rose); color:#fff; border-radius:50%; width:18px; height:18px; font-size:0.65rem; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .texts-locked { font-size:0.68rem; color:var(--text-muted); font-style:italic; }
+  body.dark .texts-contact { border-color:#2a1520; }
+  body.dark .texts-contact.active { background:rgba(224,123,144,0.1); }
+
+  /* Right column — chat view */
+  .texts-chat-area { flex:1; display:flex; flex-direction:column; min-width:0; }
+  .texts-chat-header { padding:0.7rem 1.2rem; border-bottom:1px solid var(--border); background:var(--card); display:flex; align-items:center; gap:0.85rem; flex-shrink:0; }
+  .texts-chat-avatar { width:40px; height:40px; border-radius:50%; overflow:hidden; background:var(--warm); display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; }
+  .texts-chat-avatar img { width:100%; height:100%; object-fit:cover; }
+  .texts-chat-info { flex:1; min-width:0; }
+  .texts-chat-name { font-weight:700; font-size:0.92rem; color:var(--text); }
+  .texts-chat-status { font-size:0.74rem; color:#25d366; font-weight:500; }
+  .texts-chat-status.offline { color:var(--text-muted); }
+  .texts-auto-toggle { display:flex; align-items:center; gap:6px; font-size:0.72rem; color:var(--text-muted); cursor:pointer; user-select:none; margin-left:auto; }
+
+  /* Status bar — shown under contact name in header */
+  .texts-status-line { font-size:0.72rem; color:var(--text-muted); margin-top:1px; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
+
+  /* Messages */
+  .texts-messages { flex:1; overflow-y:auto; padding:1rem 1.2rem; display:flex; flex-direction:column; gap:0.5rem; background:var(--cream); }
+  body.dark .texts-messages { background:#1a1015; }
+  .texts-msg-wrap { display:flex; flex-direction:column; max-width:68%; }
+  .texts-msg-wrap.user { align-self:flex-end; align-items:flex-end; }
+  .texts-msg-wrap.them { align-self:flex-start; align-items:flex-start; }
+  .texts-bubble { padding:0.55rem 0.85rem; border-radius:1rem; font-size:0.87rem; line-height:1.55; word-break:break-word; position:relative; }
+  .texts-bubble.user { background:var(--rose); color:#fff; border-bottom-right-radius:3px; }
+  .texts-bubble.them { background:var(--card); color:var(--text); border-bottom-left-radius:3px; border:1px solid var(--border); }
+  body.dark .texts-bubble.them { background:#2a1520; border-color:#3a2028; }
+  .texts-meta { font-size:0.63rem; color:var(--text-muted); margin-top:3px; display:flex; align-items:center; gap:4px; }
+  .texts-meta.user { justify-content:flex-end; }
+  .texts-read-tick { color:#25d366; font-size:0.72rem; }
+  .texts-typing-bubble { display:flex; gap:4px; align-items:center; padding:0.5rem 0.8rem; background:var(--card); border:1px solid var(--border); border-radius:1rem; border-bottom-left-radius:3px; align-self:flex-start; }
+  .texts-typing-dot { width:7px; height:7px; border-radius:50%; background:var(--text-muted); animation:textsDot 1.2s infinite; }
+  .texts-typing-dot:nth-child(2){animation-delay:.2s}
+  .texts-typing-dot:nth-child(3){animation-delay:.4s}
+  @keyframes textsDot { 0%,60%,100%{transform:translateY(0);opacity:.5} 30%{transform:translateY(-5px);opacity:1} }
+  body.dark .texts-typing-bubble { background:#2a1520; border-color:#3a2028; }
+
+  /* Input area */
+  .texts-input-area { padding:0.7rem 1rem; border-top:1px solid var(--border); background:var(--card); display:flex; gap:0.6rem; align-items:flex-end; flex-shrink:0; }
+  .texts-input { flex:1; padding:0.55rem 0.9rem; border:1px solid var(--border); border-radius:1.5rem; font-family:'DM Sans',sans-serif; font-size:0.88rem; color:var(--text); background:var(--warm); outline:none; resize:none; max-height:100px; overflow-y:auto; }
+  body.dark .texts-input { background:#2a1520; border-color:#3a2028; color:#e0c8d0; }
+  .texts-send-btn { width:40px; height:40px; border-radius:50%; background:var(--rose); border:none; color:#fff; font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .2s; }
+  .texts-send-btn:hover { background:var(--rose-dark); }
+  .texts-send-btn:disabled { background:var(--border); cursor:not-allowed; }
+
+  /* Empty state */
+  .texts-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); gap:0.8rem; }
+  .texts-empty-icon { font-size:3rem; opacity:0.4; }
+  .texts-locked-overlay { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); gap:0.6rem; text-align:center; padding:2rem; }
+  .texts-pinned { margin:0.5rem 1.2rem; padding:0.5rem 0.8rem; background:rgba(201,102,122,0.07); border-left:3px solid var(--rose); border-radius:0 0.5rem 0.5rem 0; font-size:0.78rem; color:var(--text); }
+  .texts-pinned-label { font-size:0.65rem; color:var(--rose); font-weight:700; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:2px; }
+
+  /* Mobile: hide sidebar when chat is open */
+  @media(max-width:640px){
+    .texts-sidebar { width:100%; display:none; }
+    .texts-sidebar.show { display:flex; }
+    .texts-chat-area { display:none; }
+    .texts-chat-area.show { display:flex; }
+  }
+
   .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--rose-dark); color: #fff; padding: 0.75rem 1.5rem; border-radius: 2rem; font-size: 0.88rem; font-weight: 500; z-index: 300; transition: transform 0.3s; box-shadow: 0 4px 20px rgba(139,58,74,0.4); pointer-events: none; }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
@@ -710,7 +798,8 @@
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-thumb { background: var(--rose-light); border-radius: 3px; }
 </style>
-  <!-- heartlink-build-v10 -->
+  <!-- heartlink-build-v11 -->
+  <!-- heartlink-build-v12 -->
 </head>
 <body>
 
@@ -723,7 +812,8 @@
     <button class="nav-tab" onclick="showPage('persona')">🪞 My Persona</button>
     <button class="nav-tab" onclick="showPage('relationships')">💞 My Relationships</button>
     <button class="nav-tab" onclick="showPage('album')">📸 Album</button>
-    <button class="nav-tab" onclick="showPage('chat')">💬 Chat</button>
+    <button class="nav-tab" onclick="showPage('texts')">💬 Texts</button>
+    <button class="nav-tab" onclick="showPage('chat')">📖 Story</button>
   </div>
 </nav>
 
@@ -1040,6 +1130,26 @@
     <div class="album-sub">Every moment that mattered — scenes that brought you closer, the ones that complicated everything, and the milestones you carry.</div>
     <div class="album-char-tabs" id="album-char-tabs"></div>
     <div id="album-content"></div>
+  </div>
+</div>
+
+<div id="page-texts" class="page">
+  <div class="texts-page">
+    <div class="texts-sidebar" id="texts-sidebar">
+      <div class="texts-sidebar-header">
+        <div class="texts-sidebar-title">💬 Messages</div>
+        <div class="texts-sidebar-sub">Your conversations</div>
+      </div>
+      <div class="texts-search"><input id="texts-search-input" placeholder="Search..." oninput="filterTextsContacts(this.value)" /></div>
+      <div class="texts-contact-list" id="texts-contact-list"></div>
+    </div>
+    <div class="texts-chat-area" id="texts-chat-area">
+      <div class="texts-empty" id="texts-empty-state">
+        <div class="texts-empty-icon">💬</div>
+        <div style="font-size:0.9rem">Select a contact to start texting</div>
+        <div style="font-size:0.78rem">Characters unlock texting when you reach the close stage or start dating</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2418,13 +2528,14 @@ function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  const idx=['home','browse','create','persona','relationships','album','chat'].indexOf(id);
+  const idx=['home','browse','create','persona','relationships','album','texts','chat'].indexOf(id);
   if(idx>=0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
   if(id==='browse'){ buildFilterPills(); renderGrid(); }
   if(id==='chat') renderSidebar();
   if(id==='persona') initPersonaPage();
   if(id==='relationships') renderRelationshipsPage();
   if(id==='album') renderAlbumPage();
+  if(id==='texts') renderTextsPage();
   // Show dark mode FAB only on home page
   const fab = document.getElementById('dark-mode-fab');
   if(fab) fab.style.display = (id==='home') ? 'flex' : 'none';
@@ -3696,10 +3807,7 @@ function openChat(id){
           <div class="rel-meter-bar"><div class="rel-meter-fill" style="width:${relData.health}%;background:${meterColor}"></div></div>
           <div class="rel-meter-tooltip">${relData.tooltipMsg||'Your relationship is healthy.'}</div>
         </div>
-        <div class="auto-toggle-wrap" onclick="toggleAutoMsg()" title="Auto-continue: character messages you if you're away">
-          <div class="auto-toggle-switch ${autoOn?'on':''}" id="auto-toggle-switch"><div class="auto-toggle-knob"></div></div>
-          <span>Auto-message</span>
-        </div>
+        <button onclick="showPage('texts')" style="font-size:0.72rem;background:none;border:1px solid var(--border);border-radius:1rem;padding:3px 10px;cursor:pointer;color:var(--text-muted);font-family:'DM Sans',sans-serif;transition:all .2s" title="Open texting">💬 Texts</button>
       </div>
     </div>
     <div class="chat-messages" id="chat-msgs"></div>
@@ -7710,23 +7818,7 @@ async function checkPlotEvents(){
       if(!dynScene){ hideTyping(); return; }
       const freshHistory = (chatHistory[bfId] || []).slice(-4);
       const freshExchange = freshHistory.map(m => (m.role === 'user' ? 'Them: ' : 'You: ') + m.content.substring(0,120)).join('\n');
-      // Same smarter bridge for dynamic scenes
-      const _dynLastAiMsg = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
-      const _dynLastTail = _dynLastAiMsg ? _dynLastAiMsg.content.trim().slice(-300) : '';
-      const _dynLastOpen = _dynLastAiMsg ? _dynLastAiMsg.content.trim().substring(0,80) : '';
-      const bridgePrompt = `(STORY TRANSITION — CONTINUITY REQUIRED: You are moving into a new story scene. The transition must make narrative sense.
-
-WHAT JUST HAPPENED (do NOT repeat): ${freshExchange}
-
-YOUR PREVIOUS MESSAGE ENDED WITH: "${_dynLastTail}"
-
-RULES:
-1. Do NOT open with the same line or situation as your previous message. Do not reuse "${_dynLastOpen}...".
-2. RESOLVE THE THREAD FIRST. If your last message had an invitation, question, or plan, acknowledge how it resolved in 1-2 sentences before moving on.
-3. EXPLAIN THE TRANSITION. If the new scene is in a different location, briefly say how you got there.
-4. Then launch into the scene below.)
-
-${dynScene}`;
+      const bridgePrompt = `(IMPORTANT TRANSITION INSTRUCTION: Before launching into the story scene below, write a natural bridge — 1-3 sentences — that transitions smoothly from what you were just discussing. Use a brief time-skip or scene change if needed. Here is the recent context:\n${freshExchange}\n\nNow bridge into this scene:)\n\n${dynScene}`;
       await callGemini(bridgePrompt);
       addMilestone(bfId, 'The story moved forward in an unexpected direction.');
       boostRelHealth(bfId, 4);
@@ -7743,13 +7835,11 @@ ${dynScene}`;
 
   // Context gate removed — bridge prompt handles graceful transitions.
   // ── Response gate: hold if last AI message has an open question/invite ─────
-  // Ensures the user gets to reply to what the character just asked before the
-  // plot event fires and jumps the scene. Stores as pending and fires next msg.
   const _gateLastAi = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
   if(_gateLastAi){
     const _gateTail = _gateLastAi.content.trim().slice(-300).toLowerCase();
     const _lastMsgIsAi = (chatHistory[bfId]||[]).slice(-1)[0]?.role === 'assistant';
-    const _hasOpenQ = _gateTail.endsWith('?') || /[?]["')]?\s*$/.test(_gateTail);
+    const _hasOpenQ = _gateTail.endsWith('?') || /[?]["')]*\s*$/.test(_gateTail);
     const _invites = ['want to','wanna','you up for','you in','come with','join me',
       'shall we','should we','you coming','you game','how about','what do you say',
       'tell me','meet me','wait for',"don't leave",'stay','sit with me',
@@ -7773,22 +7863,13 @@ ${dynScene}`;
     if(currentBF?.id !== bfId) return;
     showTyping();
 
-    // Build rich context: last 6 messages so the AI knows the full recent thread
     const freshHistory = (chatHistory[bfId] || []).slice(-6);
     const freshExchange = freshHistory.map(m => (m.role === 'user' ? 'Them' : 'You') + ': ' + m.content.substring(0, 200)).join('\n');
-
-    // Grab the full tail of the last AI message (not just 80 chars) so we can
-    // detect open invitations, questions, plans, and locations
     const _lastAiMsg = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
     const _lastAiTail = _lastAiMsg ? _lastAiMsg.content.trim().slice(-400) : '';
     const _lastAiOpening = _lastAiMsg ? _lastAiMsg.content.trim().substring(0, 80) : '';
-
-    // Extract the scene title and location hint from the candidate prompt
-    // Prompts follow format: (STORY EVENT — TITLE: ...)
-    const _sceneTitleMatch = candidate.prompt.match(/STORY EVENT[^—]*—\s*([^:)]+)/i);
+    const _sceneTitleMatch = candidate.prompt.match(/STORY EVENT[^-]*-+\s*([^:)]+)/i);
     const _sceneTitle = _sceneTitleMatch ? _sceneTitleMatch[1].trim() : 'a new scene';
-
-    // Extract location clues from the prompt (first 300 chars usually sets the scene)
     const _sceneOpening = candidate.prompt.substring(0, 300);
 
     const bridgeInstruction = '(STORY TRANSITION — CONTINUITY REQUIRED: You are moving from what just happened into a new story scene. The transition must make complete narrative sense.' +
@@ -7798,8 +7879,8 @@ ${dynScene}`;
       '\nSCENE CONTEXT: ' + _sceneOpening +
       '\n\nRULES — follow every one of these exactly:' +
       '\n1. DO NOT open with the same line, phrase, or situation as your previous message. Do not reuse "' + _lastAiOpening + '...".' +
-      '\n2. RESOLVE THE THREAD FIRST. If your last message had an invitation, a question, a plan, or a suggestion (e.g. "want to go to the diner?", "shall we?", "don\'t leave yet"), you MUST acknowledge how that resolved before entering the new scene. Write 1-2 sentences showing what happened — did they go? Did they agree? Did time pass? The user must never feel their response was ignored.' +
-      '\n3. EXPLAIN THE TRANSITION. If the new scene is in a different location from where you just were, briefly explain how you got there. Example: "An hour later, at the diner on 26th, the coffee was terrible and the light was warm..." or "We ended up back at the storage room — I don\'t remember deciding it, just that we were there." One sentence. It must exist.' +
+      '\n2. RESOLVE THE THREAD FIRST. If your last message had an invitation, a question, a plan, or a suggestion, you MUST acknowledge how that resolved before entering the new scene. Write 1-2 sentences showing what happened. The user must never feel their response was ignored.' +
+      '\n3. EXPLAIN THE TRANSITION. If the new scene is in a different location from where you just were, briefly explain how you got there in one sentence. It must exist.' +
       '\n4. DO NOT jump straight into the new scene without this continuity. The user must always know where they are and how they got there.' +
       '\n5. After resolving the transition in 1-3 sentences, launch fully into the story scene below.)';
 
@@ -8331,6 +8412,667 @@ async function fireEndingScene(bf,age){
       saveRelHealth(bfId,rd);refreshRelMeter();
     },5000);
   },2500);
+}
+
+// ════════════════════════════════════════════════════════════════
+// TEXTING SYSTEM
+// ════════════════════════════════════════════════════════════════
+
+// Storage
+function getTextHistory(bfId){ try{return JSON.parse(localStorage.getItem('text_history_'+bfId)||'[]');}catch(e){return[];} }
+function saveTextHistory(bfId,arr){ localStorage.setItem('text_history_'+bfId,JSON.stringify(arr)); }
+function addTextMessage(bfId,role,content){
+  const arr=getTextHistory(bfId);
+  arr.push({role,content,ts:Date.now(),read:role==='user'});
+  saveTextHistory(bfId,arr);
+  // Mark unread for them messages
+  if(role==='assistant') setTextsUnread(bfId,(getTextsUnread(bfId)||0)+1);
+}
+function getTextsUnread(bfId){ return parseInt(localStorage.getItem('texts_unread_'+bfId)||'0'); }
+function setTextsUnread(bfId,n){ localStorage.setItem('texts_unread_'+bfId,n.toString()); }
+function clearTextsUnread(bfId){ localStorage.removeItem('texts_unread_'+bfId); }
+
+// Character status system — random status updates
+const TEXT_STATUSES = {
+  1:  ['deep in the blueprints','in a meeting','available','thinking','at the drafting table','reading','coffee in hand'],
+  2:  ['at the crag','filming a route','driving to the gym','just showered','thinking about you','watching a sunset','restless'],
+  3:  ['in the shop','reading','somewhere quiet','unavailable','with Marguerite','thinking','out for a walk'],
+  4:  ['at the bar','closing up','quiet tonight','thinking','with Sofia','available','somewhere dark and loud'],
+  5:  ['in the lab','reading a paper','available','thinking carefully','between experiments','coffee getting cold'],
+  6:  ['out on the mountain','unavailable','in the trees','quiet tonight','at the lodge','thinking'],
+  7:  ['sketching','listening to something good','in the studio','available','thinking about a song','restless'],
+  8:  ['working','unavailable','in a meeting','available','quiet tonight','thinking'],
+  9:  ['at the museum','reading','available','between lectures','thinking','somewhere interesting'],
+  10: ['at the gym','available','thinking of you','making dinner','quiet tonight','with family'],
+  11: ['in the garden','available','reading','thinking','a little restless','somewhere peaceful'],
+  12: ['at the bar','closing up','unavailable','quiet tonight','thinking','available'],
+  13: ['at practice','available','thinking of you','somewhere loud','just woke up','restless'],
+  14: ['at command','in briefing','available','quiet tonight','thinking','unavailable'],
+  15: ['in surgery','unavailable','between patients','available','reading','thinking'],
+  16: ['out in the woods','unavailable','at the lodge','thinking','available','quiet'],
+  17: ['in court','available','thinking','at the office','unavailable','reading'],
+  18: ['at the gym','meal prepping','available','thinking of you','just finished a set','restless'],
+  19: ['in the garage','unavailable','available','quiet tonight','thinking','hands are dirty'],
+  20: ['gaming','available','thinking of you','at practice','somewhere loud','just ate'],
+  21: ['in the garden','available','reading','thinking','sewing','quiet tonight'],
+  22: ['at work','available','thinking of you','in the vineyard','unavailable','restless'],
+  23: ['between worlds','in the tower','available','thinking','unavailable','somewhere ancient'],
+  24: ['available','thinking of you','at work','baking','just woke up','somewhere cozy'],
+  25: ['in the forest','unavailable','thinking','available','between spells','quiet'],
+};
+
+function getCharacterStatus(bfId){
+  const key='txt_status_'+bfId;
+  const raw=localStorage.getItem(key);
+  if(raw){
+    try{
+      const d=JSON.parse(raw);
+      // Rotate status every 2-4 real hours
+      if(Date.now()-d.setAt < (2+Math.random()*2)*3600000) return d.status;
+    }catch(e){}
+  }
+  const pool=TEXT_STATUSES[bfId]||['available'];
+  const status=pool[Math.floor(Math.random()*pool.length)];
+  localStorage.setItem(key,JSON.stringify({status,setAt:Date.now()}));
+  return status;
+}
+
+function isTextsUnlocked(bfId){
+  const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return false;
+  const stage=getStage(bf);
+  const status=getRelHealth(bfId).status;
+  // Unlock at close (stage 3) or dating/beyond
+  return stage>=3 || ['dating','fiance','married','complicated','separation'].includes(status);
+}
+
+function getPinnedText(bfId){ try{return JSON.parse(localStorage.getItem('texts_pinned_'+bfId)||'null');}catch(e){return null;} }
+function setPinnedText(bfId,msg){ localStorage.setItem('texts_pinned_'+bfId,JSON.stringify(msg)); }
+
+// ── RENDER FUNCTIONS ────────────────────────────────────────────
+
+let _textsActiveBfId = null;
+
+function renderTextsPage(){
+  const listEl=document.getElementById('texts-contact-list');
+  if(!listEl) return;
+  // All characters the user has interacted with, plus any they've chatted with in story
+  const allBfs=[...BF_DATA,...savedBFs.filter(b=>b.isCustom)];
+  const relevant=allBfs.filter(bf=>{
+    const h=(chatHistory[bf.id]||[]).length;
+    const th=getTextHistory(bf.id).length;
+    return h>0||th>0;
+  });
+  if(!relevant.length){
+    listEl.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.82rem;font-style:italic">Start chatting with a character in the Story tab first.</div>';
+    return;
+  }
+  renderTextsContactList(relevant, '');
+  // Default to first unlocked char or restore last active
+  if(_textsActiveBfId && relevant.find(b=>b.id===_textsActiveBfId)){
+    openTextsChat(_textsActiveBfId);
+  } else {
+    const first=relevant.find(b=>isTextsUnlocked(b.id));
+    if(first) openTextsChat(first.id);
+  }
+}
+
+function renderTextsContactList(bfs, query){
+  const listEl=document.getElementById('texts-contact-list');
+  if(!listEl) return;
+  const filtered=query ? bfs.filter(b=>b.name.toLowerCase().includes(query.toLowerCase())) : bfs;
+  listEl.innerHTML=filtered.map(bf=>{
+    const unlocked=isTextsUnlocked(bf.id);
+    const history=getTextHistory(bf.id);
+    const last=history.slice(-1)[0];
+    const unread=getTextsUnread(bf.id);
+    const status=getCharacterStatus(bf.id);
+    const mood=getMood(bf.id);
+    const moodEmoji=MOOD_DATA[mood.mood]?.emoji||'';
+    const preview=last ? (last.role==='user'?'You: ':'')+last.content.substring(0,40)+(last.content.length>40?'...':'') : (unlocked?'Say something...':'🔒 Keep chatting to unlock');
+    const timeStr=last ? _textsTimeAgo(last.ts) : '';
+    const img=(bf.image&&!bf.image.startsWith('PLACEHOLDER'))?`<img src="${bf.image}" alt="">`:`<span style="font-size:1.4rem">${bf.emoji||'🧑'}</span>`;
+    const active=bf.id===_textsActiveBfId?' active':'';
+    const onlineEl=unlocked?`<div class="texts-contact-online"></div>`:'';
+    return `<div class="texts-contact${active}" onclick="openTextsChat(${bf.id})" id="texts-contact-${bf.id}">
+      <div class="texts-contact-avatar">${img}${onlineEl}</div>
+      <div class="texts-contact-info">
+        <div class="texts-contact-name">${bf.name} ${moodEmoji}</div>
+        <div class="texts-contact-preview">${preview}</div>
+        <div class="texts-status-line">${unlocked ? status : '🔒 Unlock by getting closer'}</div>
+      </div>
+      <div class="texts-contact-meta">
+        ${timeStr?`<div class="texts-contact-time">${timeStr}</div>`:''}
+        ${unread>0?`<div class="texts-unread-badge">${unread>9?'9+':unread}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterTextsContacts(query){
+  const allBfs=[...BF_DATA,...savedBFs.filter(b=>b.isCustom)].filter(bf=>(chatHistory[bf.id]||[]).length>0||getTextHistory(bf.id).length>0);
+  renderTextsContactList(allBfs, query);
+}
+
+function openTextsChat(bfId){
+  _textsActiveBfId=bfId;
+  clearTextsUnread(bfId);
+  const areaEl=document.getElementById('texts-chat-area');
+  const emptyEl=document.getElementById('texts-empty-state');
+  if(emptyEl) emptyEl.style.display='none';
+  if(!areaEl) return;
+  const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  const unlocked=isTextsUnlocked(bfId);
+  const status=getCharacterStatus(bfId);
+  const mood=getMood(bfId);
+  const moodLabel=MOOD_DATA[mood.mood]?.label||'';
+  const autoOn=getAutoMsgEnabled(bfId);
+  const img=(bf.image&&!bf.image.startsWith('PLACEHOLDER'))?`<img src="${bf.image}" alt="">`:`<span style="font-size:1.2rem">${bf.emoji||'🧑'}</span>`;
+  const pinnedMsg=getPinnedText(bfId);
+  const pinnedHtml=pinnedMsg?`<div class="texts-pinned"><div class="texts-pinned-label">📌 Pinned</div>${pinnedMsg.content}</div>`:'';
+
+  areaEl.innerHTML=`
+    <div class="texts-chat-header">
+      <div class="texts-chat-avatar">${img}</div>
+      <div class="texts-chat-info">
+        <div class="texts-chat-name">${bf.name}</div>
+        <div class="texts-chat-status${unlocked?'':' offline'}">${unlocked ? (status + (moodLabel&&moodLabel!=='Himself'?' · '+moodLabel:'')) : 'Get closer to unlock texting'}</div>
+      </div>
+      <div class="texts-auto-toggle" onclick="textsToggleAuto(${bfId})" title="Auto-message: character texts you when you're away">
+        <div class="auto-toggle-switch ${autoOn?'on':''}" id="texts-auto-sw-${bfId}"><div class="auto-toggle-knob"></div></div>
+        <span style="font-size:0.72rem;color:var(--text-muted)">Auto</span>
+      </div>
+    </div>
+    ${pinnedHtml}
+    ${unlocked ? `
+    <div class="texts-messages" id="texts-msgs-${bfId}"></div>
+    <div class="texts-input-area">
+      <textarea class="texts-input" id="texts-input-${bfId}" placeholder="Message ${bf.name.split(' ')[0]}..." rows="1"
+        onkeydown="textsHandleKey(event,${bfId})"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+      <button class="texts-send-btn" id="texts-send-${bfId}" onclick="textsSend(${bfId})" title="Send">➤</button>
+    </div>` : `
+    <div class="texts-locked-overlay">
+      <div style="font-size:2.5rem">🔒</div>
+      <div style="font-weight:600;color:var(--text)">Not yet</div>
+      <div style="font-size:0.83rem">Keep chatting with ${bf.name.split(' ')[0]} in the Story tab. Texting unlocks when you get close enough.</div>
+    </div>`}
+  `;
+
+  // Update active state in contact list
+  document.querySelectorAll('.texts-contact').forEach(el=>el.classList.remove('active'));
+  document.getElementById('texts-contact-'+bfId)?.classList.add('active');
+
+  if(unlocked) renderTextsMsgs(bfId);
+
+  // Mobile
+  document.getElementById('texts-sidebar')?.classList.remove('show');
+  document.getElementById('texts-chat-area')?.classList.add('show');
+}
+
+function renderTextsMsgs(bfId){
+  const el=document.getElementById('texts-msgs-'+bfId);
+  if(!el) return;
+  const history=getTextHistory(bfId);
+  if(!history.length){
+    el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.82rem;font-style:italic">No messages yet. Say something! 💬</div>';
+    return;
+  }
+  el.innerHTML=history.map((m,i)=>{
+    const isUser=m.role==='user';
+    const timeStr=_textsFormatTime(m.ts);
+    const isLast=i===history.length-1;
+    const readTick=(!isUser&&isLast)?'':isUser&&isLast?'<span class="texts-read-tick">✓✓</span>':'';
+    return `<div class="texts-msg-wrap ${isUser?'user':'them'}" data-tidx="${i}">
+      <div class="texts-bubble ${isUser?'user':'them'}">${_textsFormat(m.content)}</div>
+      <div class="texts-meta ${isUser?'user':'them'}">
+        <span>${timeStr}</span>${readTick}
+        ${!isUser?`<button onclick="textsPinMsg(${bfId},${i})" title="Pin this message" style="background:none;border:none;cursor:pointer;font-size:0.68rem;color:var(--text-muted);padding:0 2px">📌</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+function textsPinMsg(bfId, idx){
+  const history=getTextHistory(bfId);
+  const msg=history[idx];
+  if(!msg) return;
+  setPinnedText(bfId,msg);
+  openTextsChat(bfId); // re-render to show pinned
+  showToast('📌 Message pinned!');
+}
+
+function _textsFormat(text){
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+function _textsTimeAgo(ts){
+  if(!ts) return '';
+  const diff=(Date.now()-ts)/1000;
+  if(diff<60) return 'now';
+  if(diff<3600) return Math.floor(diff/60)+'m';
+  if(diff<86400) return Math.floor(diff/3600)+'h';
+  return Math.floor(diff/86400)+'d';
+}
+
+function _textsFormatTime(ts){
+  if(!ts) return '';
+  const d=new Date(ts);
+  return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+// ── SENDING ─────────────────────────────────────────────────────
+
+function textsHandleKey(e, bfId){
+  if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); textsSend(bfId); }
+}
+
+async function textsSend(bfId){
+  if(!apiKey&&!proxyMode) return;
+  const inputEl=document.getElementById('texts-input-'+bfId);
+  const sendBtn=document.getElementById('texts-send-'+bfId);
+  if(!inputEl||!sendBtn) return;
+  const text=inputEl.value.trim();
+  if(!text) return;
+  inputEl.value='';
+  inputEl.style.height='auto';
+  const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  // Save user message + cancel any left-on-read watch
+  addTextMessage(bfId,'user',text);
+  cancelLORWatch(bfId);
+  renderTextsMsgs(bfId);
+  sendBtn.disabled=true;
+  // Show typing indicator
+  const msgsEl=document.getElementById('texts-msgs-'+bfId);
+  if(msgsEl){
+    const td=document.createElement('div');
+    td.id='texts-typing-'+bfId;
+    td.className='texts-typing-bubble';
+    td.innerHTML='<div class="texts-typing-dot"></div><div class="texts-typing-dot"></div><div class="texts-typing-dot"></div>';
+    msgsEl.appendChild(td);
+    msgsEl.scrollTop=msgsEl.scrollHeight;
+  }
+  // Small delay for realism
+  await new Promise(r=>setTimeout(r, 800+Math.random()*1200));
+  document.getElementById('texts-typing-'+bfId)?.remove();
+  // Generate reply
+  const reply=await textsGenReply(bf, bfId, text);
+  if(reply){
+    addTextMessage(bfId,'assistant',reply);
+    renderTextsMsgs(bfId);
+    // Start left-on-read watch — character is now waiting for a reply
+    startLORWatch(bfId);
+    // Update contact list preview
+    renderTextsPage();
+  }
+  sendBtn.disabled=false;
+}
+
+async function textsGenReply(bf, bfId, userMsg){
+  const relData=getRelHealth(bfId);
+  const stage=getStage(bf);
+  const mood=getMood(bfId);
+  const moodPrompt=getMoodPrompt(bfId);
+  const age=getCharacterAge(bf);
+  const textHistory=getTextHistory(bfId);
+  const recentTexts=textHistory.slice(-20).map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
+  // Recent story context (last 4 msgs) so character knows what happened in the story
+  const recentStory=(chatHistory[bfId]||[]).slice(-4).map(m=>(m.role==='user'?'Them (story)':'You (story)')+': '+m.content.substring(0,100)).join('\n');
+
+  const sysPrompt=`You are ${bf.name}, ${age<0?'ageless':age+' years old'}. ${bf.personality||''}
+
+This is a TEXTING conversation — completely casual and separate from any ongoing story. You are texting this person on your phone like any real person would. The tone is:
+- Casual, natural, conversational — NOT roleplay framing
+- Short-to-medium messages (1-4 sentences usually, sometimes just a few words)
+- Use texting conventions: abbreviations ok, informal grammar ok, emoji occasionally if it fits your character
+- NO action descriptions like *does something* — just actual text messages
+- React to what they say naturally. Ask questions back. Reference shared context. Be yourself.
+- Your current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}
+${moodPrompt?'\n'+moodPrompt:''}
+
+RECENT TEXT EXCHANGE:
+${recentTexts}
+
+RECENT STORY CONTEXT (things that happened between you):
+${recentStory}
+
+Reply ONLY with your text message content. No quotes, no stage directions, just the message itself.`;
+
+  try{
+    const reply=await callAnyAPI(sysPrompt,[{role:'user',content:userMsg}],300,1.0);
+    return reply.trim().replace(/^["']|["']$/g,'');
+  }catch(e){ return null; }
+}
+
+// ── AUTO-MESSAGE (now lives in texting) ─────────────────────────
+
+function textsToggleAuto(bfId){
+  const current=getAutoMsgEnabled(bfId);
+  localStorage.setItem('auto_msg_enabled_'+bfId,current?'false':'true');
+  const sw=document.getElementById('texts-auto-sw-'+bfId);
+  if(sw) sw.classList.toggle('on',!current);
+  const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  const fn=bf?bf.name.split(' ')[0]:'They';
+  showToast(current?`Auto-messages off for ${fn}`:`Auto-messages on for ${fn} 💌`);
+  if(!current) scheduleTextsAutoMsg(bfId);
+  else clearTextsAutoMsgTimers(bfId);
+}
+
+let _textsAutoTimers={};
+
+function clearTextsAutoMsgTimers(bfId){
+  if(_textsAutoTimers[bfId]){ clearTimeout(_textsAutoTimers[bfId]); delete _textsAutoTimers[bfId]; }
+}
+
+function scheduleTextsAutoMsg(bfId){
+  clearTextsAutoMsgTimers(bfId);
+  if(!getAutoMsgEnabled(bfId)) return;
+  const bf=savedBFs.find(b=>b.id===bfId);
+  if(!bf||!isTextsUnlocked(bfId)) return;
+  // Fire between 45-90 min of inactivity
+  const delay=(45+Math.floor(Math.random()*46))*60*1000;
+  _textsAutoTimers[bfId]=setTimeout(async()=>{
+    const lastUserTime=parseInt(localStorage.getItem('last_user_msg_'+bfId)||'0');
+    if(Date.now()-lastUserTime<40*60*1000) return; // came back, skip
+    const reply=await textsGenAutoMsg(bf,bfId);
+    if(reply){
+      addTextMessage(bfId,'assistant',reply);
+      // Start left-on-read watch after auto-message
+      startLORWatch(bfId);
+      // If user is on texts page viewing this char, re-render
+      if(document.getElementById('page-texts')?.classList.contains('active')&&_textsActiveBfId===bfId){
+        renderTextsMsgs(bfId);
+      }
+      // Show unread badge if not viewing
+      if(_textsActiveBfId!==bfId) renderTextsPage();
+      sendBrowserNotif(bf.name.split(' ')[0],reply,bfId);
+    }
+    scheduleTextsAutoMsg(bfId); // reschedule
+  },delay);
+}
+
+async function textsGenAutoMsg(bf, bfId){
+  const stage=getStage(bf);
+  const mood=getMood(bfId);
+  const status=getCharacterStatus(bfId);
+  const textHistory=getTextHistory(bfId).slice(-10);
+  const recentTexts=textHistory.map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
+  const prompts=[
+    `You've been thinking about them. Send a casual check-in text.`,
+    `You just saw or did something that reminded you of them. Text them about it.`,
+    `You're bored or restless (status: ${status}). Text them something.`,
+    `Something happened today. Text them — not a big thing, just a small update.`,
+    `You just want to talk. Send something that invites a reply without being needy.`,
+  ];
+  const prompt=prompts[Math.floor(Math.random()*prompts.length)];
+  const sysPrompt=`You are ${bf.name}. ${bf.personality||''} You are sending a casual text message unprompted. Current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}. ${prompt} Keep it to 1-3 sentences max. No action descriptions. Just the text itself. Recent chat context:\n${recentTexts}`;
+  try{
+    const r=await callAnyAPI(sysPrompt,[{role:'user',content:prompt}],150,1.1);
+    return r.trim().replace(/^["']|["']$/g,'');
+  }catch(e){ return null; }
+}
+
+// ════════════════════════════════════════════════════════════════
+// LEFT-ON-READ SYSTEM
+// When the character has sent a message that hasn't been replied to,
+// their behavior escalates based on their personality over time.
+// ════════════════════════════════════════════════════════════════
+
+// Behavior types — how each character reacts to being left on read
+// 'spam'    — sends multiple follow-up texts, escalating from casual to unhinged
+// 'accuse'  — assumes the user is talking to someone else, gets possessive
+// 'cold'    — goes silent, becomes icy and distant when user returns
+// 'passive' — subtle digs, reading-between-the-lines energy
+// 'worry'   — gets genuinely anxious/soft, expresses concern not anger
+const LEFT_ON_READ_TYPE = {
+  1:'cold',     // Elias — would never chase, becomes a one-word response machine
+  2:'spam',     // Kai — dramatic, sends memes and voice notes
+  3:'cold',     // Silas — quiet disappearance, books feel more interesting suddenly
+  4:'cold',     // Julian — the bar goes quiet in a specific way
+  5:'passive',  // Dr. Aris — "no it's fine, I was just reading anyway"
+  6:'cold',     // Soren — the mountain doesn't wait
+  7:'worry',    // Caspian — genuinely anxious, writes sad lyrics about being ignored
+  8:'cold',     // Victor — simply stops initiating entirely
+  9:'passive',  // Leo — intellectual distance, becomes weirdly formal
+  10:'accuse',  // Nikolai — protective instincts misfire, gets territorial
+  11:'passive', // Yi-Sun — royal passive-aggression, exquisite manners hiding hurt
+  12:'cold',    // Declan — the bar gets cleaner when he's annoyed
+  13:'spam',    // Finn — chaotic energy, sends seventeen memes
+  14:'accuse',  // Kael — commander mode, assumes strategic betrayal
+  15:'passive', // Dr. Ezra — "I just assumed you were busy with someone"
+  16:'accuse',  // Bjorn — protective Alpha instincts, gets territorial
+  17:'passive', // Park Ji-min — historically formal distance, very pointed politeness
+  18:'spam',    // Theo — sends progressively more unhinged wellness check texts
+  19:'accuse',  // Roman — trust issues run deep, assumes the worst
+  20:'spam',    // Jax — explicitly defined in his character, goes unhinged fast
+  21:'worry',   // Hana — quiet worry, wonders if she said something wrong
+  22:'accuse',  // Elena — passionate, assumes competition immediately
+  23:'cold',    // Seraphina — simply ceases to reach out, centuries of patience
+  24:'worry',   // Chloe — sweet anxiety, checks in softly multiple times
+  25:'cold',    // Morgana — ancient indifference, you will feel the absence
+};
+
+// How fast each character escalates (minutes before first reaction)
+// Lower = reacts faster. Jax reacts in 15 min. Elias takes 3 hours.
+const LEFT_ON_READ_DELAY = {
+  1:180,  // Elias — 3 hours before going cold
+  2:20,   // Kai — 20 min then spam begins
+  3:120,  // Silas — 2 hours
+  4:90,   // Julian — 90 min
+  5:60,   // Dr. Aris — 1 hour
+  6:240,  // Soren — 4 hours, he has things to do
+  7:30,   // Caspian — 30 min then worry spiral
+  8:180,  // Victor — 3 hours
+  9:90,   // Leo — 90 min
+  10:45,  // Nikolai — 45 min, protective instincts
+  11:120, // Yi-Sun — 2 hours, royal composure
+  12:120, // Declan — 2 hours
+  13:15,  // Finn — 15 min then chaos
+  14:60,  // Kael — 1 hour, military precision
+  15:90,  // Dr. Ezra — 90 min
+  16:30,  // Bjorn — 30 min, Alpha instincts
+  17:120, // Park Ji-min — 2 hours, formal
+  18:25,  // Theo — 25 min then wellness-check spiral
+  19:45,  // Roman — 45 min, trust issues fast
+  20:15,  // Jax — 15 min, explicitly unhinged
+  21:60,  // Hana — 1 hour, quiet worry
+  22:30,  // Elena — 30 min, passionate
+  23:360, // Seraphina — 6 hours, centuries of patience
+  24:20,  // Chloe — 20 min, soft anxiety
+  25:300, // Morgana — 5 hours
+};
+
+// Spam characters can send multiple messages — how many before stopping
+const LEFT_ON_READ_SPAM_COUNT = {
+  2:3, 7:2, 13:4, 18:3, 20:5, 24:3
+};
+
+let _lorTimers = {}; // left-on-read timers keyed by bfId
+let _lorSpamCount = {}; // tracks how many spam msgs sent
+
+function clearLORTimers(bfId){
+  if(_lorTimers[bfId]){ clearTimeout(_lorTimers[bfId]); delete _lorTimers[bfId]; }
+}
+
+// Called whenever the character sends a text message
+// Starts watching to see if the user replies within the character's threshold
+function startLORWatch(bfId){
+  clearLORTimers(bfId);
+  _lorSpamCount[bfId] = 0;
+  const delayMin = LEFT_ON_READ_DELAY[bfId] || 60;
+  _lorTimers[bfId] = setTimeout(()=>{ checkLORReaction(bfId); }, delayMin * 60 * 1000);
+}
+
+// Called whenever the USER sends a text — cancels any pending left-on-read reaction
+function cancelLORWatch(bfId){
+  clearLORTimers(bfId);
+  _lorSpamCount[bfId] = 0;
+  // If character was cold, note that user came back
+  const coldKey = 'lor_went_cold_'+bfId;
+  if(localStorage.getItem(coldKey)){
+    localStorage.removeItem(coldKey);
+    // Fire a brief "you came back" reaction
+    setTimeout(()=>{ fireLORReturnReaction(bfId); }, 500);
+  }
+}
+
+async function checkLORReaction(bfId){
+  if(!isTextsUnlocked(bfId)) return;
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  // Check if user actually replied since we started watching
+  const history = getTextHistory(bfId);
+  const lastMsg = history.slice(-1)[0];
+  if(lastMsg && lastMsg.role === 'user') return; // user replied, cancel
+  if(!lastMsg || lastMsg.role !== 'assistant') return; // no message to react to
+  const type = LEFT_ON_READ_TYPE[bfId] || 'cold';
+  const maxSpam = LEFT_ON_READ_SPAM_COUNT[bfId] || 1;
+  const currentSpam = _lorSpamCount[bfId] || 0;
+  const age = getCharacterAge(bf);
+  const recentTexts = history.slice(-8).map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
+  let reaction = null;
+  let moodShift = null;
+  const timeSinceSent = Math.round((Date.now() - (lastMsg.ts||0)) / 60000); // minutes
+  if(type === 'spam' && currentSpam < maxSpam){
+    reaction = await textsGenLORMsg(bf, bfId, 'spam', currentSpam, timeSinceSent, recentTexts, age);
+    _lorSpamCount[bfId] = currentSpam + 1;
+    moodShift = currentSpam >= 2 ? 'irritable' : null;
+    // Schedule next spam if more allowed
+    if(_lorSpamCount[bfId] < maxSpam){
+      const nextDelay = (5 + Math.floor(Math.random()*15)) * 60 * 1000;
+      _lorTimers[bfId] = setTimeout(()=>{ checkLORReaction(bfId); }, nextDelay);
+    }
+  } else if(type === 'accuse'){
+    reaction = await textsGenLORMsg(bf, bfId, 'accuse', 0, timeSinceSent, recentTexts, age);
+    moodShift = 'irritable';
+    decayRelHealth(bfId, 5, `${bf.name.split(' ')[0]} got suspicious while waiting for your reply.`);
+  } else if(type === 'cold'){
+    reaction = await textsGenLORMsg(bf, bfId, 'cold', 0, timeSinceSent, recentTexts, age);
+    moodShift = 'withdrawn';
+    localStorage.setItem('lor_went_cold_'+bfId, '1');
+    decayRelHealth(bfId, 3, `${bf.name.split(' ')[0]} went quiet after being left on read.`);
+  } else if(type === 'passive'){
+    reaction = await textsGenLORMsg(bf, bfId, 'passive', 0, timeSinceSent, recentTexts, age);
+    moodShift = 'avoidant';
+  } else if(type === 'worry'){
+    reaction = await textsGenLORMsg(bf, bfId, 'worry', currentSpam, timeSinceSent, recentTexts, age);
+    _lorSpamCount[bfId] = currentSpam + 1;
+    if(_lorSpamCount[bfId] < (LEFT_ON_READ_SPAM_COUNT[bfId]||2)){
+      const nextDelay = (10 + Math.floor(Math.random()*20)) * 60 * 1000;
+      _lorTimers[bfId] = setTimeout(()=>{ checkLORReaction(bfId); }, nextDelay);
+    }
+  }
+  if(moodShift) forceMood(bfId, moodShift);
+  if(reaction){
+    addTextMessage(bfId, 'assistant', reaction);
+    if(document.getElementById('page-texts')?.classList.contains('active') && _textsActiveBfId===bfId){
+      renderTextsMsgs(bfId);
+    } else {
+      // Update unread count in contact list
+      const allBfs=[...BF_DATA,...savedBFs.filter(b=>b.isCustom)].filter(bf=>(chatHistory[bf.id]||[]).length>0||getTextHistory(bf.id).length>0);
+      renderTextsContactList(allBfs, '');
+    }
+    sendBrowserNotif(bf.name.split(' ')[0], reaction, bfId);
+  }
+}
+
+async function textsGenLORMsg(bf, bfId, type, spamIdx, minutesWaited, recentTexts, age){
+  const relData = getRelHealth(bfId);
+  const status = relData.status;
+  const inRel = ['dating','fiance','married'].includes(status);
+  const fn = bf.name.split(' ')[0];
+  const hourWord = minutesWaited >= 60 ? `${Math.floor(minutesWaited/60)} hour${Math.floor(minutesWaited/60)>1?'s':''}` : `${minutesWaited} minutes`;
+  const prompts = {
+    spam: [
+      `You sent them a message ${hourWord} ago and they haven't replied. Send a casual follow-up — nothing desperate, just filling the silence the way you do.`,
+      `Still no reply. ${spamIdx===0?'Send another text — a little more pointed, still charming.':'Send one more text — now you are starting to spiral slightly, though you would never admit it. Keep it in your voice.'}`,
+      `It has been a while now. Send something that is technically asking if they are okay but is actually expressing mild chaos about being ignored. Stay completely in character.`,
+      `You have been sending messages into a void. Send one final text before you decide to perform indifference. Make it specific and slightly unhinged in the way that is completely you.`,
+      `Last one. This is the text you send when you are trying very hard to seem like you are not affected by being left on read.`,
+    ],
+    accuse: [
+      `They have not replied to your message in ${hourWord}. You are starting to wonder if they are talking to someone else. ${inRel?'You are in a relationship with them — this feels like a specific kind of disrespect.':'Your instincts are telling you something.'} Send a text that expresses this suspicion in your character's specific voice — not a direct accusation, but close. Let the jealousy show.`,
+    ],
+    cold: [
+      `They have not replied to your message in ${hourWord}. You are not going to say anything. But you are going to send one final text that communicates, in your character's specific voice, that you noticed — and that you are done reaching out for now. Terse. Controlled. The temperature drops.`,
+    ],
+    passive: [
+      `They have not replied in ${hourWord}. Send a text that is technically neutral but carries the specific weight of someone who is keeping score. In your character's voice — the kind of text where the subtext is louder than the text.`,
+    ],
+    worry: [
+      `They have not replied in ${hourWord}. Send a gentle check-in — not demanding, just genuinely worried. This is the soft version of you, the one that doesn't perform.`,
+      `Still nothing. Send another message — a little more vulnerable now, quietly worried. Stay true to who you are.`,
+      `You are starting to spiral a little. Send one more message that is trying very hard to be casual but is clearly not. In your voice.`,
+    ],
+  };
+  const promptPool = prompts[type] || prompts.worry;
+  const prompt = promptPool[Math.min(spamIdx, promptPool.length-1)];
+  const sysPrompt = `You are ${fn}, ${age<0?'ageless':age+' years old'}. ${bf.personality||''}
+
+This is a TEXTING situation. You are sending a text message because someone left you on read.
+RECENT TEXT EXCHANGE:\n${recentTexts}
+
+${prompt}
+
+Reply ONLY with the text message itself. No quotes, no stage directions. Keep it short — 1-3 sentences maximum. Sound like you, not a template.`;
+  try{
+    const r = await callAnyAPI(sysPrompt, [{role:'user',content:prompt}], 200, 1.1);
+    return r.trim().replace(/^["']|["']$/g,'');
+  }catch(e){ return null; }
+}
+
+async function fireLORReturnReaction(bfId){
+  // User finally replied after character went cold — brief acknowledgment
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  const type = LEFT_ON_READ_TYPE[bfId] || 'cold';
+  if(type !== 'cold' && type !== 'accuse') return; // only cold/accuse chars have a return reaction
+  const history = getTextHistory(bfId);
+  const lastUserMsg = history.filter(m=>m.role==='user').slice(-1)[0];
+  if(!lastUserMsg) return;
+  // Don't fire if the last thing they did was apologize (covered by normal reply flow)
+  const age = getCharacterAge(bf);
+  const recentTexts = history.slice(-6).map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
+  const sysPrompt = `You are ${bf.name.split(' ')[0]}, ${age<0?'ageless':age+' years old'}. ${bf.personality||''}
+
+This is a TEXTING situation. The person left you on read for a while, you went quiet/cold, and they have now finally replied.
+RECENT EXCHANGE:\n${recentTexts}
+
+React to their return in your character's specific voice. ${type==='cold'?'You were cold. You are still not fully warm. One short, slightly clipped reply — you acknowledge they are back but you are not rushing to pretend everything is fine.':'You suspected they were talking to someone else. They have come back. One short reply — guarded, watching. Maybe a question. Maybe just one word.'}
+
+Reply ONLY with the text message. Keep it very short. Sound exactly like you.`;
+  try{
+    await new Promise(r=>setTimeout(r,1000+Math.random()*2000));
+    const r = await callAnyAPI(sysPrompt,[{role:'user',content:lastUserMsg.content}],150,1.0);
+    const reply = r.trim().replace(/^["']|["']$/g,'');
+    if(reply){
+      addTextMessage(bfId,'assistant',reply);
+      if(document.getElementById('page-texts')?.classList.contains('active')&&_textsActiveBfId===bfId){
+        renderTextsMsgs(bfId);
+      }
+    }
+  }catch(e){}
+}
+
+// ── STATUS REFRESH — rotate statuses periodically ───────────────
+function refreshAllTextsStatuses(){
+  // Force a new status roll for all characters every ~3 hours
+  const allBfs=[...BF_DATA,...savedBFs.filter(b=>b.isCustom)];
+  allBfs.forEach(bf=>{
+    const key='txt_status_'+bf.id;
+    const raw=localStorage.getItem(key);
+    if(raw){
+      try{
+        const d=JSON.parse(raw);
+        if(Date.now()-d.setAt>(2.5+Math.random())*3600000){
+          localStorage.removeItem(key); // force new roll on next read
+        }
+      }catch(e){ localStorage.removeItem(key); }
+    }
+  });
 }
 
 function startRelDecayChecker(){
