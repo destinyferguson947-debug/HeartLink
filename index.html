@@ -801,7 +801,7 @@
   <!-- heartlink-build-v11 -->
   <!-- heartlink-build-v12 -->
   <!-- heartlink-build-v12 -->
-  <!-- heartlink-build-v13 -->
+  <!-- heartlink-build-v14 -->
 </head>
 <body>
 
@@ -4449,9 +4449,14 @@ async function callStructuredJSON(systemPrompt, userPrompt, maxTokens=800){
     }
   );
   const data = await res.json();
-  if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+  if(data.error) throw new Error('API error: '+(data.error.message||JSON.stringify(data.error)));
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  if(!text) throw new Error('Empty response');
+  if(!text){
+    const reason = data.candidates?.[0]?.finishReason || 'none';
+    const blocked = data.promptFeedback?.blockReason || '';
+    throw new Error('Empty response. reason='+reason+(blocked?' blocked='+blocked:'')
+      +' raw='+JSON.stringify(data).substring(0,200));
+  }
   return text;
 }
 
@@ -4831,8 +4836,9 @@ async function autoExtractMemories(){
       showToast('No memories found — try after a longer chat!');
     }
   }catch(e){
-    console.error('Memory extract error:',e);
-    showToast('Could not extract memories. Try again in a moment!');
+    const _em2 = e?.message || String(e);
+    console.error('Memory extract error full:',e);
+    showToast(_em2.substring(0,100));
   }
   btn.textContent='✦ Extract'; btn.disabled=false;
 }
@@ -8167,8 +8173,9 @@ async function sendGift(bfId){
     },800);
     input.value='';
   }catch(e){
-    feedback.textContent='Could not evaluate gift. Try again.';
-    console.error('Gift eval error:',e);
+    const _em = e?.message || String(e);
+    feedback.innerHTML='<span style="color:#c94f4f">Error: '+_em+'</span>';
+    console.error('Gift eval error full:',e);
   }
   input.disabled=false;
 }
