@@ -801,7 +801,7 @@
   <!-- heartlink-build-v11 -->
   <!-- heartlink-build-v12 -->
   <!-- heartlink-build-v12 -->
-  <!-- heartlink-build-v14 -->
+  <!-- heartlink-build-v15 -->
 </head>
 <body>
 
@@ -4416,49 +4416,14 @@ function saveProxySettings(){
 // Dedicated caller for small structured JSON tasks (memory extract, gift eval).
 // Uses gemini-1.5-flash which handles JSON instructions reliably without
 // burning a thinking budget before responding.
+// Structured JSON calls — uses the same model as the user selected.
+// Token budget is set high enough to cover thinking overhead on 2.5 Flash.
 async function callStructuredJSON(systemPrompt, userPrompt, maxTokens=800){
-  const key = apiKey;
-  if(!key && !proxyMode) throw new Error('No API key');
-  if(proxyMode && proxyUrl){
-    // proxy path — same as callAnyAPI
-    const msgs = [{role:'system',content:systemPrompt},{role:'user',content:userPrompt}];
-    const headers = {'Content-Type':'application/json'};
-    if(proxyKey) headers['Authorization'] = 'Bearer '+proxyKey;
-    const body = {messages:msgs, max_tokens:maxTokens, temperature:0.3};
-    if(proxyModel) body.model = proxyModel;
-    const res = await fetch(proxyUrl,{method:'POST',headers,body:JSON.stringify(body)});
-    const data = await res.json();
-    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
-    return data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
-  }
-  // Use gemini-2.0-flash — fast, non-thinking, reliable for structured JSON tasks
-  const model = 'gemini-2.0-flash';
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-    {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        system_instruction:{parts:[{text:systemPrompt}]},
-        contents:[{role:'user',parts:[{text:userPrompt}]}],
-        generationConfig:{
-          maxOutputTokens: maxTokens,
-          temperature: 0.3
-        }
-      })
-    }
-  );
-  const data = await res.json();
-  if(data.error) throw new Error('API error: '+(data.error.message||JSON.stringify(data.error)));
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  if(!text){
-    const reason = data.candidates?.[0]?.finishReason || 'none';
-    const blocked = data.promptFeedback?.blockReason || '';
-    throw new Error('Empty response. reason='+reason+(blocked?' blocked='+blocked:'')
-      +' raw='+JSON.stringify(data).substring(0,200));
-  }
-  return text;
+  // Just delegate to callAnyAPI with a generous token budget.
+  // This uses whatever model the user has selected — no separate model needed.
+  return await callAnyAPI(systemPrompt, [{role:'user', content:userPrompt}], Math.max(maxTokens, 2000), 0.3);
 }
+
 
 async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   if(!currentBF) return;
@@ -4836,9 +4801,8 @@ async function autoExtractMemories(){
       showToast('No memories found — try after a longer chat!');
     }
   }catch(e){
-    const _em2 = e?.message || String(e);
-    console.error('Memory extract error full:',e);
-    showToast(_em2.substring(0,100));
+    console.error('Memory extract error:',e);
+    showToast('Could not extract memories. Try again in a moment!');
   }
   btn.textContent='✦ Extract'; btn.disabled=false;
 }
@@ -8173,9 +8137,8 @@ async function sendGift(bfId){
     },800);
     input.value='';
   }catch(e){
-    const _em = e?.message || String(e);
-    feedback.innerHTML='<span style="color:#c94f4f">Error: '+_em+'</span>';
-    console.error('Gift eval error full:',e);
+    feedback.textContent='Could not evaluate gift. Try again.';
+    console.error('Gift eval error:',e);
   }
   input.disabled=false;
 }
