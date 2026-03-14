@@ -4749,41 +4749,46 @@ async function autoExtractMemories(){
   const btn=document.getElementById('memory-refresh-btn');
   btn.textContent='⟳ Thinking...'; btn.disabled=true;
 
-  const recentMsgs=history.slice(-60).map(m=>`${m.role==='user'?'User':'${currentBF.name.split(" ")[0]}'}: ${m.content}`).join('\n');
   const bfFirstName=currentBF.name.split(' ')[0];
   const pronoun=userPersona?.pronoun||'they/them';
   const userName=userPersona?.name||'the user';
+  // Fix: build recentMsgs without nested template literal quote issues
+  const recentMsgs=history.slice(-60).map(m=>(m.role==='user'?'User':bfFirstName)+': '+m.content).join('\n');
 
-  const extractPrompt=`You are analyzing a roleplay conversation between ${bfFirstName} and ${userName}.
-
-Your job: extract 3-6 meaningful memories that ${bfFirstName} would have formed about ${userName} — things he noticed, felt, or remembers about them. Write each memory from ${bfFirstName}'s POV, in the style of a brief, emotionally resonant observation.
-
-Use ${pronoun} pronouns for ${userName}. Write in second person as if telling ${userName} what ${bfFirstName} thinks.
-Example style: "He noticed how your eyes light up when you talk about things you love."
-Example style: "He remembers the way you laughed and thought about it for the rest of the day."
-Example style: "He finds your shyness endearing, even if he'd never say it out loud."
-
-CONVERSATION:
-${recentMsgs}
-
-Respond ONLY with a JSON array of strings, no markdown, no explanation. Example:
-["He remembers...", "He noticed...", "He finds..."]`;
+  const extractPrompt='You are analyzing a roleplay conversation between '+bfFirstName+' and '+userName+'.\n\n'+
+    'Your job: extract 3-6 meaningful memories that '+bfFirstName+' would have formed about '+userName+' — things they noticed, felt, or remembered. Write each memory from '+bfFirstName+"'s POV as a brief emotionally resonant observation.\n\n"+
+    'Use '+pronoun+' pronouns for '+userName+'. Write in second person.\n'+
+    'Example: "He noticed how your eyes light up when you talk about things you love."\n'+
+    'Example: "He remembers the way you laughed and thought about it for the rest of the day."\n\n'+
+    'CONVERSATION:\n'+recentMsgs+'\n\n'+
+    'Reply ONLY with a valid JSON array of strings. No markdown, no explanation, no preamble.\n'+
+    'Format: ["Memory one.", "Memory two.", "Memory three."]';
 
   try{
-    const raw = await callAnyAPI('You are a memory extractor.', [{role:'user',content:extractPrompt}], 400, 0.85);
-    const clean=raw.replace(/```json|```/g,'').trim();
-    const extracted=JSON.parse(clean);
-    if(Array.isArray(extracted)&&extracted.length){
-      const existing=getMemories(currentBF.id);
-      const newMems=extracted.map(t=>({id:Date.now()+Math.random(),text:t,auto:true,ts:Date.now()}));
-      // Replace old auto memories, keep manual ones
-      const manual=existing.filter(m=>!m.auto);
+    const raw = await callAnyAPI('You are a memory extractor. Reply ONLY with a valid JSON array.', [{role:'user',content:extractPrompt}], 500, 0.7);
+    // Robust JSON extraction — handles markdown fences, extra text, etc.
+    let clean = raw.trim();
+    // Strip markdown fences
+    clean = clean.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    // Find the JSON array boundaries
+    const arrStart = clean.indexOf('[');
+    const arrEnd = clean.lastIndexOf(']');
+    if(arrStart === -1 || arrEnd === -1) throw new Error('No JSON array found');
+    clean = clean.substring(arrStart, arrEnd+1);
+    const extracted = JSON.parse(clean);
+    if(Array.isArray(extracted) && extracted.length){
+      const existing = getMemories(currentBF.id);
+      const newMems = extracted.filter(t=>typeof t==='string'&&t.trim()).map(t=>({id:Date.now()+Math.random(),text:t.trim(),auto:true,ts:Date.now()}));
+      const manual = existing.filter(m=>!m.auto);
       saveMemories(currentBF.id,[...manual,...newMems]);
       renderMemoryPanel();
-      showToast(`${extracted.length} memories extracted 🌸`);
+      showToast(newMems.length+' memories extracted 🌸');
+    } else {
+      showToast('No memories found — try after a longer chat!');
     }
   }catch(e){
-    showToast('Could not extract memories. Try again!');
+    console.error('Memory extract error:',e);
+    showToast('Could not extract memories. Try again in a moment!');
   }
   btn.textContent='✦ Extract'; btn.disabled=false;
 }
@@ -5110,6 +5115,15 @@ function renderCalendar(bfId){
   const panel = document.getElementById('calendar-widget');
   if(!panel) return;
   const today = getInGameDate(bfId);
+  // Auto-clean past 'date' type entries (not birthdays or anniversaries)
+  const _todayAbs = today.year*12*30 + today.month*30 + today.day;
+  const _allDates = getCalDates(bfId);
+  const _cleaned = _allDates.filter(e => {
+    if(e.type !== 'date') return true; // keep birthdays, anniversaries, custom events
+    const _eAbs = (e.year||today.year)*12*30 + e.month*30 + e.day;
+    return _eAbs >= _todayAbs; // keep today and future dates, remove past
+  });
+  if(_cleaned.length !== _allDates.length) saveCalDates(bfId, _cleaned);
   const viewMonth = ((today.month + calViewOffset) % 12 + 12) % 12;
   const viewYear = today.year + Math.floor((today.month + calViewOffset)/12);
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -5349,6 +5363,13 @@ function checkDateArrival(bfId){
     const schedAbs = sched.year*12*30 + sched.month*30 + sched.day;
     if(todayAbs >= schedAbs){
       localStorage.removeItem('pending_scheduled_date_'+bfId);
+      // Remove the circled date from the calendar — it has passed/arrived
+      const _calDates = getCalDates(bfId);
+      const _filtered = _calDates.filter(e=>
+        !(e.type==='date' && e.day===sched.day && e.month===sched.month && e.year===sched.year)
+      );
+      saveCalDates(bfId, _filtered);
+      if(typeof renderCalendar === 'function') renderCalendar(bfId);
       const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
       localStorage.setItem('pending_date_note_'+bfId,
         `(TODAY is the day of your planned date — ${sched.dowName}, ${monthNames[sched.month]} ${sched.day}. The day has finally arrived. React as your character naturally would: excited, nervous, casual — whatever fits you. You can now write the date scene.)`);
@@ -8063,11 +8084,28 @@ async function sendGift(bfId){
   feedback.textContent='Evaluating gift...';
   input.disabled=true;
   const pref=GIFT_PREFS[bfId]||'General preferences.';
-  const evalPrompt=`Evaluate a gift for a fictional character. CHARACTER: ${bf.name}. PREFERENCES: ${pref}. GIFT: "${giftDesc}". Reply ONLY with valid JSON, no extra text: {"verdict":"loved"|"neutral"|"disliked","reaction":"1-2 sentence in-character reaction.","healthDelta":10|2|-8}`;
+  // Build prompt without nested backticks to avoid parse issues
+  const evalPrompt='Evaluate a gift given to a fictional character and return a JSON object.\n'+
+    'CHARACTER: '+bf.name+'\n'+
+    'CHARACTER PREFERENCES: '+pref+'\n'+
+    'GIFT GIVEN: "'+giftDesc+'"\n\n'+
+    'Return ONLY a valid JSON object with exactly these three fields:\n'+
+    '{"verdict":"loved","reaction":"1-2 sentence in-character reaction.","healthDelta":10}\n\n'+
+    'Rules:\n'+
+    '- verdict must be exactly: loved, neutral, or disliked\n'+
+    '- healthDelta must be exactly: 10 (loved), 2 (neutral), or -8 (disliked)\n'+
+    '- reaction is a short in-character emotional reaction to receiving this gift\n'+
+    '- No markdown, no extra text, ONLY the JSON object';
   try{
-    const raw=await callAnyAPI('Reply only with valid JSON. No extra text.',
-      [{role:'user',content:evalPrompt}],200,0.3);
-    const clean=raw.replace(/```json|```/g,'').trim();
+    const raw=await callAnyAPI('You evaluate gifts for fictional characters. Reply ONLY with a valid JSON object.',
+      [{role:'user',content:evalPrompt}],250,0.3);
+    // Robust extraction — find the JSON object boundaries
+    let clean=raw.trim();
+    clean=clean.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    const objStart=clean.indexOf('{');
+    const objEnd=clean.lastIndexOf('}');
+    if(objStart===-1||objEnd===-1) throw new Error('No JSON object in response');
+    clean=clean.substring(objStart,objEnd+1);
     const result=JSON.parse(clean);
     const verdict=result.verdict||'neutral';
     const reaction=result.reaction||'They received your gift quietly.';
@@ -8680,9 +8718,8 @@ async function textsSend(bfId){
   inputEl.style.height='auto';
   const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
   if(!bf) return;
-  // Save user message + cancel any left-on-read watch
+  // Save user message
   addTextMessage(bfId,'user',text);
-  cancelLORWatch(bfId);
   renderTextsMsgs(bfId);
   sendBtn.disabled=true;
   // Show typing indicator
@@ -8703,8 +8740,6 @@ async function textsSend(bfId){
   if(reply){
     addTextMessage(bfId,'assistant',reply);
     renderTextsMsgs(bfId);
-    // Start left-on-read watch — character is now waiting for a reply
-    startLORWatch(bfId);
     // Update contact list preview
     renderTextsPage();
   }
@@ -8780,8 +8815,6 @@ function scheduleTextsAutoMsg(bfId){
     const reply=await textsGenAutoMsg(bf,bfId);
     if(reply){
       addTextMessage(bfId,'assistant',reply);
-      // Start left-on-read watch after auto-message
-      startLORWatch(bfId);
       // If user is on texts page viewing this char, re-render
       if(document.getElementById('page-texts')?.classList.contains('active')&&_textsActiveBfId===bfId){
         renderTextsMsgs(bfId);
@@ -8813,248 +8846,6 @@ async function textsGenAutoMsg(bf, bfId){
     const r=await callAnyAPI(sysPrompt,[{role:'user',content:prompt}],150,1.1);
     return r.trim().replace(/^["']|["']$/g,'');
   }catch(e){ return null; }
-}
-
-// ════════════════════════════════════════════════════════════════
-// LEFT-ON-READ SYSTEM
-// When the character has sent a message that hasn't been replied to,
-// their behavior escalates based on their personality over time.
-// ════════════════════════════════════════════════════════════════
-
-// Behavior types — how each character reacts to being left on read
-// 'spam'    — sends multiple follow-up texts, escalating from casual to unhinged
-// 'accuse'  — assumes the user is talking to someone else, gets possessive
-// 'cold'    — goes silent, becomes icy and distant when user returns
-// 'passive' — subtle digs, reading-between-the-lines energy
-// 'worry'   — gets genuinely anxious/soft, expresses concern not anger
-const LEFT_ON_READ_TYPE = {
-  1:'cold',     // Elias — would never chase, becomes a one-word response machine
-  2:'spam',     // Kai — dramatic, sends memes and voice notes
-  3:'cold',     // Silas — quiet disappearance, books feel more interesting suddenly
-  4:'cold',     // Julian — the bar goes quiet in a specific way
-  5:'passive',  // Dr. Aris — "no it's fine, I was just reading anyway"
-  6:'cold',     // Soren — the mountain doesn't wait
-  7:'worry',    // Caspian — genuinely anxious, writes sad lyrics about being ignored
-  8:'cold',     // Victor — simply stops initiating entirely
-  9:'passive',  // Leo — intellectual distance, becomes weirdly formal
-  10:'accuse',  // Nikolai — protective instincts misfire, gets territorial
-  11:'passive', // Yi-Sun — royal passive-aggression, exquisite manners hiding hurt
-  12:'cold',    // Declan — the bar gets cleaner when he's annoyed
-  13:'spam',    // Finn — chaotic energy, sends seventeen memes
-  14:'accuse',  // Kael — commander mode, assumes strategic betrayal
-  15:'passive', // Dr. Ezra — "I just assumed you were busy with someone"
-  16:'accuse',  // Bjorn — protective Alpha instincts, gets territorial
-  17:'passive', // Park Ji-min — historically formal distance, very pointed politeness
-  18:'spam',    // Theo — sends progressively more unhinged wellness check texts
-  19:'accuse',  // Roman — trust issues run deep, assumes the worst
-  20:'spam',    // Jax — explicitly defined in his character, goes unhinged fast
-  21:'worry',   // Hana — quiet worry, wonders if she said something wrong
-  22:'accuse',  // Elena — passionate, assumes competition immediately
-  23:'cold',    // Seraphina — simply ceases to reach out, centuries of patience
-  24:'worry',   // Chloe — sweet anxiety, checks in softly multiple times
-  25:'cold',    // Morgana — ancient indifference, you will feel the absence
-};
-
-// How fast each character escalates (minutes before first reaction)
-// Lower = reacts faster. Jax reacts in 15 min. Elias takes 3 hours.
-const LEFT_ON_READ_DELAY = {
-  1:180,  // Elias — 3 hours before going cold
-  2:20,   // Kai — 20 min then spam begins
-  3:120,  // Silas — 2 hours
-  4:90,   // Julian — 90 min
-  5:60,   // Dr. Aris — 1 hour
-  6:240,  // Soren — 4 hours, he has things to do
-  7:30,   // Caspian — 30 min then worry spiral
-  8:180,  // Victor — 3 hours
-  9:90,   // Leo — 90 min
-  10:45,  // Nikolai — 45 min, protective instincts
-  11:120, // Yi-Sun — 2 hours, royal composure
-  12:120, // Declan — 2 hours
-  13:15,  // Finn — 15 min then chaos
-  14:60,  // Kael — 1 hour, military precision
-  15:90,  // Dr. Ezra — 90 min
-  16:30,  // Bjorn — 30 min, Alpha instincts
-  17:120, // Park Ji-min — 2 hours, formal
-  18:25,  // Theo — 25 min then wellness-check spiral
-  19:45,  // Roman — 45 min, trust issues fast
-  20:15,  // Jax — 15 min, explicitly unhinged
-  21:60,  // Hana — 1 hour, quiet worry
-  22:30,  // Elena — 30 min, passionate
-  23:360, // Seraphina — 6 hours, centuries of patience
-  24:20,  // Chloe — 20 min, soft anxiety
-  25:300, // Morgana — 5 hours
-};
-
-// Spam characters can send multiple messages — how many before stopping
-const LEFT_ON_READ_SPAM_COUNT = {
-  2:3, 7:2, 13:4, 18:3, 20:5, 24:3
-};
-
-let _lorTimers = {}; // left-on-read timers keyed by bfId
-let _lorSpamCount = {}; // tracks how many spam msgs sent
-
-function clearLORTimers(bfId){
-  if(_lorTimers[bfId]){ clearTimeout(_lorTimers[bfId]); delete _lorTimers[bfId]; }
-}
-
-// Called whenever the character sends a text message
-// Starts watching to see if the user replies within the character's threshold
-function startLORWatch(bfId){
-  clearLORTimers(bfId);
-  _lorSpamCount[bfId] = 0;
-  const delayMin = LEFT_ON_READ_DELAY[bfId] || 60;
-  _lorTimers[bfId] = setTimeout(()=>{ checkLORReaction(bfId); }, delayMin * 60 * 1000);
-}
-
-// Called whenever the USER sends a text — cancels any pending left-on-read reaction
-function cancelLORWatch(bfId){
-  clearLORTimers(bfId);
-  _lorSpamCount[bfId] = 0;
-  // If character was cold, note that user came back
-  const coldKey = 'lor_went_cold_'+bfId;
-  if(localStorage.getItem(coldKey)){
-    localStorage.removeItem(coldKey);
-    // Fire a brief "you came back" reaction
-    setTimeout(()=>{ fireLORReturnReaction(bfId); }, 500);
-  }
-}
-
-async function checkLORReaction(bfId){
-  if(!isTextsUnlocked(bfId)) return;
-  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
-  if(!bf) return;
-  // Check if user actually replied since we started watching
-  const history = getTextHistory(bfId);
-  const lastMsg = history.slice(-1)[0];
-  if(lastMsg && lastMsg.role === 'user') return; // user replied, cancel
-  if(!lastMsg || lastMsg.role !== 'assistant') return; // no message to react to
-  const type = LEFT_ON_READ_TYPE[bfId] || 'cold';
-  const maxSpam = LEFT_ON_READ_SPAM_COUNT[bfId] || 1;
-  const currentSpam = _lorSpamCount[bfId] || 0;
-  const age = getCharacterAge(bf);
-  const recentTexts = history.slice(-8).map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
-  let reaction = null;
-  let moodShift = null;
-  const timeSinceSent = Math.round((Date.now() - (lastMsg.ts||0)) / 60000); // minutes
-  if(type === 'spam' && currentSpam < maxSpam){
-    reaction = await textsGenLORMsg(bf, bfId, 'spam', currentSpam, timeSinceSent, recentTexts, age);
-    _lorSpamCount[bfId] = currentSpam + 1;
-    moodShift = currentSpam >= 2 ? 'irritable' : null;
-    // Schedule next spam if more allowed
-    if(_lorSpamCount[bfId] < maxSpam){
-      const nextDelay = (5 + Math.floor(Math.random()*15)) * 60 * 1000;
-      _lorTimers[bfId] = setTimeout(()=>{ checkLORReaction(bfId); }, nextDelay);
-    }
-  } else if(type === 'accuse'){
-    reaction = await textsGenLORMsg(bf, bfId, 'accuse', 0, timeSinceSent, recentTexts, age);
-    moodShift = 'irritable';
-    decayRelHealth(bfId, 5, `${bf.name.split(' ')[0]} got suspicious while waiting for your reply.`);
-  } else if(type === 'cold'){
-    reaction = await textsGenLORMsg(bf, bfId, 'cold', 0, timeSinceSent, recentTexts, age);
-    moodShift = 'withdrawn';
-    localStorage.setItem('lor_went_cold_'+bfId, '1');
-    decayRelHealth(bfId, 3, `${bf.name.split(' ')[0]} went quiet after being left on read.`);
-  } else if(type === 'passive'){
-    reaction = await textsGenLORMsg(bf, bfId, 'passive', 0, timeSinceSent, recentTexts, age);
-    moodShift = 'avoidant';
-  } else if(type === 'worry'){
-    reaction = await textsGenLORMsg(bf, bfId, 'worry', currentSpam, timeSinceSent, recentTexts, age);
-    _lorSpamCount[bfId] = currentSpam + 1;
-    if(_lorSpamCount[bfId] < (LEFT_ON_READ_SPAM_COUNT[bfId]||2)){
-      const nextDelay = (10 + Math.floor(Math.random()*20)) * 60 * 1000;
-      _lorTimers[bfId] = setTimeout(()=>{ checkLORReaction(bfId); }, nextDelay);
-    }
-  }
-  if(moodShift) forceMood(bfId, moodShift);
-  if(reaction){
-    addTextMessage(bfId, 'assistant', reaction);
-    if(document.getElementById('page-texts')?.classList.contains('active') && _textsActiveBfId===bfId){
-      renderTextsMsgs(bfId);
-    } else {
-      // Update unread count in contact list
-      const allBfs=[...BF_DATA,...savedBFs.filter(b=>b.isCustom)].filter(bf=>(chatHistory[bf.id]||[]).length>0||getTextHistory(bf.id).length>0);
-      renderTextsContactList(allBfs, '');
-    }
-    sendBrowserNotif(bf.name.split(' ')[0], reaction, bfId);
-  }
-}
-
-async function textsGenLORMsg(bf, bfId, type, spamIdx, minutesWaited, recentTexts, age){
-  const relData = getRelHealth(bfId);
-  const status = relData.status;
-  const inRel = ['dating','fiance','married'].includes(status);
-  const fn = bf.name.split(' ')[0];
-  const hourWord = minutesWaited >= 60 ? `${Math.floor(minutesWaited/60)} hour${Math.floor(minutesWaited/60)>1?'s':''}` : `${minutesWaited} minutes`;
-  const prompts = {
-    spam: [
-      `You sent them a message ${hourWord} ago and they haven't replied. Send a casual follow-up — nothing desperate, just filling the silence the way you do.`,
-      `Still no reply. ${spamIdx===0?'Send another text — a little more pointed, still charming.':'Send one more text — now you are starting to spiral slightly, though you would never admit it. Keep it in your voice.'}`,
-      `It has been a while now. Send something that is technically asking if they are okay but is actually expressing mild chaos about being ignored. Stay completely in character.`,
-      `You have been sending messages into a void. Send one final text before you decide to perform indifference. Make it specific and slightly unhinged in the way that is completely you.`,
-      `Last one. This is the text you send when you are trying very hard to seem like you are not affected by being left on read.`,
-    ],
-    accuse: [
-      `They have not replied to your message in ${hourWord}. You are starting to wonder if they are talking to someone else. ${inRel?'You are in a relationship with them — this feels like a specific kind of disrespect.':'Your instincts are telling you something.'} Send a text that expresses this suspicion in your character's specific voice — not a direct accusation, but close. Let the jealousy show.`,
-    ],
-    cold: [
-      `They have not replied to your message in ${hourWord}. You are not going to say anything. But you are going to send one final text that communicates, in your character's specific voice, that you noticed — and that you are done reaching out for now. Terse. Controlled. The temperature drops.`,
-    ],
-    passive: [
-      `They have not replied in ${hourWord}. Send a text that is technically neutral but carries the specific weight of someone who is keeping score. In your character's voice — the kind of text where the subtext is louder than the text.`,
-    ],
-    worry: [
-      `They have not replied in ${hourWord}. Send a gentle check-in — not demanding, just genuinely worried. This is the soft version of you, the one that doesn't perform.`,
-      `Still nothing. Send another message — a little more vulnerable now, quietly worried. Stay true to who you are.`,
-      `You are starting to spiral a little. Send one more message that is trying very hard to be casual but is clearly not. In your voice.`,
-    ],
-  };
-  const promptPool = prompts[type] || prompts.worry;
-  const prompt = promptPool[Math.min(spamIdx, promptPool.length-1)];
-  const sysPrompt = `You are ${fn}, ${age<0?'ageless':age+' years old'}. ${bf.personality||''}
-
-This is a TEXTING situation. You are sending a text message because someone left you on read.
-RECENT TEXT EXCHANGE:\n${recentTexts}
-
-${prompt}
-
-Reply ONLY with the text message itself. No quotes, no stage directions. Keep it short — 1-3 sentences maximum. Sound like you, not a template.`;
-  try{
-    const r = await callAnyAPI(sysPrompt, [{role:'user',content:prompt}], 200, 1.1);
-    return r.trim().replace(/^["']|["']$/g,'');
-  }catch(e){ return null; }
-}
-
-async function fireLORReturnReaction(bfId){
-  // User finally replied after character went cold — brief acknowledgment
-  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
-  if(!bf) return;
-  const type = LEFT_ON_READ_TYPE[bfId] || 'cold';
-  if(type !== 'cold' && type !== 'accuse') return; // only cold/accuse chars have a return reaction
-  const history = getTextHistory(bfId);
-  const lastUserMsg = history.filter(m=>m.role==='user').slice(-1)[0];
-  if(!lastUserMsg) return;
-  // Don't fire if the last thing they did was apologize (covered by normal reply flow)
-  const age = getCharacterAge(bf);
-  const recentTexts = history.slice(-6).map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
-  const sysPrompt = `You are ${bf.name.split(' ')[0]}, ${age<0?'ageless':age+' years old'}. ${bf.personality||''}
-
-This is a TEXTING situation. The person left you on read for a while, you went quiet/cold, and they have now finally replied.
-RECENT EXCHANGE:\n${recentTexts}
-
-React to their return in your character's specific voice. ${type==='cold'?'You were cold. You are still not fully warm. One short, slightly clipped reply — you acknowledge they are back but you are not rushing to pretend everything is fine.':'You suspected they were talking to someone else. They have come back. One short reply — guarded, watching. Maybe a question. Maybe just one word.'}
-
-Reply ONLY with the text message. Keep it very short. Sound exactly like you.`;
-  try{
-    await new Promise(r=>setTimeout(r,1000+Math.random()*2000));
-    const r = await callAnyAPI(sysPrompt,[{role:'user',content:lastUserMsg.content}],150,1.0);
-    const reply = r.trim().replace(/^["']|["']$/g,'');
-    if(reply){
-      addTextMessage(bfId,'assistant',reply);
-      if(document.getElementById('page-texts')?.classList.contains('active')&&_textsActiveBfId===bfId){
-        renderTextsMsgs(bfId);
-      }
-    }
-  }catch(e){}
 }
 
 // ── STATUS REFRESH — rotate statuses periodically ───────────────
