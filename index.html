@@ -7699,23 +7699,6 @@ async function checkPlotEvents(){
     const lastDyn = parseInt(localStorage.getItem(dynKey)||'0');
     if(totalMsgs - lastDyn < stagnationThreshold) return;
 
-    // Response gate for dynamic scenes — same logic as pre-written events
-    const _dynLastAi = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
-    if(_dynLastAi){
-      const _dynTail = _dynLastAi.content.trim().slice(-300).toLowerCase();
-      const _dynLastMsgIsAi = (chatHistory[bfId]||[]).slice(-1)[0]?.role === 'assistant';
-      const _dynHasQ = _dynTail.endsWith('?') || /\?\s*["'»)?\]]*\s*$/.test(_dynTail);
-      const _dynInvite = ['want to','wanna','you up for','come with','shall we','should we',
-        'you coming','how about','what do you say','tell me','meet me','wait for',
-        "don't leave",'stay','walk with me','join me'].some(p=>_dynTail.includes(p));
-      if((_dynHasQ || _dynInvite) && _dynLastMsgIsAi){
-        // Store intent to fire a dynamic scene, defer by 1 exchange
-        localStorage.setItem('pending_dyn_scene_'+bfId,'1');
-        return;
-      }
-    }
-    localStorage.removeItem('pending_dyn_scene_'+bfId);
-
     localStorage.setItem(dynKey, totalMsgs.toString());
     resetStagnationThreshold(bfId);
     setLastPlotMsg(bfId, totalMsgs);
@@ -7727,7 +7710,23 @@ async function checkPlotEvents(){
       if(!dynScene){ hideTyping(); return; }
       const freshHistory = (chatHistory[bfId] || []).slice(-4);
       const freshExchange = freshHistory.map(m => (m.role === 'user' ? 'Them: ' : 'You: ') + m.content.substring(0,120)).join('\n');
-      const bridgePrompt = `(IMPORTANT TRANSITION INSTRUCTION: Before launching into the story scene below, write a natural bridge — 1-3 sentences — that transitions smoothly from what you were just discussing. Use a brief time-skip or scene change if needed. Here is the recent context:\n${freshExchange}\n\nNow bridge into this scene:)\n\n${dynScene}`;
+      // Same smarter bridge for dynamic scenes
+      const _dynLastAiMsg = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
+      const _dynLastTail = _dynLastAiMsg ? _dynLastAiMsg.content.trim().slice(-300) : '';
+      const _dynLastOpen = _dynLastAiMsg ? _dynLastAiMsg.content.trim().substring(0,80) : '';
+      const bridgePrompt = `(STORY TRANSITION — CONTINUITY REQUIRED: You are moving into a new story scene. The transition must make narrative sense.
+
+WHAT JUST HAPPENED (do NOT repeat): ${freshExchange}
+
+YOUR PREVIOUS MESSAGE ENDED WITH: "${_dynLastTail}"
+
+RULES:
+1. Do NOT open with the same line or situation as your previous message. Do not reuse "${_dynLastOpen}...".
+2. RESOLVE THE THREAD FIRST. If your last message had an invitation, question, or plan, acknowledge how it resolved in 1-2 sentences before moving on.
+3. EXPLAIN THE TRANSITION. If the new scene is in a different location, briefly say how you got there.
+4. Then launch into the scene below.)
+
+${dynScene}`;
       await callGemini(bridgePrompt);
       addMilestone(bfId, 'The story moved forward in an unexpected direction.');
       boostRelHealth(bfId, 4);
@@ -7743,30 +7742,20 @@ async function checkPlotEvents(){
   if(!candidate) candidate = eligible[0];
 
   // Context gate removed — bridge prompt handles graceful transitions.
-  // ── Response gate: don't fire if last AI message has an open question ───────
-  // If the character just asked the user something or extended an invitation,
-  // the user deserves to answer BEFORE the plot event steamrolls the scene.
-  // We store the event as pending and return — it fires on the NEXT message.
+  // ── Response gate: hold if last AI message has an open question/invite ─────
+  // Ensures the user gets to reply to what the character just asked before the
+  // plot event fires and jumps the scene. Stores as pending and fires next msg.
   const _gateLastAi = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
-  const _gateLastUser = (chatHistory[bfId]||[]).filter(m=>m.role==='user').slice(-1)[0];
   if(_gateLastAi){
     const _gateTail = _gateLastAi.content.trim().slice(-300).toLowerCase();
-    // Detect open questions: ends with '?' or contains invitation-style phrases
-    const _hasOpenQuestion = _gateTail.endsWith('?') ||
-      /\?\s*["'»]?\s*$/.test(_gateTail) ||
-      /\?\s*[)\]"'»]?\s*$/.test(_gateTail);
-    const _invitePhrases = [
-      'want to','wanna','you up for','you in','come with','come on','join me',
-      'shall we','should we','you coming','you game','how about','what do you say',
-      'tell me','meet me','wait for',"don't leave","stay","sit with me",
-      'walk with me','come find me','follow me'
-    ];
-    const _hasInvite = _invitePhrases.some(p => _gateTail.includes(p));
-    // Only gate if the user hasn't already responded to this message
-    // (i.e. the last message in history IS the AI message, not a user reply after it)
     const _lastMsgIsAi = (chatHistory[bfId]||[]).slice(-1)[0]?.role === 'assistant';
-    if((_hasOpenQuestion || _hasInvite) && _lastMsgIsAi){
-      // Defer: store as pending, return — fires next message when user has replied
+    const _hasOpenQ = _gateTail.endsWith('?') || /[?]["')]?\s*$/.test(_gateTail);
+    const _invites = ['want to','wanna','you up for','you in','come with','join me',
+      'shall we','should we','you coming','you game','how about','what do you say',
+      'tell me','meet me','wait for',"don't leave",'stay','sit with me',
+      'walk with me','come find me','follow me'];
+    const _hasInvite = _invites.some(p => _gateTail.includes(p));
+    if((_hasOpenQ || _hasInvite) && _lastMsgIsAi){
       setPendingPlot(bfId, candidate.id);
       return;
     }
@@ -7783,15 +7772,37 @@ async function checkPlotEvents(){
   setTimeout(async () => {
     if(currentBF?.id !== bfId) return;
     showTyping();
-    const freshHistory = (chatHistory[bfId] || []).slice(-4);
-    const freshExchange = freshHistory.map(m => (m.role === 'user' ? 'Them: ' : 'You: ') + m.content.substring(0, 120)).join('\n');
+
+    // Build rich context: last 6 messages so the AI knows the full recent thread
+    const freshHistory = (chatHistory[bfId] || []).slice(-6);
+    const freshExchange = freshHistory.map(m => (m.role === 'user' ? 'Them' : 'You') + ': ' + m.content.substring(0, 200)).join('\n');
+
+    // Grab the full tail of the last AI message (not just 80 chars) so we can
+    // detect open invitations, questions, plans, and locations
     const _lastAiMsg = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
-    const _lastAiPreview = _lastAiMsg ? _lastAiMsg.content.substring(0,80) : '';
-    const bridgeInstruction = `(STORY TRANSITION: A new scene is beginning. Follow these rules exactly:
-1. DO NOT repeat, paraphrase, or echo your previous message. Your last message began: "${_lastAiPreview}..." — do not reuse any of its phrasing, opening, or content.
-2. Write a SHORT bridge of 1-2 sentences ONLY — a time-skip like "Three days later..." or a single line of physical action is enough.
-3. Then launch directly into the story scene.
-4. Recent context (do NOT repeat this): ${freshExchange})`;
+    const _lastAiTail = _lastAiMsg ? _lastAiMsg.content.trim().slice(-400) : '';
+    const _lastAiOpening = _lastAiMsg ? _lastAiMsg.content.trim().substring(0, 80) : '';
+
+    // Extract the scene title and location hint from the candidate prompt
+    // Prompts follow format: (STORY EVENT — TITLE: ...)
+    const _sceneTitleMatch = candidate.prompt.match(/STORY EVENT[^—]*—\s*([^:)]+)/i);
+    const _sceneTitle = _sceneTitleMatch ? _sceneTitleMatch[1].trim() : 'a new scene';
+
+    // Extract location clues from the prompt (first 300 chars usually sets the scene)
+    const _sceneOpening = candidate.prompt.substring(0, 300);
+
+    const bridgeInstruction = '(STORY TRANSITION — CONTINUITY REQUIRED: You are moving from what just happened into a new story scene. The transition must make complete narrative sense.' +
+      '\n\nWHAT JUST HAPPENED (do NOT repeat or echo any of this):\n' + freshExchange +
+      '\n\nYOUR PREVIOUS MESSAGE ENDED WITH:\n"' + _lastAiTail + '"' +
+      '\n\nTHE NEW SCENE YOU ARE ENTERING: ' + _sceneTitle +
+      '\nSCENE CONTEXT: ' + _sceneOpening +
+      '\n\nRULES — follow every one of these exactly:' +
+      '\n1. DO NOT open with the same line, phrase, or situation as your previous message. Do not reuse "' + _lastAiOpening + '...".' +
+      '\n2. RESOLVE THE THREAD FIRST. If your last message had an invitation, a question, a plan, or a suggestion (e.g. "want to go to the diner?", "shall we?", "don\'t leave yet"), you MUST acknowledge how that resolved before entering the new scene. Write 1-2 sentences showing what happened — did they go? Did they agree? Did time pass? The user must never feel their response was ignored.' +
+      '\n3. EXPLAIN THE TRANSITION. If the new scene is in a different location from where you just were, briefly explain how you got there. Example: "An hour later, at the diner on 26th, the coffee was terrible and the light was warm..." or "We ended up back at the storage room — I don\'t remember deciding it, just that we were there." One sentence. It must exist.' +
+      '\n4. DO NOT jump straight into the new scene without this continuity. The user must always know where they are and how they got there.' +
+      '\n5. After resolving the transition in 1-3 sentences, launch fully into the story scene below.)';
+
     const bridgePrompt = bridgeInstruction + '\n\n' + candidate.prompt;
     await callGemini(bridgePrompt);
     const typeLabel = candidate.type === 'together' ? 'A moment drew you closer.' :
