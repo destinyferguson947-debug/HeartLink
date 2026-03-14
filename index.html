@@ -677,6 +677,11 @@
 
 <nav>
   <div class="nav-logo">Heart<span>link</span></div>
+  <div style="display:flex;align-items:center;gap:0.7rem">
+  </div>
+  <div style="display:flex;align-items:center;gap:0.5rem;">
+    <span style="font-size:0.68rem;font-weight:600;background:#2d9e6b;color:#fff;padding:2px 9px;border-radius:1rem;letter-spacing:0.04em;opacity:0.92;">✓ Updated</span>
+  </div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('home')">✨ Home</button>
     <button class="nav-tab" onclick="showPage('browse')">💝 Browse</button>
@@ -7626,27 +7631,12 @@ async function checkPlotEvents(){
     const freshHistory = (chatHistory[bfId] || []).slice(-4);
     const freshExchange = freshHistory.map(m => (m.role === 'user' ? 'Them: ' : 'You: ') + m.content.substring(0, 120)).join('\n');
     const _lastAiMsg = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
-    // Grab BOTH the opening AND ending of the last message so the model
-    // knows not to echo either end of it when starting the new scene.
-    const _lastContent = _lastAiMsg ? _lastAiMsg.content : '';
-    const _lastAiOpening = _lastContent.substring(0, 80).replace(/"/g, "'");
-    const _lastAiEnding  = _lastContent.length > 80
-      ? _lastContent.substring(_lastContent.length - 120).trimStart().replace(/"/g, "'")
-      : '';
-    // Also pull out the very last line of dialogue (quoted speech) if any,
-    // since those are the most commonly echoed fragments
-    const _dialogueMatches = _lastContent.match(/"([^"]{5,})"/g) || [];
-    const _lastDialogue = _dialogueMatches.length
-      ? _dialogueMatches[_dialogueMatches.length - 1].replace(/"/g, "'")
-      : '';
-    const bridgeInstruction = `(STORY TRANSITION: A new scene or time-skip is beginning. Follow these rules EXACTLY:
-1. DO NOT open with any line, phrase, or sentence from your previous message.
-   - Your previous message OPENED with: "${_lastAiOpening}..." — do not reuse this.
-   ${_lastAiEnding ? `- Your previous message ENDED with: "...${_lastAiEnding}" — do not reuse this either.` : ''}
-   ${_lastDialogue ? `- The last spoken line in your previous message was: ${_lastDialogue} — do NOT use this as your opening line.` : ''}
-2. Begin the new scene with a FRESH line — a time marker ("The following morning...", "Three days passed.", "By nightfall..."), a new physical action, or a new location. Something that clearly signals a scene change.
-3. Keep your transition to 1-2 sentences, then move straight into the scene.
-4. Recent context for continuity (do NOT repeat or echo this): ${freshExchange})`;
+    const _lastAiPreview = _lastAiMsg ? _lastAiMsg.content.substring(0,80) : '';
+    const bridgeInstruction = `(STORY TRANSITION: A new scene is beginning. Follow these rules exactly:
+1. DO NOT repeat, paraphrase, or echo your previous message. Your last message began: "${_lastAiPreview}..." — do not reuse any of its phrasing, opening, or content.
+2. Write a SHORT bridge of 1-2 sentences ONLY — a time-skip like "Three days later..." or a single line of physical action is enough.
+3. Then launch directly into the story scene.
+4. Recent context (do NOT repeat this): ${freshExchange})`;
     const bridgePrompt = bridgeInstruction + '\n\n' + candidate.prompt;
     await callGemini(bridgePrompt);
     const typeLabel = candidate.type === 'together' ? 'A moment drew you closer.' :
