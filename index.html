@@ -4431,8 +4431,8 @@ async function callStructuredJSON(systemPrompt, userPrompt, maxTokens=800){
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     return data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
   }
-  // Use gemini-1.5-flash specifically for JSON tasks — no thinking overhead
-  const model = 'gemini-1.5-flash';
+  // Use gemini-2.0-flash — fast, non-thinking, reliable for structured JSON tasks
+  const model = 'gemini-2.0-flash';
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
     {
@@ -4443,8 +4443,7 @@ async function callStructuredJSON(systemPrompt, userPrompt, maxTokens=800){
         contents:[{role:'user',parts:[{text:userPrompt}]}],
         generationConfig:{
           maxOutputTokens: maxTokens,
-          temperature: 0.3,
-          responseMimeType: 'application/json'
+          temperature: 0.3
         }
       })
     }
@@ -4452,12 +4451,7 @@ async function callStructuredJSON(systemPrompt, userPrompt, maxTokens=800){
   const data = await res.json();
   if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  if(!text){
-    // Surface finish reason if available
-    const reason = data.candidates?.[0]?.finishReason || 'unknown';
-    const safety = data.candidates?.[0]?.safetyRatings ? JSON.stringify(data.candidates[0].safetyRatings) : '';
-    throw new Error('Empty response. finishReason='+reason+(safety?' safety='+safety:''));
-  }
+  if(!text) throw new Error('Empty response');
   return text;
 }
 
@@ -4837,9 +4831,8 @@ async function autoExtractMemories(){
       showToast('No memories found — try after a longer chat!');
     }
   }catch(e){
-    const errMsg = e?.message || String(e);
     console.error('Memory extract error:',e);
-    showToast('Extract error: '+errMsg.substring(0,80));
+    showToast('Could not extract memories. Try again in a moment!');
   }
   btn.textContent='✦ Extract'; btn.disabled=false;
 }
@@ -8174,8 +8167,7 @@ async function sendGift(bfId){
     },800);
     input.value='';
   }catch(e){
-    const errMsg = e?.message || String(e);
-    feedback.textContent='Error: '+errMsg;
+    feedback.textContent='Could not evaluate gift. Try again.';
     console.error('Gift eval error:',e);
   }
   input.disabled=false;
