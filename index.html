@@ -710,7 +710,7 @@
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-thumb { background: var(--rose-light); border-radius: 3px; }
 </style>
-  <!-- heartlink-build-v8 -->
+  <!-- heartlink-build-v9 -->
 </head>
 <body>
 
@@ -2519,7 +2519,7 @@ function renderGrid(data){
         ${bf.difficulty ? `<div style="position:absolute;top:8px;left:8px;background:${diffColor[bf.difficulty]||'#c9667a'};color:#fff;font-size:0.68rem;font-weight:600;padding:3px 8px;border-radius:10px;letter-spacing:0.3px">${bf.difficulty}</div>` : ''}
       </div>
       <div class="bf-card-info">
-        <div class="bf-name">${bf.name}, ${bf.age}</div>
+        <div class="bf-name">${bf.name}, ${(()=>{ const _a=getCharacterAge(bf); return _a<0?'∞':_a; })()}</div>
         <span class="bf-tag">${bf.tag}</span>
         <div class="bf-scenario">${bf.scenario.substring(0,72)}...</div>
         <button class="bf-chat-btn" onclick="event.stopPropagation();addAndChat(${bf.id})">💬 Chat with ${bf.name.split(' ')[0]}</button>
@@ -2608,7 +2608,7 @@ function openModal(id){
 
   // Name / age / difficulty
   document.getElementById('modal-name').textContent=bf.name;
-  document.getElementById('modal-age').textContent=`Age ${bf.age}`;
+  document.getElementById('modal-age').textContent=`Age ${(()=>{ const _a=getCharacterAge(bf); return _a<0?'∞':_a; })()}`;
   document.getElementById('modal-firstname').textContent=bf.name.split(' ')[0];
   const badge=document.getElementById('modal-diff-badge');
   badge.textContent=bf.difficulty||bf.tag;
@@ -3178,7 +3178,8 @@ ${(()=>{ const _oTags=['omegaverse','fantasy']; const _isO=_oTags.some(t=>(bf.ta
   const omegaTags = ['omegaverse','fantasy'];
   const isOmega = omegaTags.some(t => (bf.tag||'').includes(t)) || (bf.core||'').toLowerCase().includes('alpha') || (bf.core||'').toLowerCase().includes('omega') || (bf.core||'').toLowerCase().includes('shifter');
   const omegaLore = isOmega ? OMEGAVERSE_LOREBOOK : '';
-  return `You are ${bf.name}, ${bf.age === -1 ? 'an ageless deity who appears 25' : bf.age + ' years old'}. Personality: ${bf.personality}.
+  const _currentAge = getCharacterAge(bf);
+  return `You are ${bf.name}, ${bf.age === -1 ? 'an ageless deity who appears 25' : _currentAge + ' years old'}. Personality: ${bf.personality}.
 Scenario: ${bf.scenario}
 ${personaContext}
 
@@ -3673,7 +3674,7 @@ function openChat(id){
       <div class="chat-header-clickable" id="header-clickable" onclick="toggleHeaderDropdown(event)">
         <div class="chat-header-emoji ${avatarWrapClass}" style="overflow:hidden">${avatarHtml}</div>
         <div>
-          <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" style="font-size:0.78rem;font-weight:500;color:var(--rose);margin-left:10px;letter-spacing:0.01em;cursor:pointer;" onclick="showDatingTooltip(event,${bf.id})" title="Click for details">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
+          <div class="chat-header-name">${bf.name}, ${(()=>{ const _a=getCharacterAge(bf); return _a<0?'∞':_a; })()}<span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" style="font-size:0.78rem;font-weight:500;color:var(--rose);margin-left:10px;letter-spacing:0.01em;cursor:pointer;" onclick="showDatingTooltip(event,${bf.id})" title="Click for details">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
           <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx, relData.health)} · ${bf.difficulty||bf.tag}</div>
         </div>
         <div class="chat-header-dropdown" id="header-dropdown" onclick="event.stopPropagation()">
@@ -6621,7 +6622,8 @@ function checkBirthdayEvent(){
   const willMention = Math.random() > 0.5;
   if(willMention){
     setTimeout(async ()=>{
-      const bdayPrompt = `(TODAY IS YOUR BIRTHDAY. Your character won't announce it outright — that's not their style. But the date is quietly meaningful to you. Weave this into the conversation naturally: maybe you're a little distracted, maybe something small reminds you, maybe you mention offhandedly that it's "a particular kind of day." If the user has already wished you happy birthday or acknowledged the date, respond warmly and in-character. If they haven't, do not demand acknowledgment — just let the day exist around you. Write with your full personality.)`;
+      const _bdayAge = getCharacterAge(currentBF);
+      const bdayPrompt = `(TODAY IS YOUR BIRTHDAY — you are now ${_bdayAge < 0 ? 'ageless' : _bdayAge + ' years old'}. Your character won't announce it outright — that's not their style. But the date is quietly meaningful to you. Weave this into the conversation naturally: maybe you're a little distracted, maybe something small reminds you, maybe you mention offhandedly that it's "a particular kind of day" or that you've been thinking about getting older. If the user has already wished you happy birthday or acknowledged the date, respond warmly and in-character. If they haven't, do not demand acknowledgment — just let the day exist around you. Write with your full personality.)`;
       showTyping();
       await callGemini(bdayPrompt);
     }, 3000);
