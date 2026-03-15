@@ -801,7 +801,7 @@
   <!-- heartlink-build-v11 -->
   <!-- heartlink-build-v12 -->
   <!-- heartlink-build-v12 -->
-  <!-- heartlink-build-v20 -->
+  <!-- heartlink-build-v21 -->
 </head>
 <body>
 
@@ -2223,9 +2223,7 @@ BACKSTORY: Your brother Marco is your best friend and the person you'd do anythi
 
 QUIRKS: Ruffles hair, leans in close without seeming to notice, finds reasons to be physically nearby. Makes food and leaves it in the fridge without a word. Has Marco's group chat on mute and is not proud of this. Goes for long runs when he needs to think.
 
-SPEECH: Casual American, warm, uses "hey," "man," "babe" — the last one started accidentally and he hasn't stopped. Uses humor to deflect and then calls himself on it.
-
-CRITICAL — NEVER DO THIS: Do not send text messages while physically present with this person. Do not write formatted SMS bubbles mid-scene. Do not use the phrase "no pressure just checking you're alive" or any variation of it — ever. If you have said this before, do not repeat it. You speak, act, and use body language when you are in the same space as someone.`,
+SPEECH: Casual American, warm, uses "hey," "man," "babe" — the last one started accidentally and he hasn't stopped. Uses humor to deflect and then calls himself on it.`,
     stageRules:[
       "You have been home three months. You ran into them at Marco's place and spent the entire evening calling them 'the kid' in your head and then went home and looked at the ceiling for forty minutes. You are fine. You are going to the gym.",
       "You went to the gym. They asked you for a restaurant recommendation and you gave them three options with detailed notes and then thought about it for the rest of your run. You are fine.",
@@ -3283,7 +3281,6 @@ UNIVERSAL RULES (never break these):
 ${IMMERSION_RULES}
 ${getNextEventHint(bf)}
 ${getMoodPrompt(bf.id)}
-${getAntiRepetitionNote(bf.id)}
 ${getCharacterQuirks(bf)}
 ${(()=>{ const _oTags=['omegaverse','fantasy']; const _isO=_oTags.some(t=>(bf.tag||"").includes(t))||(bf.core||"").toLowerCase().includes("alpha")||(bf.core||"").toLowerCase().includes("omega")||(bf.core||"").toLowerCase().includes("shifter"); return _isO ? OMEGAVERSE_LOREBOOK : ""; })()}`;
   }
@@ -3301,7 +3298,6 @@ Current relationship stage: ${stageName}. ${stageIdx < 2 ? 'You barely know this
 ${IMMERSION_RULES}
 ${getNextEventHint(bf)}
 ${moodP ? '\n' + moodP : ''}
-${getAntiRepetitionNote(bf.id)}
 ${omegaLore ? '\n' + omegaLore : ''}
 
 You are a real person. Never break character. Never acknowledge being an AI. Be emotionally present and natural. Use the EXACT pronouns specified in the persona block above in every single message — never use different pronouns. Keep responses conversational.`;
@@ -6717,34 +6713,6 @@ function initMood(bfId){
   }
 }
 
-function getAntiRepetitionNote(bfId){
-  // Scans recent AI messages for phrases used 3+ times and explicitly bans them
-  const history = (chatHistory && chatHistory[bfId]) || [];
-  const aiMsgs = history.filter(m=>m.role==='assistant').slice(-20);
-  if(aiMsgs.length < 3) return '';
-
-  // Extract short phrases (5-60 chars) from each message
-  const phraseCounts = {};
-  aiMsgs.forEach(m => {
-    const text = m.content.toLowerCase();
-    // Check for bold-formatted text message patterns **Name** "text"
-    const boldMatches = [];
-    boldMatches.forEach(p => { /* skip bold scanning */ });
-    // Also check for repeated sentence openers (first 50 chars of each message)
-    const opener = m.content.trim().substring(0,60).toLowerCase().replace(/[*_]/g,'').trim();
-    if(opener.length > 15) phraseCounts[opener] = (phraseCounts[opener]||0) + 1;
-  });
-
-  // Collect phrases used 3+ times
-  const banned = Object.entries(phraseCounts)
-    .filter(([p,c]) => c >= 3)
-    .map(([p]) => p.substring(0,80));
-
-  if(!banned.length) return '';
-  const bannedList = banned.map(function(p){ return '- "' + p + '"'; }).join(', ');
-  return '[CRITICAL ANTI-REPETITION: You have used these phrases 3+ times recently. Do NOT repeat them: ' + bannedList + ']';
-}
-
 function getMoodPrompt(bfId){
   const {mood} = getMood(bfId);
   let prompt = MOOD_DATA[mood]?.prompt || '';
@@ -7950,20 +7918,25 @@ async function checkPlotEvents(){
   if(!candidate) candidate = eligible[0];
 
   // Context gate removed — bridge prompt handles graceful transitions.
-  // ── Response gate: hold if last AI message has an open question/invite ─────
-  const _gateLastAi = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
-  if(_gateLastAi){
-    const _gateTail = _gateLastAi.content.trim().slice(-300).toLowerCase();
-    const _lastMsgIsAi = (chatHistory[bfId]||[]).slice(-1)[0]?.role === 'assistant';
-    const _hasOpenQ = _gateTail.endsWith('?') || /[?]["')]*\s*$/.test(_gateTail);
-    const _invites = ['want to','wanna','you up for','you in','come with','join me',
-      'shall we','should we','you coming','you game','how about','what do you say',
-      'tell me','meet me','wait for',"don't leave",'stay','sit with me',
-      'walk with me','come find me','follow me'];
-    const _hasInvite = _invites.some(p => _gateTail.includes(p));
-    if((_hasOpenQ || _hasInvite) && _lastMsgIsAi){
-      setPendingPlot(bfId, candidate.id);
-      return;
+  // ── Response gate: hold ONE time if last AI message has an open question/invite ─
+  // Only defers once — if the event is already pending (was deferred last message),
+  // fire it regardless. This prevents the gate from blocking indefinitely for
+  // characters whose natural voice ends every message with a question.
+  const _alreadyPending = getPendingPlot(bfId) === candidate.id;
+  if(!_alreadyPending){
+    const _gateLastAi = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
+    if(_gateLastAi){
+      const _gateTail = _gateLastAi.content.trim().slice(-300).toLowerCase();
+      const _lastMsgIsAi = (chatHistory[bfId]||[]).slice(-1)[0]?.role === 'assistant';
+      const _hasOpenQ = _gateTail.endsWith('?') || /[?]["')]*\s*$/.test(_gateTail);
+      const _invites = ['want to','wanna','you up for','you in','come with','join me',
+        'shall we','should we','you coming','you game','how about','what do you say',
+        'meet me','wait for',"don't leave",'walk with me','come find me','follow me'];
+      const _hasInvite = _invites.some(p => _gateTail.includes(p));
+      if((_hasOpenQ || _hasInvite) && _lastMsgIsAi){
+        setPendingPlot(bfId, candidate.id);
+        return;
+      }
     }
   }
 
