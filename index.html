@@ -801,7 +801,7 @@
   <!-- heartlink-build-v11 -->
   <!-- heartlink-build-v12 -->
   <!-- heartlink-build-v12 -->
-  <!-- heartlink-build-v24 -->
+  <!-- heartlink-build-v25 -->
 </head>
 <body>
 
@@ -8673,8 +8673,9 @@ let _textsActiveBfId = null;
 function renderTextsPage(){
   const listEl=document.getElementById('texts-contact-list');
   if(!listEl) return;
-  // All characters the user has interacted with, plus any they've chatted with in story
-  const allBfs=[...BF_DATA,...savedBFs.filter(b=>b.isCustom)];
+  // Only show characters the user has explicitly opened/added
+  // Use savedBFs as the source — these are chars the user has actually interacted with
+  const allBfs=[...savedBFs];
   const relevant=allBfs.filter(bf=>{
     const h=(chatHistory[bf.id]||[]).length;
     const th=getTextHistory(bf.id).length;
@@ -8734,7 +8735,7 @@ function renderTextsContactList(bfs, query){
 }
 
 function filterTextsContacts(query){
-  const allBfs=[...BF_DATA,...savedBFs.filter(b=>b.isCustom)].filter(bf=>(chatHistory[bf.id]||[]).length>0||getTextHistory(bf.id).length>0);
+  const allBfs=[...savedBFs].filter(bf=>(chatHistory[bf.id]||[]).length>0||getTextHistory(bf.id).length>0);
   renderTextsContactList(allBfs, query);
 }
 
