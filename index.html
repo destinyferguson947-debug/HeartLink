@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Heartlink — AI Lover Experience</title>
+<title>Heartlink — AI Boyfriend Experience</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -801,7 +801,7 @@
   <!-- heartlink-build-v11 -->
   <!-- heartlink-build-v12 -->
   <!-- heartlink-build-v12 -->
-  <!-- heartlink-build-v23 -->
+  <!-- heartlink-build-v24 -->
 </head>
 <body>
 
@@ -6671,6 +6671,121 @@ function getNPCWorldNote(bfId, stageIdx){
   return '\n[NPC WORLD RULES:\n' + notes.map(n => '• ' + n).join('\n') + ']';
 }
 
+// ════════════════════════════════════════════════════════════
+// BEHAVIORAL SYSTEM FUNCTIONS (called by generateSystemPrompt)
+// ════════════════════════════════════════════════════════════
+
+function getUnpromptedMemoryNote(bfId){
+  try{
+    const history=(chatHistory&&chatHistory[bfId])||[];
+    if(history.length<8||history.length%8!==0) return '';
+    const memories=getMemories(bfId);
+    if(!memories||!memories.length) return '';
+    const older=memories.filter(m=>m.ts&&(Date.now()-m.ts)>3600000);
+    if(!older.length) return '';
+    const mem=older[Math.floor(Math.random()*older.length)];
+    return '[UNPROMPTED MEMORY: Naturally weave this into your response as something on your mind, without announcing it: "'+(mem.text||'').substring(0,120)+'"]';
+  }catch(e){return '';}
+}
+
+function getCompoundingConsequenceNote(bfId){
+  try{
+    let moments=[];
+    try{moments=JSON.parse(localStorage.getItem('unresolved_moments_'+bfId)||'[]');}catch(e){}
+    if(!moments.length) return '';
+    const recent=moments.slice(-2);
+    return '[EMOTIONAL CONTINUITY: These unresolved moments must color your behavior today. Let them show in your silences and reactions: '+recent.map(m=>'- '+m).join(', ')+']';
+  }catch(e){return '';}
+}
+
+function addUnresolvedMoment(bfId,description){
+  try{
+    const key='unresolved_moments_'+bfId;
+    let moments=[];
+    try{moments=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}
+    moments.push(description);
+    if(moments.length>5) moments=moments.slice(-5);
+    localStorage.setItem(key,JSON.stringify(moments));
+  }catch(e){}
+}
+
+function resolveUnresolvedMoment(bfId,keyword){
+  try{
+    const key='unresolved_moments_'+bfId;
+    let moments=[];
+    try{moments=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}
+    moments=moments.filter(m=>!m.toLowerCase().includes(keyword.toLowerCase()));
+    localStorage.setItem(key,JSON.stringify(moments));
+  }catch(e){}
+}
+
+function getUserFactsNote(bfId){
+  try{
+    const history=(chatHistory&&chatHistory[bfId])||[];
+    if(history.length<6||history.length%10!==0) return '';
+    const userMsgs=history.filter(m=>m.role==='user').slice(-40);
+    const facts={
+      'left their job':['quit','left my job','fired','unemployed','between jobs'],
+      'moved somewhere new':['moved','new apartment','new place','just moved'],
+      'recent breakup':['broke up','my ex','ended things','single now','got dumped'],
+      'something they are proud of':['proud of','finally did','i finished','i got','i made'],
+      'going through something hard':['struggling','hard time','not okay','stressed','overwhelmed'],
+    };
+    const found=[];
+    for(const[label,keywords]of Object.entries(facts)){
+      if(userMsgs.some(m=>keywords.some(k=>m.content.toLowerCase().includes(k)))) found.push(label);
+    }
+    if(!found.length) return '';
+    return '[USER AWARENESS: You know these things about this person. Let awareness shape your engagement naturally: '+found.slice(0,2).join(', ')+']';
+  }catch(e){return '';}
+}
+
+function getCharacterGrowthNote(bfId){
+  try{
+    const history=(chatHistory&&chatHistory[bfId])||[];
+    if(history.length<20) return '';
+    const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+    if(!bf) return '';
+    const stage=getStage(bf);
+    const relData=getRelHealth(bfId);
+    const growthKey='char_growth_'+bfId;
+    let growth=[];
+    try{growth=JSON.parse(localStorage.getItem(growthKey)||'[]');}catch(e){}
+    const add=(key)=>{if(!growth.includes(key)){growth.push(key);localStorage.setItem(growthKey,JSON.stringify(growth));}};
+    if(history.length>=20) add('guard_dropped');
+    if(history.length>=40) add('name_changed');
+    if(history.length>=60) add('stopped_bracing');
+    if(stage>=3) add('told_someone');
+    if(['dating','fiance','married'].includes(relData.status)) add('habits_shifted');
+    const descriptions={
+      'guard_dropped':'Your guard has dropped one degree. You answer a little more than you used to.',
+      'name_changed':'The way you say their name has shifted. It lands differently now.',
+      'stopped_bracing':'You stopped bracing before their messages.',
+      'told_someone':'You mentioned them to someone before you meant to.',
+      'habits_shifted':'Small habits of yours have changed since they became part of your daily life.',
+    };
+    const relevant=growth.slice(-3).map(g=>descriptions[g]).filter(Boolean);
+    if(!relevant.length) return '';
+    return '[CHARACTER GROWTH — let these show as behavioral texture: '+relevant.join(' ')+']';
+  }catch(e){return '';}
+}
+
+function getAntiRepetitionNote(bfId){
+  try{
+    const history=(chatHistory&&chatHistory[bfId])||[];
+    const aiMsgs=history.filter(m=>m.role==='assistant').slice(-20);
+    if(aiMsgs.length<3) return '';
+    const phraseCounts={};
+    aiMsgs.forEach(m=>{
+      const opener=m.content.trim().substring(0,60).toLowerCase().replace(/[*_]/g,'').trim();
+      if(opener.length>15) phraseCounts[opener]=(phraseCounts[opener]||0)+1;
+    });
+    const banned=Object.entries(phraseCounts).filter(([p,c])=>c>=3).map(([p])=>p.substring(0,60));
+    if(!banned.length) return '';
+    return '[CRITICAL ANTI-REPETITION: Do NOT use these phrases/openings again: '+banned.map(p=>'"'+p+'"').join(', ')+']';
+  }catch(e){return '';}
+}
+
 function getMoodPrompt(bfId){
   const {mood} = getMood(bfId);
   let prompt = MOOD_DATA[mood]?.prompt || '';
@@ -8566,7 +8681,14 @@ function renderTextsPage(){
     return h>0||th>0;
   });
   if(!relevant.length){
-    listEl.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.82rem;font-style:italic">Start chatting with a character in the Story tab first.</div>';
+    listEl.innerHTML='';
+    const emptyDiv=document.createElement('div');
+    emptyDiv.style.cssText='padding:2rem 1.5rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:0.8rem;';
+    emptyDiv.innerHTML='<div style="font-size:2.5rem;opacity:0.35">💬</div><div style="font-weight:600;font-size:0.9rem;color:var(--text)">No contacts yet</div><div style="font-size:0.8rem;color:var(--text-muted);line-height:1.5">Chat with a character in the<br><strong>📖 Story</strong> tab to add them here.</div>';
+    listEl.appendChild(emptyDiv);
+    // Clear the right panel too
+    const area=document.getElementById('texts-chat-area');
+    if(area) area.innerHTML='<div class="texts-empty"><div class="texts-empty-icon">💬</div><div style="font-size:0.9rem">No contacts yet</div><div style="font-size:0.78rem">Start a story to unlock texting</div></div>';
     return;
   }
   renderTextsContactList(relevant, '');
