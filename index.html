@@ -801,7 +801,7 @@
   <!-- heartlink-build-v11 -->
   <!-- heartlink-build-v12 -->
   <!-- heartlink-build-v12 -->
-  <!-- heartlink-build-v16 -->
+  <!-- heartlink-build-v18 -->
 </head>
 <body>
 
@@ -2225,7 +2225,7 @@ QUIRKS: Ruffles hair, leans in close without seeming to notice, finds reasons to
 
 SPEECH: Casual American, warm, uses "hey," "man," "babe" — the last one started accidentally and he hasn't stopped. Uses humor to deflect and then calls himself on it.
 
-`,
+AUTO-MESSAGE HABIT: Sends gym check-in texts throughout the day — a post-workout voice note, a dumb meme, a "thinking of you" that he sends before he can overthink it. If no reply in an hour: "hey" followed immediately by "no pressure just checking you're alive" which is very much pressure.`,
     stageRules:[
       "You have been home three months. You ran into them at Marco's place and spent the entire evening calling them 'the kid' in your head and then went home and looked at the ceiling for forty minutes. You are fine. You are going to the gym.",
       "You went to the gym. They texted you asking for a restaurant recommendation and you gave them three options with detailed notes and then stared at your phone. You are fine. You are going for a run.",
@@ -6694,10 +6694,14 @@ function maybeShiftMood(){
     attempts++;
   } while(newMood === moodData.mood && attempts < 5);
   if(newMood === moodData.mood) return;
+  // Store previous mood label before overwriting
+  const _prevMoodData = getMood(bfId);
+  const _prevLabel = MOOD_DATA[_prevMoodData.mood]?.label || '';
+  if(_prevLabel) localStorage.setItem('prev_mood_label_'+bfId, _prevLabel);
   setMood(bfId, newMood);
   updateMoodBadge(bfId);
-  // Flag that mood just shifted — used by getMoodPrompt to inject anti-repetition rule
-  localStorage.setItem('mood_just_shifted_'+bfId, '1');
+  // Flag that mood just shifted — fires for 2 messages to break history bias
+  localStorage.setItem('mood_just_shifted_'+bfId, '2');
 }
 
 function initMood(bfId){
@@ -6715,11 +6719,25 @@ function getMoodPrompt(bfId){
   const {mood} = getMood(bfId);
   let prompt = MOOD_DATA[mood]?.prompt || '';
   const justShifted = localStorage.getItem('mood_just_shifted_'+bfId);
+  const prevMoodLabel = localStorage.getItem('prev_mood_label_'+bfId) || '';
   if(justShifted){
-    localStorage.removeItem('mood_just_shifted_'+bfId);
-    if(prompt){
-      prompt += ' [IMPORTANT: Your mood has just shifted. Do NOT repeat, re-open, or re-summarise anything from your previous message. Pick up the conversation exactly where it left off and express your new mood through fresh, forward-moving dialogue only.]';
-    }
+    // Count down — fires for 2 messages to fully break history bias
+    const _shiftCount = parseInt(justShifted) || 1;
+    if(_shiftCount > 1) localStorage.setItem('mood_just_shifted_'+bfId, String(_shiftCount - 1));
+    else localStorage.removeItem('mood_just_shifted_'+bfId);
+    const newMoodLabel = MOOD_DATA[mood]?.label || 'normal';
+    // Strong reset instruction — must override conversational history bias
+    const resetNote = mood === 'baseline'
+      ? `[MOOD RESET: Your previous mood (${prevMoodLabel || 'heightened state'}) has fully passed. You are back to your normal self now. CRITICAL: Do NOT continue, reference, re-open, or carry any energy from that previous mood into this message. The recent conversation may reflect that old mood — ignore its tone. Respond naturally and normally as yourself, as if that mood never happened. Move forward cleanly.]`
+      : `[MOOD SHIFT: Your mood has changed from ${prevMoodLabel || 'your previous state'} to ${newMoodLabel}. CRITICAL: Do NOT continue the energy or tone of your previous mood. Do not reference or re-open anything tied to how you were acting before. The recent conversation history reflects your old mood — do not mirror it. Express only your new mood going forward, starting fresh from this message.]`;
+    if(prompt) prompt += ' ' + resetNote;
+    else prompt = resetNote;
+    // Store the new mood label so the NEXT shift can reference it
+    localStorage.setItem('prev_mood_label_'+bfId, newMoodLabel);
+  } else {
+    // Keep prev_mood_label current so it's ready for the next shift
+    const currentLabel = MOOD_DATA[mood]?.label || '';
+    if(currentLabel) localStorage.setItem('prev_mood_label_'+bfId, currentLabel);
   }
   return prompt;
 }
@@ -6736,9 +6754,12 @@ function updateMoodBadge(bfId){
 // Allow plot events to force a specific mood
 function forceMood(bfId, mood){
   if(MOOD_DATA[mood]){
+    const _fmPrev = getMood(bfId);
+    const _fmPrevLabel = MOOD_DATA[_fmPrev.mood]?.label || '';
+    if(_fmPrevLabel) localStorage.setItem('prev_mood_label_'+bfId, _fmPrevLabel);
     setMood(bfId, mood);
     if(currentBF?.id === bfId) updateMoodBadge(bfId);
-    localStorage.setItem('mood_just_shifted_'+bfId, '1');
+    localStorage.setItem('mood_just_shifted_'+bfId, '2');
   }
 }
 
