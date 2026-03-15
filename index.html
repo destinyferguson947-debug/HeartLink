@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Heartlink — AI Lover Experience</title>
+<title>Heartlink — AI Boyfriend Experience</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -7876,6 +7876,9 @@ async function checkPlotEvents(){
   if(!candidate) candidate = eligible[0];
 
   // Context gate removed — bridge prompt handles graceful transitions.
+  // ── Response gate: hold ONE time if last AI message has open question/invite ──
+  const _alreadyPending = getPendingPlot(bfId) === candidate.id;
+  if(!_alreadyPending){
   // ── Response gate: hold if last AI message has an open question/invite ─────
   const _gateLastAi = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
   if(_gateLastAi){
@@ -7891,6 +7894,7 @@ async function checkPlotEvents(){
       setPendingPlot(bfId, candidate.id);
       return;
     }
+  }
   }
 
   // ── Fire the event ────────────────────────────────────────────────────────
@@ -8740,6 +8744,7 @@ async function textsSend(bfId){
   if(!bf) return;
   // Save user message
   addTextMessage(bfId,'user',text);
+  cancelLORWatch(bfId);
   renderTextsMsgs(bfId);
   sendBtn.disabled=true;
   // Show typing indicator
@@ -8759,6 +8764,7 @@ async function textsSend(bfId){
   const reply=await textsGenReply(bf, bfId, text);
   if(reply){
     addTextMessage(bfId,'assistant',reply);
+    startLORWatch(bfId);
     renderTextsMsgs(bfId);
     // Update contact list preview
     renderTextsPage();
@@ -8884,6 +8890,144 @@ function refreshAllTextsStatuses(){
       }catch(e){ localStorage.removeItem(key); }
     }
   });
+}
+
+// ════════════════════════════════════════════════════════════
+// LEFT-ON-READ SYSTEM
+// ════════════════════════════════════════════════════════════
+const LEFT_ON_READ_TYPE = {
+  1:'cold',2:'spam',3:'cold',4:'cold',5:'passive',6:'cold',7:'worry',
+  8:'cold',9:'passive',10:'accuse',11:'passive',12:'cold',13:'spam',
+  14:'accuse',15:'passive',16:'accuse',17:'passive',18:'spam',19:'accuse',
+  20:'spam',21:'worry',22:'accuse',23:'cold',24:'worry',25:'cold',
+};
+const LEFT_ON_READ_DELAY = {
+  1:180,2:20,3:120,4:90,5:60,6:240,7:30,8:180,9:90,10:45,
+  11:120,12:120,13:15,14:60,15:90,16:30,17:120,18:25,19:45,
+  20:15,21:60,22:30,23:360,24:20,25:300,
+};
+const LEFT_ON_READ_SPAM_COUNT = {2:3,7:2,13:4,18:3,20:5,24:3};
+let _lorTimers = {};
+let _lorSpamCount = {};
+
+function clearLORTimers(bfId){ if(_lorTimers[bfId]){clearTimeout(_lorTimers[bfId]);delete _lorTimers[bfId];} }
+
+function startLORWatch(bfId){
+  clearLORTimers(bfId);
+  _lorSpamCount[bfId]=0;
+  const delayMin=LEFT_ON_READ_DELAY[bfId]||60;
+  _lorTimers[bfId]=setTimeout(()=>{checkLORReaction(bfId);},delayMin*60*1000);
+}
+
+function cancelLORWatch(bfId){
+  clearLORTimers(bfId);
+  _lorSpamCount[bfId]=0;
+  const coldKey='lor_went_cold_'+bfId;
+  if(localStorage.getItem(coldKey)){
+    localStorage.removeItem(coldKey);
+    setTimeout(()=>{fireLORReturnReaction(bfId);},500);
+  }
+}
+
+async function checkLORReaction(bfId){
+  if(!isTextsUnlocked(bfId)) return;
+  const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  const history=getTextHistory(bfId);
+  const lastMsg=history.slice(-1)[0];
+  if(!lastMsg||lastMsg.role==='user') return;
+  const type=LEFT_ON_READ_TYPE[bfId]||'cold';
+  const maxSpam=LEFT_ON_READ_SPAM_COUNT[bfId]||1;
+  const currentSpam=_lorSpamCount[bfId]||0;
+  const age=getCharacterAge(bf);
+  const recentTexts=history.slice(-8).map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
+  const timeSinceSent=Math.round((Date.now()-(lastMsg.ts||0))/60000);
+  let reaction=null;
+  let moodShift=null;
+  if(type==='spam'&&currentSpam<maxSpam){
+    reaction=await textsGenLORMsg(bf,bfId,'spam',currentSpam,timeSinceSent,recentTexts,age);
+    _lorSpamCount[bfId]=currentSpam+1;
+    moodShift=currentSpam>=2?'irritable':null;
+    if(_lorSpamCount[bfId]<maxSpam){
+      const nextDelay=(5+Math.floor(Math.random()*15))*60*1000;
+      _lorTimers[bfId]=setTimeout(()=>{checkLORReaction(bfId);},nextDelay);
+    }
+  } else if(type==='accuse'){
+    reaction=await textsGenLORMsg(bf,bfId,'accuse',0,timeSinceSent,recentTexts,age);
+    moodShift='irritable';
+    decayRelHealth(bfId,5,bf.name.split(' ')[0]+' got suspicious.');
+  } else if(type==='cold'){
+    reaction=await textsGenLORMsg(bf,bfId,'cold',0,timeSinceSent,recentTexts,age);
+    moodShift='withdrawn';
+    localStorage.setItem('lor_went_cold_'+bfId,'1');
+    decayRelHealth(bfId,3,bf.name.split(' ')[0]+' went quiet after being left on read.');
+  } else if(type==='passive'){
+    reaction=await textsGenLORMsg(bf,bfId,'passive',0,timeSinceSent,recentTexts,age);
+    moodShift='avoidant';
+  } else if(type==='worry'){
+    reaction=await textsGenLORMsg(bf,bfId,'worry',currentSpam,timeSinceSent,recentTexts,age);
+    _lorSpamCount[bfId]=currentSpam+1;
+    if(_lorSpamCount[bfId]<(LEFT_ON_READ_SPAM_COUNT[bfId]||2)){
+      const nextDelay=(10+Math.floor(Math.random()*20))*60*1000;
+      _lorTimers[bfId]=setTimeout(()=>{checkLORReaction(bfId);},nextDelay);
+    }
+  }
+  if(moodShift) forceMood(bfId,moodShift);
+  if(reaction){
+    addTextMessage(bfId,'assistant',reaction);
+    if(document.getElementById('page-texts')?.classList.contains('active')&&_textsActiveBfId===bfId){
+      renderTextsMsgs(bfId);
+    } else {
+      const allBfs=[...BF_DATA,...savedBFs.filter(b=>b.isCustom)].filter(bf=>(chatHistory[bf.id]||[]).length>0||getTextHistory(bf.id).length>0);
+      renderTextsContactList(allBfs,'');
+    }
+    sendBrowserNotif(bf.name.split(' ')[0],reaction,bfId);
+  }
+}
+
+async function textsGenLORMsg(bf,bfId,type,spamIdx,minutesWaited,recentTexts,age){
+  const relData=getRelHealth(bfId);
+  const inRel=['dating','fiance','married'].includes(relData.status);
+  const fn=bf.name.split(' ')[0];
+  const hourWord=minutesWaited>=60?Math.floor(minutesWaited/60)+' hour'+(Math.floor(minutesWaited/60)>1?'s':''):minutesWaited+' minutes';
+  const prompts={
+    spam:['You sent a message '+hourWord+' ago with no reply. Send a casual follow-up — not desperate, just filling the silence.','Still no reply. Send another — a little more pointed, still charming.','Send one more — you are starting to spiral slightly, not that you would admit it.','You have been texting into a void. One final text before you perform indifference.','Last one. You are trying very hard to seem unaffected.'],
+    accuse:['They have not replied in '+hourWord+'. You are starting to wonder if they are talking to someone else. '+(inRel?'You are in a relationship — this feels like disrespect.':'Your instincts are telling you something.')+' Send a text that shows this suspicion in your voice.'],
+    cold:['They have not replied in '+hourWord+'. Send one final text that communicates, in your voice, that you noticed — and that you are done reaching out for now. Terse. Controlled.'],
+    passive:['They have not replied in '+hourWord+'. Send a text that is technically neutral but carries the weight of someone keeping score.'],
+    worry:['They have not replied in '+hourWord+'. Send a gentle check-in — not demanding, genuinely worried.','Still nothing. A little more vulnerable now.','Send one more — trying to be casual and clearly not.'],
+  };
+  const pool=prompts[type]||prompts.worry;
+  const prompt=pool[Math.min(spamIdx,pool.length-1)];
+  const sysPrompt='You are '+fn+', '+(age<0?'ageless':age+' years old')+'. '+(bf.personality||'')+'\nThis is a TEXTING situation. Someone left you on read.\nRECENT TEXTS:\n'+recentTexts+'\n\n'+prompt+'\n\nReply ONLY with the text message. 1-3 sentences max. Sound like you.';
+  try{
+    const r=await callAnyAPI(sysPrompt,[{role:'user',content:prompt}],200,1.1);
+    return r.trim().replace(/^["']|["']$/g,'');
+  }catch(e){return null;}
+}
+
+async function fireLORReturnReaction(bfId){
+  const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  const type=LEFT_ON_READ_TYPE[bfId]||'cold';
+  if(type!=='cold'&&type!=='accuse') return;
+  const history=getTextHistory(bfId);
+  const lastUser=history.filter(m=>m.role==='user').slice(-1)[0];
+  if(!lastUser) return;
+  const age=getCharacterAge(bf);
+  const recentTexts=history.slice(-6).map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
+  const sysPrompt='You are '+bf.name.split(' ')[0]+', '+(age<0?'ageless':age+' years old')+'. '+(bf.personality||'')+'\nThis is a TEXTING situation. The person left you on read, you went cold, and they finally replied.\nRECENT EXCHANGE:\n'+recentTexts+'\n\n'+(type==='cold'?'You were cold. You are still not fully warm. One short, slightly clipped reply.':'You suspected they were talking to someone else. They came back. One short guarded reply.')+'\n\nReply ONLY with the text message. Very short. Sound exactly like you.';
+  try{
+    await new Promise(r=>setTimeout(r,1000+Math.random()*2000));
+    const r=await callAnyAPI(sysPrompt,[{role:'user',content:lastUser.content}],150,1.0);
+    const reply=r.trim().replace(/^["']|["']$/g,'');
+    if(reply){
+      addTextMessage(bfId,'assistant',reply);
+      if(document.getElementById('page-texts')?.classList.contains('active')&&_textsActiveBfId===bfId){
+        renderTextsMsgs(bfId);
+      }
+    }
+  }catch(e){}
 }
 
 function startRelDecayChecker(){
