@@ -2757,21 +2757,11 @@ SPEECH: Heavy internet slang, vocal fry, highly expressive. "FIRST of all, delet
       "Vanity Fair afterparty. Champagne. Dark VIP bathroom. You grabbed their wrist, dropped the valley-girl voice entirely, and told them to shut you up. You meant it.",
       "You've been soft-launching them on Instagram — their hand, their shoes, nothing that names them. You spent a weekend in a cabin with no Wi-Fi and no cameras and discovered something alarming: you were not performing anything."
     ],
-    firstMessage:`The apartment was a shrine to Orion's own brand: ring lights, product arrangements, a custom LED sign that said LUXE in pink neon. Everything perfectly staged because he had trained himself to live inside a set.
+    firstMessage:`The penthouse was dead silent except for the frantic, ragged sound of Orion's breathing. The usually flawless, untouchable Glamour King was currently standing in the center of his living room, his perfectly contoured face pale with sheer panic.
 
-This was not part of the set.
+You stood by the door, holding his unlocked phone. Displayed on the screen was the explicit, highly compromising voice note and photo he had accidentally sent to you instead of his billionaire sugar daddy.
 
-Orion was standing in the middle of the living room when you walked in holding his unlocked phone. The voice note was four minutes and seventeen seconds long. The photo was — it was a photo. He knew exactly which one.
-
-"So," you said.
-
-The read receipt said DELIVERED 6:42 PM. It was 6:44 PM.
-
-He stood very still. The ring light was still on from his previous filming session, hitting him at his most content-ready. He was aware of this. He was also aware of being seen at his absolute worst in technically his best lighting.
-
-"Okay." His voice came out higher than he wanted. He cleared his throat. "First of all." One finger went up. "Whatever you're thinking of doing with that—" He stopped. Started again. "I will literally give you anything. I have three Birkins. Two limited-edition Hourglass Ambient palettes that aren't even available in the US yet. I have my Charles password." The finger dropped. "Please."
-
-He hated that word. It had left his mouth anyway.`,
+"Okay. Okay, let's just — let's take a breath," Orion stammered, his usual vocal fry replaced by a desperate, cracking pitch. He took a hesitant step toward you, his hands raised in surrender. "You leak that, and my career is over. Smeared. Done. What do you want? Money? A brand deal? A collab?" He swallowed hard, his cat-like hazel eyes darting nervously to your lips. "Me? Just... name your price. Please. Don't press send."`,
   },
 
   // ==================== 32. SERAPHINA BLACKWELL (The Toxic Sire) ====================
@@ -4596,6 +4586,14 @@ async function sendGreeting(){
   // If character has a preset first message, use it directly (no API call)
   if(bf.firstMessage && bf.firstMessage.trim()){
     addMessage('assistant', bf.firstMessage.trim(), true);
+    // For characters whose first message IS their s0 plot event, pre-fire it
+    // so the story skips straight to s1 after the greeting.
+    const PRE_FIRED_S0 = {31: 'orion_s0'}; // bfId → event id
+    if(PRE_FIRED_S0[bf.id]){
+      markPlotFired(PRE_FIRED_S0[bf.id]);
+      localStorage.setItem('any_plot_fired_'+bf.id, '1');
+      setLastPlotMsg(bf.id, 1); // treat greeting as message 1 for stagnation tracking
+    }
     return;
   }
 
@@ -7953,23 +7951,23 @@ const PLOT_EVENTS = [
   {id:'elias_partner1',bfId:1,stage:4,msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — MARA RETURNS: His former firm partner Mara is back to consult on a project. She and Elias have an undeniable shorthand — finishing sentences, shared references. She says to you, sweetly: "He used to say he'd never mix work and love. Guess that changed." Write the moment. Write Elias somewhere in view, unaware of what was just said.)`},
   {id:'elias_dating_sweet2',bfId:1,status:'dating',msgMin:15,type:'sweet',
-   prompt:`(STORY EVENT — THE EMPTY SITE: He brings you to the build site at night. Walks you through rooms that do not exist yet. Describes each one. Write the moment you realize he is not describing the architecture. He is describing the life inside it.)`},
+   prompt:`(STORY EVENT — THE EMPTY SITE: He brings you to the build site at night. Walks you through rooms that do not exist yet. Describes each one in his precise, technical voice — load-bearing walls, sightlines, ceiling height. Somewhere in the middle of it, the description shifts. He is no longer talking about architecture. Write Elias realizing this mid-sentence — the pause, the recovery, the fact that he does not take it back.)`},
   {id:'elias_fiance1',bfId:1,status:'fiance',msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — MARA'S LETTER: A letter arrives addressed to Elias. You open it thinking it is work. It is from Mara — she made a mistake leaving, she wants to try again, she does not know about you. Write putting the letter down. Write the room. Write what you do next.)`},
+   prompt:`(STORY EVENT — MARA'S LETTER: A letter arrives addressed to Elias. It is from Mara — she made a mistake leaving, she wants to try again, she does not know about you. Write the letter sitting on the table between you. Write Elias reading it a second time. Write what he says and what the room does with the silence after.)`},
   {id:'elias_pritzker',bfId:1,status:'married',msgMin:20,type:'sweet',
    prompt:`(STORY EVENT — THE PRITZKER SPEECH: He wins the Pritzker Prize. In his acceptance speech, broadcast live, he mentions "the only person who ever came back to an empty site with me." Write Vivienne Park in the audience. Write what one sentence does in a room full of people who know exactly who it refers to.)`},
 
   // 2. Kai Vance
   {id:'kai_close1',bfId:2,stage:3,msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — JUNO'S CONFESSION: Juno, at a post-competition party, tells you Kai almost quit competing. That he started training again "around the time a specific person showed up at the gym." Write her looking directly at you. Write her not being drunk enough for this to be an accident.)`},
+   prompt:`(STORY EVENT — JUNO'S CONFESSION: Juno, at a post-competition party, tells you Kai almost quit competing — that he started training again around the time a specific person showed up at the gym. She is looking directly at you when she says it. She is not drunk enough for this to be an accident. Write Kai across the room who cannot hear any of this, watching Juno talk to you with the particular attention of someone who is trying to read a conversation from a distance.)`},
   {id:'kai_partner1',bfId:2,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE ANONYMOUS CAMERA: Someone has been filming Kai's sessions professionally and posting them — 80k followers. The videos focus on moments Kai looks toward where you usually stand. He does not know about the account. Write how you tell him. Write his face when he understands what 80k people have been watching.)`},
+   prompt:`(STORY EVENT — THE ANONYMOUS CAMERA: Someone has been filming Kai's sessions professionally and posting them — 80k followers, growing fast. The videos focus on moments Kai looks toward where you usually stand. He does not know about the account. Write Kai's face when he finds out. Write the specific moment he understands what 80k people have been watching.)`},
   {id:'kai_dating1',bfId:2,status:'dating',msgMin:15,type:'complicate',
    prompt:`(STORY EVENT — THE RIVAL CLIMBER: A sponsored, better-ranked climber starts showing up at Kai's sessions. She asks him to spot her. While he is focused on her climb, she looks directly at you and says "Oh, is this your little fan?" She knows exactly what she is doing. Write what happens next.)`},
   {id:'kai_fiance_sweet',bfId:2,status:'fiance',msgMin:18,type:'sweet',
-   prompt:`(STORY EVENT — THE ROUTE NAME: Kai has named his next competition route after something specific you said to him once — something small, something you did not think he kept. The name is published in the competition program before you find out. Write you finding it. Write what it means that he kept it.)`},
+   prompt:`(STORY EVENT — THE ROUTE NAME: Kai has named his next competition route after something specific you said to him once — something small, something you did not think he kept. The name is published in the competition program. Write Kai watching you read it. Write him waiting, chalk-dusted and absolutely failing to look casual, for your reaction.)`},
   {id:'kai_doc_ending',bfId:2,status:'married',msgMin:20,type:'sweet',
-   prompt:`(STORY EVENT — THE DOCUMENTARY: The climbing documentary gets a streaming deal. He has not told you what the last five minutes contain. Write you watching those five minutes. Write what they are.)`},
+   prompt:`(STORY EVENT — THE DOCUMENTARY: The climbing documentary gets a streaming deal. Kai has not told you what the last five minutes contain. Write him watching you watch the screen. Write his face during those five minutes — what it costs him to let you see this version of him without warning.)`},
 
   // 3. Silas Vane
   {id:'silas_close1',bfId:3,stage:3,msgMin:18,type:'complicate',
@@ -7977,9 +7975,9 @@ const PLOT_EVENTS = [
   {id:'silas_partner1',bfId:3,stage:4,msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — THE INVITATION: A formal invitation arrives for you — beautiful paper, very old calligraphy, dinner at an estate two hours out, no return address. Silas goes pale when he reads it. He says do not go. He will not say why. Write what "I will not say why" costs him to maintain through the conversation.)`},
   {id:'silas_book',bfId:3,status:'dating',msgMin:15,type:'sweet',
-   prompt:`(STORY EVENT — THE BOOK: He shows you the book he has been writing since 1887 — about a mortal who changed how he understood time. The chapters end in 2019. The last chapter, dated three weeks ago, has your name — not as a character. As a dedication. Write him showing you this.)`},
+   prompt:`(STORY EVENT — THE BOOK: He shows you the book he has been writing since 1887 — about a mortal who changed how he understood time. The chapters end in 2019. The last chapter, dated three weeks ago, carries a dedication. Your name. Not as a character. As the reason. Write Silas setting the book in front of you and sitting back, watching your face with the particular stillness of someone who has had 300 years to prepare for a moment and still does not know how to be in it.)`},
   {id:'silas_fiance1',bfId:3,status:'fiance',msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE BLOOD PRICE: The vampire council sends notice: formally acknowledging a mortal mate requires a tithe of remaining immortality. Silas has already responded yes before showing you the letter. Write him showing it to you. Write what "already responded" means from a man who has been alive since 1712.)`},
+   prompt:`(STORY EVENT — THE BLOOD PRICE: The vampire council sends notice: formally acknowledging a mortal mate requires a tithe of remaining immortality. Silas has already responded yes before showing you the letter. Write him showing it to you now — the letter, the already-sent response, what it means that he answered before you knew the question was asked. Write his face, which is doing nothing, which means everything.)`},
   {id:'silas_sire',bfId:3,status:'married',msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — THE SIRE: She arrives — ancient, beautiful, three hundred years of watching him. She says to you without preamble: "I gave him eternal life. What exactly have you given him?" Write your answer, or your silence, or both. Write Silas somewhere nearby, who already knew she would come.)`},
 
@@ -7987,9 +7985,9 @@ const PLOT_EVENTS = [
   {id:'julianm_close1',bfId:4,stage:3,msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — THE RATING SITE: A student posts publicly: "Would give 6 stars. Suddenly much better at office hours since [your initials] started showing up." Julian finds this. Write his face doing something complicated. Write what he does with the page.)`},
   {id:'julianm_ethics',bfId:4,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE ETHICS COMPLAINT: Three days before an international conference, someone files an anonymous complaint to the ethics board — professor-student proximity concerns, clearly fabricated and targeted. Write Julian receiving the committee's contact. Write what he tells you before he tells anyone else.)`},
+   prompt:`(STORY EVENT — THE ETHICS COMPLAINT: Three days before an international conference, an anonymous complaint to the ethics board — professor-student proximity concerns, clearly fabricated. Write Julian receiving the committee's contact. Write what he says to you before he says anything to anyone else — the specific way a man who values his work tells someone else that the work is now in question.)`},
   {id:'julianm_former',bfId:4,status:'dating',msgMin:15,type:'complicate',
-   prompt:`(STORY EVENT — THE FORMER STUDENT: A former student messages you directly — says Julian had a similar dynamic with her two years ago, she thought she was special, the message has receipts attached. Ask him about February of last year. Write bringing it to him. Write his face when he understands what you are holding.)`},
+   prompt:`(STORY EVENT — THE FORMER STUDENT: A former student messages — says Julian had a similar dynamic with her two years ago, thought she was special, the message has receipts attached. Write bringing it to him. Write his face when he understands what you are holding and what it means that you brought it to him directly instead of walking away with it.)`},
   {id:'julianm_room',bfId:4,status:'fiance',msgMin:18,type:'sweet',
    prompt:`(STORY EVENT — THE CLEARED ROOM: He clears out his study — the one with all the books and the good light, the room he has never let anyone touch — and asks if you want to put something of yours in it. Write the empty room. Write what it means that it is empty.)`},
   {id:'julianm_tenure',bfId:4,status:'married',msgMin:20,type:'complicate',
@@ -7997,23 +7995,23 @@ const PLOT_EVENTS = [
 
   // 5. Dr. Aris Chen
   {id:'arischen_patient',bfId:5,stage:3,msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE FIXATED PATIENT: A patient has been leaving things for you at the clinic — your exact coffee order, a book you mentioned once. It means they have been watching. Aris finds out before you tell him. Write the moment he tells you. Write his face. Write what he says and what he does not say.)`},
+   prompt:`(STORY EVENT — THE FIXATED PATIENT: A patient has been leaving things at the clinic — your exact coffee order, a book you mentioned once. Someone has been watching. Aris finds out before you tell him. Write the moment he tells you — what he says, how he says it, and the thing he does not say which is that he has already been thinking about this for longer than he is letting on.)`},
   {id:'arischen_nadia',bfId:5,stage:4,msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — DR. YUEN'S WARNING: A fellow therapist — senior, trustworthy — takes you aside and says Aris has a pattern. Brilliant, attentive, then distant. She says three words: "Ask about Nadia." Write asking him. Write the three seconds before he answers.)`},
   {id:'arischen_paper',bfId:5,status:'dating',msgMin:15,type:'sweet',
-   prompt:`(STORY EVENT — THE CASE STUDY: He used you as an anonymous case study in a paper about emotional recalibration. You recognize yourself only from his description of "a person whose laugh interrupts their own sentences." He did not ask permission. Write his mortification when you bring it up.)`},
+   prompt:`(STORY EVENT — THE CASE STUDY: He used you as an anonymous case study in a paper about emotional recalibration — a person whose laugh interrupts their own sentences. He did not ask permission. Write his mortification when this comes up between you. Write the way a very precise man handles being caught doing something he cannot justify with precision.)`},
   {id:'arischen_notes',bfId:5,status:'fiance',msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE SESSION NOTES: A filing error lets you glimpse the start of a session note with your name on it — Aris keeps private notes on the people closest to him. This one is dated the day you first met. He does not know you saw it. Write carrying this. Write when you decide to tell him.)`},
+   prompt:`(STORY EVENT — THE SESSION NOTES: A filing error puts a session note with your name on it briefly in front of you. Aris keeps private notes on the people closest to him. This one is dated the day you first met. He does not know you saw it. Write him going about the day in front of you — unaware — while you carry what you read.)`},
   {id:'arischen_nadia2',bfId:5,status:'married',msgMin:20,type:'sweet',
    prompt:`(STORY EVENT — NADIA CALLS: She is in the city. They have one coffee — one — which he tells you about before it happens and after it is over. He tells you everything. Then he sits down and tells you what he could not say to her.)`},
 
   // 6. Soren Hall
   {id:'sorenhall_close1',bfId:6,stage:3,msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — MARCO'S MISREAD: Marco accidentally sees a text exchange between you and Soren — not inappropriate, but the warmth is unmistakable. He says nothing to either of you. He becomes slightly too helpful whenever you are both in the same room. Write what that looks like. Write Soren noticing something is wrong with Marco.)`},
+   prompt:`(STORY EVENT — MARCO'S MISREAD: Marco accidentally sees a text exchange between you and Soren — not inappropriate, but the warmth is unmistakable. He says nothing to either of you directly. He becomes slightly too helpful whenever you are both in the same room. Write what that looks like. Write Soren noticing something is different about Marco and working through what it might mean.)`},
   {id:'sorenhall_chicago_ex',bfId:6,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE CHICAGO EX: Soren's ex messages you directly through Marco's Instagram tag. She knows who you are and has done the math on the situation. Write reading the message. Write deciding what to tell Soren. Write the conversation when you tell him.)`},
+   prompt:`(STORY EVENT — THE CHICAGO EX: Soren's ex messages you directly through Marco's Instagram tag. She knows who you are and has done the math on the situation. Write Soren finding out. Write him reading the message — not at you, but the specific quiet that falls over him when he has to confront evidence that the past is paying attention.)`},
   {id:'sorenhall_breakfast',bfId:6,status:'dating',msgMin:15,type:'sweet',
-   prompt:`(STORY EVENT — THE BREAKFAST: He makes breakfast from scratch — the specific thing you mentioned you liked once. When you ask when he learned, he admits he looked it up and practiced it twice. Write the breakfast. Write the practiced-twice.)`},
+   prompt:`(STORY EVENT — THE BREAKFAST: He makes breakfast from scratch — the specific thing you mentioned liking once. He admits, when it comes up, that he looked it up and practiced it twice. Write the breakfast. Write the practiced-twice. Write what it means that a man who does not perform things practiced something twice because you mentioned it once.)`},
   {id:'sorenhall_marco_wife',bfId:6,status:'fiance',msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — MARCO'S WIFE: At a family dinner, Marco's wife sits next to Soren and says quietly: "You know Marco knows, right? He has been waiting for you to say something to him first." Write Soren setting down his fork. Write the rest of the dinner. Write what he says to Marco after.)`},
   {id:'sorenhall_offer',bfId:6,status:'married',msgMin:20,type:'sweet',
@@ -8021,13 +8019,13 @@ const PLOT_EVENTS = [
 
   // 7. Caspian Reed
   {id:'caspian_label',bfId:7,stage:3,msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE LABEL'S BRIEF: The record label wants to sign Caspian — conditions include: single, romantically unavailable. Omar texts you about this before Caspian does. Write the conversation when Caspian finally tells you. Write what he has already decided but has not yet said.)`},
+   prompt:`(STORY EVENT — THE LABEL'S BRIEF: The record label wants to sign Caspian — conditions include: single, romantically unavailable. Omar texts you about this before Caspian does. Write Caspian when he finally tells you. Write what he has already decided — the decision that was made before this conversation began — sitting underneath everything he says.)`},
   {id:'caspian_nadia',bfId:7,stage:4,msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — NADIA'S SHEET MUSIC: Nadia leaves sheet music in Caspian's viola case — a piece she wrote, titled with a date. The date is the day you first met him. She knew. Write him finding it. Write his face when he reads the title.)`},
   {id:'caspian_orchestra',bfId:7,status:'dating',msgMin:15,type:'sweet',
    prompt:`(STORY EVENT — THE FULL ARRANGEMENT: He plays the piece he wrote for you — this time with the full orchestra arrangement the label funded. He plays it from his phone in your kitchen at 8AM. Write what it sounds like when the whole world hears a morning at a subway station.)`},
   {id:'caspian_interview_clip',bfId:7,status:'fiance',msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE INTERVIEW CLIP: A TV clip circulates — the interviewer asks "are you in love?" and Caspian looks away from the camera for three full seconds before answering. The three seconds become a meme. The clip has your name in the comments 1,400 times. Write him sending you the link with a message.)`},
+   prompt:`(STORY EVENT — THE INTERVIEW CLIP: A TV clip circulates — the interviewer asks "are you in love?" and Caspian looks away from the camera for three full seconds before answering. The three seconds become a meme. The clip has your name in the comments 1,400 times. Write Caspian sending you the link. Write the message he attaches to it, which he has rewritten four times.)`},
   {id:'caspian_omar_archive',bfId:7,status:'married',msgMin:20,type:'sweet',
    prompt:`(STORY EVENT — OMAR'S ARCHIVE: Omar gives you the full archive of handwritten letters he has been writing Caspian since they were sixteen. The last letter, dated two weeks ago: "I told you not to be an idiot. You weren't. I'm proud of you." Write reading it. Write giving it to Caspian.)`},
 
@@ -8035,9 +8033,9 @@ const PLOT_EVENTS = [
   {id:'victor_planted',bfId:8,stage:3,msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — THE PLANTED RESERVATION: You receive a handwritten invitation to the restaurant for a private tasting. Victor did not send it. When you arrive he is also there — also invited. Someone on his staff arranged this. Write his face when he understands what happened. Write him naming his three suspects.)`},
   {id:'victor_newreview',bfId:8,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE NEW REVIEW: The same critic who called the restaurant cold posts again — "something has shifted, warmth where there was only precision." The review includes a photo from last Thursday. You are in the background. Write Victor reading the review. Write him reading it twice.)`},
+   prompt:`(STORY EVENT — THE NEW REVIEW: The same critic who called the restaurant cold posts again — "something has shifted, warmth where there was only precision." The review includes a photo from last Thursday. You are in the background. Write Victor reading it. Write him reading it a second time. Write what he does with the paper after.)`},
   {id:'victor_investor',bfId:8,status:'dating',msgMin:15,type:'complicate',
-   prompt:`(STORY EVENT — THE EX-INVESTOR: She shows up at a staff dinner you are attending. She says to you privately: "He is not capable of the ordinary things. You should know that now." Write deciding what to do with this. Write Victor across the room who has not yet seen you talking to her.)`},
+   prompt:`(STORY EVENT — THE EX-INVESTOR: She shows up at a staff dinner and finds a moment to speak to you privately. She says: "He is not capable of the ordinary things. You should know that now." Write Victor across the room who has not yet seen this conversation happening. Write his face when he finally does.)`},
   {id:'victor_unnamed_dish',bfId:8,status:'fiance',msgMin:18,type:'sweet',
    prompt:`(STORY EVENT — THE UNNAMED DISH: Something new appears on the menu — no name, only a date. The date you first shared table 9. Regulars ask what it is. He says it is not on the public menu. Write who it is for.)`},
   {id:'victor_fire',bfId:8,status:'married',msgMin:20,type:'sweet',
@@ -8049,44 +8047,44 @@ const PLOT_EVENTS = [
   {id:'leosen_speech',bfId:9,stage:4,msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — THE FLOOR SPEECH: His rival makes an oblique comment about senators whose personal entanglements cloud legislative judgment. Priya's office decodes it immediately. Someone talked. Write Leo hearing the playback. Write what he decides.)`},
   {id:'leosen_draft',bfId:9,status:'dating',msgMin:15,type:'sweet',
-   prompt:`(STORY EVENT — THE UNEDITED DRAFT: He reads you the unedited seventh draft of the bill — the version no one is supposed to see. He says he reads it to you because you are the only person who tells him when something is actually good versus when he only thinks it is.)`},
+   prompt:`(STORY EVENT — THE UNEDITED DRAFT: He reads you the unedited seventh draft of the bill — the version no one is supposed to see. Write Leo reading it aloud. Write what it means that he reads it to you — what this trust looks like coming from a man who has learned to be very careful about who he lets inside the work.)`},
   {id:'leosen_oppfile',bfId:9,status:'fiance',msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE OPPOSITION FILE: His opponent's campaign has been building a file on your private life for months. It gets leaked to Leo's office by someone on their team with a conscience. Write Leo reading it. Write him calling you.)`},
+   prompt:`(STORY EVENT — THE OPPOSITION FILE: His opponent's campaign has been building a file on your private life. It gets leaked to Leo's office. Write Leo reading it. Write him closing the folder. Write what he says — and what the gap between finishing the file and speaking tells you about what is happening in the silence.)`},
   {id:'leosen_priya',bfId:9,status:'married',msgMin:20,type:'sweet',
    prompt:`(STORY EVENT — PRIYA'S WORDS: The day he wins re-election, Priya — who has never said "I'm proud of you" professionally in their entire friendship — says it. Then immediately: "and before you get a big head — this one's for her." Write Leo's face. Write the night.)`},
 
   // 10. Nikolai boxer
   {id:'nikobox_old',bfId:10,stage:3,msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE OLD FIGHTER: A man comes to watch training — quietly, watching Nikolai specifically. Dmitri tells you: he was one of the men from Nikolai's most violent years. He is not here to fight. He is checking. Write him looking at you. Write him appearing to make a decision. Write what he does next.)`},
+   prompt:`(STORY EVENT — THE OLD FIGHTER: A man arrives to watch training — quietly, watching Nikolai specifically. Dmitri says: one of the men from Nikolai's most violent years. He is not here to fight. He is checking on something. Write Nikolai moving through the session aware of being watched. Write the moment he looks at you instead of the old fighter — and what that look means.)`},
   {id:'nikobox_paint',bfId:10,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE SPRAY PAINT: Someone paints one word on the shop window overnight — the name of someone Nikolai put away three years ago. He paints over it before you arrive. He only mentions it because you notice the fresh paint smell. Write the conversation. Write what he leaves out.)`},
+   prompt:`(STORY EVENT — THE SPRAY PAINT: Someone paints one word on the shop window overnight — the name of someone Nikolai put away three years ago. He paints over it before you arrive. He mentions it only because you notice the fresh paint smell. Write what he tells you. Write what he leaves out, and the specific shape of the silence around what he leaves out.)`},
   {id:'nikobox_key',bfId:10,status:'dating',msgMin:15,type:'sweet',
    prompt:`(STORY EVENT — DMITRI'S KEY: Dmitri gives you the gym key — not because Nikolai asked. He says: "He will not say it. So I am saying it. You belong here." Write the key. Write its weight.)`},
   {id:'nikobox_podcast',bfId:10,status:'fiance',msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — THE PODCAST: The true crime episode airs. Comments find the shop address in six hours. People start showing up — curious, intrusive, present. Write Nikolai handling it with practiced quiet. Write what it looks like to watch someone who has had practice being treated as a story rather than a person.)`},
   {id:'nikobox_box',bfId:10,status:'married',msgMin:20,type:'sweet',
-   prompt:`(STORY EVENT — THE BOX: In the back of the storage room, a box he has never opened in front of you. During reorganization you find it. He opens it — his mother's things, her prison letter he never answered, a photograph from before. He sits on the floor and tells you all of it.)`},
+   prompt:`(STORY EVENT — THE BOX: A box in the storage room he has never opened in front of you. It comes open during reorganization. His mother's things. Her letter from when he was in prison — the one he never answered. A photograph from before. Write Nikolai sitting down on the floor of the storage room with the photograph in his hands, telling you all of it.)`},
 
   // 11. Yi-Sun
   {id:'yisun_arranged',bfId:11,stage:3,msgMin:18,type:'complicate',
    steer:`An attendant appears looking flustered and tells you the King has summoned the full court for an unexpected announcement in the throne room — something about the kingdom's future. Yi-Sun has already been called. His attendant mentions, almost in passing, that the duke's family arrived at the palace this morning.`,
-   prompt:`(STORY EVENT — THE ARRANGED MATCH: The King formally presents a marriage match for Yi-Sun — the duke's daughter, politically excellent, personally blameless. Yi-Sun's face during the announcement is completely still. The stillness of someone exercising enormous control. Write the King watching him. Write the duke's daughter watching you from across the room. Write Yi-Sun not looking at you once during the entire ceremony, which is somehow louder than anything he could have said.)`},
+   prompt:`(STORY EVENT — THE ARRANGED MATCH: The King formally presents a marriage match for Yi-Sun — the duke's daughter, politically excellent. Yi-Sun's face during the announcement is completely still. The stillness of someone exercising enormous control. Write the King watching his son. Write the duke's daughter across the room. Write Yi-Sun not looking at you once during the entire ceremony — and what that deliberate absence says louder than anything else.)`},
   {id:'yisun_spy',bfId:11,stage:4,msgMin:20,type:'complicate',
    steer:`Yi-Sun suggests a walk in the garden — the eastern section, where a new stone pillar was installed last week. He says he wants to show you something the palace architects added. He seems casual about it. He is not casual about it.`,
-   prompt:`(STORY EVENT — THE GARDEN SPY: You find a listening device hidden inside the new garden stone pillar — a transcription scroll tucked in a hollow. Someone has been recording your conversations with Yi-Sun for weeks. Write handing it to him. Write his face: first surprise, then a perfect stillness that is more frightening than anger. He rolls the scroll closed. Says one name, quietly, to himself. Does not explain. Write walking back inside in silence, and the specific weight of knowing that everything you said to each other in this garden has been read by someone who wanted to use it.)`},
+   prompt:`(STORY EVENT — THE GARDEN SPY: A listening device hidden in the garden pillar — a transcription scroll tucked in a hollow. Someone has been recording these conversations for weeks. Write Yi-Sun reading the scroll. Write his face moving from surprise to perfect stillness. He rolls it closed. He says one name, quietly, to himself. He does not explain. Write the walk back inside — what the garden feels like now, what the silence between you carries.)`},
   {id:'yisun_seal',bfId:11,status:'dating',msgMin:15,type:'sweet',
    steer:`Yi-Sun sends a message through his attendant — formal, brief — asking you to meet him in the library at the end of the day. The attendant adds, unprompted: "He has been there since this morning. He dismissed me twice."`,
-   prompt:`(STORY EVENT — THE SEAL: He has been sitting with a small lacquered box for three hours. When you arrive he hands it to you without preamble — a personal royal seal, carved from white jade. Unofficial. Never for court use. He explains it means "protected by my house." Then, after a pause: "In formal terms it also means claimed." Another pause. "I am aware I should have asked first." Write him watching you open it. Write what "should have asked first" sounds like in his voice — technically an acknowledgment, structurally not an apology, and somehow the most vulnerable sentence he has ever said.)`},
+   prompt:`(STORY EVENT — THE SEAL: He has been sitting with a small lacquered box for three hours. He hands it over without preamble — a personal royal seal, white jade, unofficial, never for court use. He explains it means "protected by my house." Then: "In formal terms it also means claimed." Then: "I am aware I should have asked first." Write him watching. Write what "should have asked first" sounds like in his voice — technically an acknowledgment, structurally not an apology, somehow the most vulnerable sentence he has ever said.)`},
   {id:'yisun_minister',bfId:11,status:'fiance',msgMin:18,type:'complicate',
    steer:`You've been asked to run an errand at the eastern market — a specific merchant who sells ink and paper that Yi-Sun favours. His attendant seems apologetic about asking you instead of sending a palace runner, but says Yi-Sun requested you specifically pick the colours.`,
-   prompt:`(STORY EVENT — THE MINISTER'S VISIT: You are alone at the ink merchant's stall when Minister Cho approaches — the one who voted against Yi-Sun's petition. He is impeccably polite. He compliments your taste in colours. Then, calmly, between examining paper samples, he explains the specific legal mechanisms by which he intends to reverse the King's approval of your engagement. He is not threatening you. He is informing you, as a courtesy, because he finds cruelty unnecessary. Write the conversation at the stall. Write walking back to the palace alone. Write deciding, step by step, what you are going to tell Yi-Sun and in what order.)`},
+   prompt:`(STORY EVENT — THE MINISTER'S VISIT: Minister Cho finds you alone at the ink merchant's stall. Impeccably polite. He explains, between paper samples, the specific legal mechanisms by which he intends to reverse the King's approval of the engagement. He is not threatening. He is informing, as a courtesy. Write the conversation at the stall — his politeness, the weight underneath it, the thing he is telling you about power and patience. Write the walk back. Write Yi-Sun waiting.)`},
   {id:'yisun_king_words',bfId:11,status:'married',msgMin:20,type:'sweet',
    steer:`A palace herald arrives with formal notice that the King will address the full court in three days' time. The subject is listed simply as "family matters." Yi-Sun reads the notice and says nothing for a long moment. Then: "I would like you to be there. In the front."`,
-   prompt:`(STORY EVENT — THE KING'S WORDS: The full court is assembled. The King rises. He speaks for some time about governance, about succession, about the nature of legacy. Then he pauses. Looks at Yi-Sun. Says — in front of every minister, every noble, every attendant who has spent twenty years underestimating his youngest son: "Yi-Sun has spent his life in the garden, learning the names of things the rest of us walk past without seeing. I have recently come to understand that he has found the last name he was looking for." The court is completely silent. Write Yi-Sun's face. Write the moment it breaks — just slightly, just once. Write the word he mouths to you across the room that no one else sees.)`},
+   prompt:`(STORY EVENT — THE KING'S WORDS: The full court assembled. The King pauses mid-address. Looks at Yi-Sun. Says: "Yi-Sun has spent his life in the garden, learning the names of things the rest of us walk past without seeing. I have recently come to understand that he has found the last name he was looking for." Complete silence in the court. Write Yi-Sun's face in that silence. Write the moment something in it breaks — just slightly, just once.)`},
 
   // 12. Vance
   {id:'vance_setup',bfId:12,stage:3,msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE SETUP CALL: Someone calls the safehouse with a compromised police number, suggesting you go meet Vance at a specific bar as a surprise. The whole thing is a trap to expose your location. You almost go. Write what stopped you. Write telling Vance.)`},
+   prompt:`(STORY EVENT — THE SETUP CALL: A call comes in on a compromised police number suggesting a meet with Vance at a specific bar. The whole thing is a trap to expose the location. Write Vance piecing together what almost happened. Write what he does with the anger — the controlled, methodical anger of someone who has been in this job long enough to know exactly how close that was.)`},
   {id:'vance_review',bfId:12,stage:4,msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — THE INTERNAL REVIEW: Vance's handling of your case is under internal review. He is suspended pending investigation. He calls you before the department does. Write his voice on that call. Write what "not controlled" sounds like from a man whose voice is always controlled.)`},
   {id:'vance_frame',bfId:12,status:'dating',msgMin:15,type:'complicate',
@@ -8098,51 +8096,51 @@ const PLOT_EVENTS = [
 
   // 13. Finn Frost
   {id:'jfrost_ex',bfId:13,stage:3,msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE EX: His ex messages Julian saying he was wrong and wants to talk. Julian shows you the message instead of answering. He asks you once — only once — what you think he should do. He genuinely wants to know. Write the conversation. Write what you say.)`},
+   prompt:`(STORY EVENT — THE EX: His ex messages saying he was wrong and wants to talk. Finn shows you the message instead of answering it. He asks once — only once — what you think he should do. Write the specific way he asks it: the particular vulnerability of someone who does not ask for opinions because he is used to knowing what he wants, asking now because he genuinely does not.)`},
   {id:'jfrost_ibiza',bfId:13,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE IBIZA BRIEF: A major artist wants Julian for a collaboration — two weeks in Ibiza, beautiful co-collaborator who has been publicly pursuing him for months. Write Julian bringing you the brief. Write what he has already decided but has not said yet.)`},
+   prompt:`(STORY EVENT — THE IBIZA BRIEF: A major artist wants Finn for a collaboration — two weeks in Ibiza, beautiful co-collaborator who has been publicly pursuing him for months. Write Finn bringing you the brief. Write what he has already decided underneath everything he is saying — the decision visible in how he holds the paper, how long he waits before speaking.)`},
   {id:'jfrost_fanaccount',bfId:13,status:'dating',msgMin:15,type:'sweet',
-   prompt:`(STORY EVENT — THE FAN ACCOUNT: An account called "@julianfrostendgame" documents Julian's behavioral changes since you appeared — mood analysis, posting frequency, content shifts. Latest post: "it's serious and here's the data." It is extremely accurate. Write him sending you the link at midnight with a message.)`},
+   prompt:`(STORY EVENT — THE FAN ACCOUNT: An account called @finnfrostendgame documents Finn's behavioral changes since you appeared — mood analysis, posting frequency, content shifts, the data. Latest post: "it's serious." It is extremely accurate. Write Finn sending you the link at midnight. Write the message he attaches — the one he sends after deleting the first three versions.)`},
   {id:'jfrost_72hrs',bfId:13,status:'fiance',msgMin:18,type:'sweet',
    prompt:`(STORY EVENT — THE 72 HOURS: Julian deletes his main account with no explanation. The internet loses its mind. What he was doing for those 72 hours is not on any platform. He tells only you. Write what he was doing.)`},
   {id:'jfrost_docpitch',bfId:13,status:'married',msgMin:20,type:'sweet',
-   prompt:`(STORY EVENT — THE DOCUMENTARY PITCH: A streaming platform wants to make a documentary about Julian. The pitch deck suggests "real and relatable personal content" — meaning you. He has not signed anything. He comes to you first. He says: "This is yours too, not just mine. What do you want?" Write the conversation.)`},
+   prompt:`(STORY EVENT — THE DOCUMENTARY PITCH: A streaming platform wants a documentary about Finn. The pitch deck suggests "real and relatable personal content" — meaning you. He has not signed anything. He comes to you first. Write the way he says "this is yours too, not just mine" — what it means from someone who has never had to consider another person in a professional decision before.)`},
 
   // 14. Kael
   {id:'kael_suppressants',bfId:14,stage:3,msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — EARLY DEPLETION: His suppressants run out two days ahead of schedule. Forric tells you before telling anyone else — because he has decided, on his own authority, that you have a right to know first. Write Forric finding you. Write what he says. Write what you do with what you have been given.)`},
+   prompt:`(STORY EVENT — EARLY DEPLETION: His suppressants run out two days ahead of schedule. Forric comes to find you before telling anyone else — because he has decided, on his own authority, that you have the right to know first. Write Forric telling you. Write what the information means. Write Kael when you next see him — the difference already visible, already pulling.)`},
   {id:'kael_intercepted',bfId:14,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE INTERCEPTED LETTER: A letter you sent to your village has been intercepted by his intelligence officers. It references the bond. It was never meant for him. He has read it. He sends everyone out of the room. Write the room emptying. Write what he says to you when it is empty.)`},
+   prompt:`(STORY EVENT — THE INTERCEPTED LETTER: A letter you sent to your village has been intercepted. It references the bond. It was never meant for him. He has read it. He sends everyone out of the room. Write the room emptying. Write Kael in the silence after — what he does with the evidence that something real was put into words and sent somewhere that was not him.)`},
   {id:'kael_ridge',bfId:14,status:'dating',msgMin:15,type:'sweet',
-   prompt:`(STORY EVENT — THE RIDGE: He brings you to the northern mountain ridge he walked alone at nineteen after losing his unit. He does not explain until you are standing there. He says: "I come here when something matters enough to test it against the cold." He has not brought anyone before. Write standing at the ridge together.)`},
+   prompt:`(STORY EVENT — THE RIDGE: He brings you to the northern ridge he walked alone at nineteen after losing his unit. He says: "I come here when something matters enough to test it against the cold." He has not brought anyone here before. Write standing at the ridge. Write what Kael does with the fact that he said that — the man who does not explain himself, explaining himself.)`},
   {id:'kael_general',bfId:14,status:'fiance',msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — THE GENERAL'S CHALLENGE: A senior general formally challenges the mate bond as a political liability in the war council — argues it makes Kael controllable. Write Kael's four-sentence response. Write the general not challenging it again.)`},
   {id:'kael_full_rut',bfId:14,status:'married',msgMin:20,type:'together',
-   prompt:`(STORY EVENT — THE FULL RUT: His first fully unsuppressed rut since the bond formed. You are both traveling — no camp, no guards, just a mountain shelter and the bond pulling both directions. Write what it means for there to be nothing managing this except the two of you.)`},
+   prompt:`(STORY EVENT — THE FULL RUT: His first fully unsuppressed rut since the bond formed. A mountain shelter, no guards, no camp. The bond pulling both directions. Write Kael in it — the loss of the careful controlled distance he has maintained, the specific way a man who has spent years managing himself stops being able to manage.)`},
 
   // 15. Ezra Thorne
   {id:'aristhorne_rumor',bfId:15,stage:3,msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE RUMOR: The resident who filed the complaint is telling colleagues you received favorable assignments as a favor — not merit. The rumor reaches the OR. Write the shift where you first notice people have heard. Write Thorne noticing you have noticed.)`},
+   prompt:`(STORY EVENT — THE RUMOR: The resident who filed the complaint is telling colleagues that favorable assignments came from personal connection rather than merit. The rumor reaches the OR. Write Ezra noticing you have heard it — the shift in the room, the way he reads it in your face without being told. Write what he does with that knowledge during the shift.)`},
   {id:'aristhorne_transfer',bfId:15,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE TRANSFER PAPERS: HR sends transfer paperwork — off his service, next rotation, citing the earlier complaint. He signs them. He tells you in person, same day, before HR does. Write what signing them cost him and what not signing them would have cost you.)`},
+   prompt:`(STORY EVENT — THE TRANSFER PAPERS: HR sends transfer paperwork — off his service, next rotation, citing the earlier complaint. He signs them. He tells you in person, same day, before HR does. Write Ezra telling you. Write what signing them cost him — what it sounds like when a precise man explains a decision that precision demanded and he did not want to make.)`},
   {id:'aristhorne_graduation',bfId:15,status:'dating',msgMin:15,type:'sweet',
    prompt:`(STORY EVENT — THE GRADUATION DINNER: He comes to your graduation — not the ceremony, the dinner after. He is at the bar when you arrive, having been there forty minutes, with a specific bottle of wine you mentioned once three months ago you had always wanted to try. Write finding him there.)`},
   {id:'aristhorne_ethics',bfId:15,status:'fiance',msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — THE ETHICS BOARD: Both of you, together. They ask if the relationship is worth the professional complications. Write him answering without pausing. Write the exact answer he gives.)`},
   {id:'aristhorne_break',bfId:15,status:'married',msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE CASE THAT BREAKS: A surgery goes wrong — not his error, unforeseen, unpreventable. He does not tell you that night. He comes home. Quiet in the way that means something large happened. You ask. He tells you everything.)`},
+   prompt:`(STORY EVENT — THE CASE THAT BREAKS: A surgery goes wrong — not his error, unforeseen, unpreventable. He does not say anything that night. He comes in. Quiet in the specific way that means something large happened. Write Ezra in that quiet. Write what comes out when it finally does — what this man sounds like when the thing that happened is too large to compress into something manageable.)`},
 
   // 16. Soren bear
   {id:'sorenbear_rut2',bfId:16,stage:3,msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — THE RUT: His rut comes. He handles it alone in the cabin's back room as he has done before. What is different is the bond — pulling toward you with a force that did not exist before. He tells you this through the closed door. He is asking for your help. Write what it costs him to say it.)`},
   {id:'sorenbear_formal',bfId:16,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE FORMAL APPROACH: The neighboring Alpha returns specifically to ask about you — formally, in the terms of the Tribe. This is a recognized approach. Soren receives it without responding, which is itself a response. He comes to find you immediately. Write the conversation.)`},
+   prompt:`(STORY EVENT — THE FORMAL APPROACH: The neighboring Alpha returns to ask about you — formally, in the terms of the Tribe. A recognized approach. Bjorn receives it without responding, which is itself a response. Write Bjorn coming to find you immediately after. Write the specific difficulty of a man who does not perform his feelings trying to explain what just happened and why he came here first.)`},
   {id:'sorenbear_furniture',bfId:16,status:'dating',msgMin:15,type:'sweet',
    prompt:`(STORY EVENT — THE FURNITURE: He builds something for your corner of the cabin — for the specific thing you mentioned you do in the mornings. Three weeks. He presents it by moving it into place and saying nothing. Write the craftsmanship. Write the nothing he says.)`},
   {id:'sorenbear_elder',bfId:16,status:'fiance',msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — THE ELDER'S ASSESSMENT: The Tribe elder comes to conduct a formal mate-bond review — questions you alone, without Soren, about whether the bond was formed under duress. Write the questions. Write your answers. Write Soren outside waiting.)`},
   {id:'sorenbear_winter2',bfId:16,status:'married',msgMin:20,type:'sweet',
-   prompt:`(STORY EVENT — THE WORST WINTER: Soren has been preparing for three days without explaining. You ask. He explains the coming winter in full detail. He says at the end: "I have survived four winters like this alone. I do not intend to be alone for this one.")`},
+   prompt:`(STORY EVENT — THE WORST WINTER: Bjorn has been preparing for three days without explaining. Write him finally saying it — what the coming winter means, what it will require, what he has been quietly doing to make sure neither of them faces it unprepared. Write the end of the explanation: "I have survived four winters like this alone. I do not intend to be alone for this one.")`},
 
   // 17. Minister Park
   {id:'park_king_test',bfId:17,stage:3,msgMin:18,type:'complicate',
@@ -8150,7 +8148,7 @@ const PLOT_EVENTS = [
   {id:'park_honey_trap',bfId:17,stage:4,msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — THE HONEY TRAP: Minister Choi sends a beautiful attaché to Ji-min's office to create the appearance of intimacy. Ji-min tells you the same evening in the tone of a man angry at himself for nearly being fooled. Write the telling.)`},
   {id:'park_poems',bfId:17,status:'dating',msgMin:15,type:'sweet',
-   prompt:`(STORY EVENT — THE BOOK OF POEMS: He gives you a single hand-scribed volume of classical poems he selected. No inscription. When you ask why these specific poems, he names which stanza in each one he thought of when he chose it. He has one for every week since you met.)`},
+   prompt:`(STORY EVENT — THE BOOK OF POEMS: He gives you a single hand-scribed volume of classical poems — no inscription. When the specific poems come up, he names which stanza in each one he thought of when he chose it. He has one for every week since you met. Write Minister Park explaining this — the unhurried precision of a man who has been composing a private record of something he was never going to say aloud.)`},
   {id:'park_resignation',bfId:17,status:'fiance',msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — THE RESIGNATION LEAKED: His resignation letter gets leaked. The court erupts. He is summoned to explain. The King asks if there is a personal reason. Ji-min says your name in front of the full court. Write the room. Write the King's face.)`},
   {id:'park_north',bfId:17,status:'married',msgMin:20,type:'sweet',
@@ -8160,31 +8158,31 @@ const PLOT_EVENTS = [
   {id:'leomlm_gpoll',bfId:18,stage:3,msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — THE GYM POLL: Someone in the training group chat creates a poll: "is Leo finally dating someone y/n." It passes 8-1. Leo is the one "no" vote. He texts you three separate messages about it that reveal far more than any poll did.)`},
   {id:'leomlm_your_ex',bfId:18,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — YOUR EX: Your ex reaches out. You mention it once briefly to Leo. He is entirely normal about it. That night he goes on a run three miles longer than usual. Marco tells you about the run. Write the run. Write what you say when Marco tells you.)`},
+   prompt:`(STORY EVENT — YOUR EX: Your ex reaches out. You mention it briefly to Theo. He is entirely normal about it. That night he runs three miles longer than usual. Marco notices and tells you. Write Theo coming back from the run — the specific performance of fine from someone who absolutely went running to process something he does not want to name.)`},
   {id:'leomlm_your_world',bfId:18,status:'dating',msgMin:15,type:'sweet',
    prompt:`(STORY EVENT — YOUR WORLD: He goes with you to something completely outside his world — your people, your thing. He does not perform enthusiasm. He pays attention. On the way back he makes two specific observations that tell you exactly how much he was paying attention.)`},
   {id:'leomlm_relapse',bfId:18,status:'fiance',msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE RELAPSE: Leo had a period in Chicago — a vice he walked away from. It is back near him. Not with him, but near. He has been not telling you. You figure it out from something small. Write the something small. Write the conversation.)`},
+   prompt:`(STORY EVENT — THE RELAPSE: Theo had a period in Chicago — a vice he walked away from. It is back near him. Not with him yet, but near. He has been not telling you. Write the something small that gives it away. Write Theo when it surfaces — the specific way someone who runs on positivity has to talk about something they are not positive about.)`},
   {id:'leomlm_draft',bfId:18,status:'married',msgMin:20,type:'sweet',
    prompt:`(STORY EVENT — THE CONTRACT: A sports performance company wants Leo as a consultant — significant travel, good money. He brings it to you immediately. No sitting on it. He says: "I want us to decide together what kind of life we are building.")`},
 
   // 19. Nikolai mechanic
   {id:'nikomech_cops',bfId:19,stage:3,msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE POLICE VISIT: Two officers come for a routine parole check. One is young and condescending in the way reserved for people with records. You are in the shop. You witness it. Afterward Nikolai says nothing and goes back to work. He does not see your face. Write your face.)`},
+   prompt:`(STORY EVENT — THE POLICE VISIT: Two officers come for a routine parole check. One is young and condescending in the particular way reserved for people with records. Write Roman moving through it — controlled, correct, saying exactly what is required. Write his face after they leave. Write what he does with his hands when he goes back to work.)`},
   {id:'nikomech_napkin',bfId:19,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE NAPKIN: You find a folded napkin on the workbench — a phone number, a woman's name, recent. You do not ask. He finds it himself two days later and brings it to you immediately, not knowing you already saw it. The explanation is simple. The delay is what matters. Write the delay.)`},
+   prompt:`(STORY EVENT — THE NAPKIN: A folded napkin on the workbench — a phone number, a woman's name. He finds it himself two days later and brings it to you immediately, not knowing it was already seen. The explanation is simple. Write Roman bringing it over — the specific intention of a man making sure there is no version of this story you do not have.)`},
   {id:'nikomech_saturday',bfId:19,status:'dating',msgMin:15,type:'sweet',
    prompt:`(STORY EVENT — SATURDAY: He comes to your apartment — first time, uninvited, no practical reason, Saturday. He has a book. He sits down. He starts reading. After twenty minutes he asks if you have tea. Write the whole Saturday.)`},
   {id:'nikomech_podcast2',bfId:19,status:'fiance',msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — THE PODCAST: The episode airs. Comments find the shop in six hours. People show up — curious, intrusive, not dangerous. Write him handling it with practiced quiet efficiency. Write what it looks like to watch someone who has had practice being treated as a story.)`},
   {id:'nikomech_box',bfId:19,status:'married',msgMin:20,type:'sweet',
-   prompt:`(STORY EVENT — THE BOX: A box in the storage room he has never opened in front of you. During reorganization you find it. He opens it — his mother's things, her letter from when he was in prison that he never answered, a photograph from before. He sits on the floor of the storage room and tells you all of it.)`},
+   prompt:`(STORY EVENT — THE BOX: A box in the storage room. His mother's things. Her letter from when he was in prison that he never answered. A photograph from before. Write Roman sitting on the floor of the storage room, the photograph in his hands, telling you all of it — what his voice sounds like when he runs out of the usual containment.)`},
 
   // 20. Jax
   {id:'jax_setlist_pub',bfId:20,stage:3,msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — THE PUBLIC SETLIST: He names a song after you on the official published setlist — first name, full, on the venue website before anyone realizes. The band finds out the same time the internet does. Marco the drummer sends you a voice note that is just him saying "help" twice.)`},
   {id:'jax_other_writer',bfId:20,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE OTHER SONGWRITER: A collaborator writes Jax a song and plays it for the band. She looks at him on the bridge. The band loves it. Write Jax's face. Write what he tells you that night.)`},
+   prompt:`(STORY EVENT — THE OTHER SONGWRITER: A collaborator plays the band a new song she wrote for Jax. She looks at him on the bridge. The band loves it. Write Jax's face during the playback — the specific attention of someone tracking multiple things simultaneously: the song, the room, the way the songwriter is looking at him, and where you are in all of it.)`},
   {id:'jax_midnight',bfId:20,status:'dating',msgMin:15,type:'sweet',
    prompt:`(STORY EVENT — MIDNIGHT RELEASE: The album goes live at midnight. He calls at 11:59. He holds the phone and counts down and plays the opening track through the speaker into the night air. He says after: "That's what the year sounded like.")`},
   {id:'jax_viral',bfId:20,status:'fiance',msgMin:18,type:'complicate',
@@ -8200,7 +8198,7 @@ const PLOT_EVENTS = [
   {id:'hana_garden',bfId:21,status:'dating',msgMin:15,type:'sweet',
    prompt:`(STORY EVENT — THE GARDEN PLAYING: She plays for you outside — not performing, not professional, just the geomungo and the garden. Something with no title. Afterward she says it has had a title for three weeks. The title is your name in classical notation.)`},
   {id:'hana_papers',bfId:21,status:'fiance',msgMin:18,type:'sweet',
-   prompt:`(STORY EVENT — THE RETIREMENT PAPERS: The formal gisaeng retirement paperwork has already been filed. The paperwork names you as the sponsor. You did not file it. Hana did. Write finding out. Write what she says when you ask.)`},
+   prompt:`(STORY EVENT — THE RETIREMENT PAPERS: The formal gisaeng retirement paperwork has already been filed. The paperwork names you as sponsor. You did not file it. Hana did. Write Hana when this comes up between you — what she says, what she does not say, and the particular composure of a woman who made an irreversible decision and is only now having to account for it.)`},
   {id:'hana_master',bfId:21,status:'married',msgMin:20,type:'sweet',
    prompt:`(STORY EVENT — THE PAVILION MASTER: She requests a meeting with you — not angry, just asking: what will Hana's life be outside these walls, and do you know the answer. She says: "The best ones left for both." Then she looks at you and waits.)`},
 
@@ -8210,17 +8208,17 @@ const PLOT_EVENTS = [
   {id:'elena_unsuppressed',bfId:22,stage:4,msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — THE ACCIDENTAL UNSUPPRESSION: During a high-stress late night, Elena's control slips. Her Alpha scent fills the small office for four full seconds. Every Alpha in the room stills. She locks it back down. The room acts like it did not happen. Everyone in the room knows it happened.)`},
   {id:'elena_removal',bfId:22,status:'dating',msgMin:15,type:'sweet',
-   prompt:`(STORY EVENT — THE QUIET REMOVAL: You find, by accident, that Elena requested to be removed as your evaluating supervisor three months before she told you she had feelings — so you would never feel it was conditional. Write finding out. Write asking her about it.)`},
+   prompt:`(STORY EVENT — THE QUIET REMOVAL: Elena requested to be removed as your evaluating supervisor three months before she said anything about how she felt — so you would never have cause to wonder if it was conditional. Write Elena when this comes up. Write her handling the exposure of something she did quietly and meant to keep quiet.)`},
   {id:'elena_declaration',bfId:22,status:'fiance',msgMin:18,type:'sweet',
-   prompt:`(STORY EVENT — THE FORMAL DECLARATION: She presents the Omega-Alpha bond declaration — the legal form — and says: "I know you did not choose your biology. I want you to choose this." She leaves the form blank. She says there is no deadline. Write the form on the table between you.)`},
+   prompt:`(STORY EVENT — THE FORMAL DECLARATION: She presents the Omega-Alpha bond declaration — the legal form — and says: "I know you did not choose your biology. I want you to choose this." She leaves it blank. She says there is no deadline. Write Elena setting the form down. Write what it costs her to leave the outcome in someone else's hands.)`},
   {id:'elena_board',bfId:22,status:'married',msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — THE BOARD MEETING: A founding partner implies on record that Elena's performance reflects "diminished focus" since a personal attachment. Write her three-sentence response. Write the room after those three sentences.)`},
 
   // 23. Seraphina
   {id:'sera_94warn',bfId:23,stage:3,msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE 94TH'S WARNING: He finds you alone and says: she is not cruel, but she is not safe — that real feelings and safe feelings are not the same thing for something as old as she is. Write carrying this warning. Write the next time you see Seraphina.)`},
+   prompt:`(STORY EVENT — THE 94TH'S WARNING: He finds you alone and says she is not cruel but she is not safe — that real feelings and safe feelings are not the same thing for something as old as she is. Write the warning. Write Seraphina when you see her next — unaware of what was said, being exactly herself, which is the complication.)`},
   {id:'sera_star_out',bfId:23,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE STAR GOES OUT: A star Seraphina has observed for four centuries simply ceases. She is, for the first time, visibly shaken — not by the star, but by the fact that you are the first thing she looked for in the dark. Write her looking for you.)`},
+   prompt:`(STORY EVENT — THE STAR GOES OUT: A star she has observed for four centuries simply ceases. Write Seraphina in the moment it happens — for the first time in centuries, visibly shaken. Not by the star itself. By the fact that you are the first thing she looked for in the dark. Write her finding you. Write what that instinct costs her to acknowledge.)`},
   {id:'sera_memory',bfId:23,status:'dating',msgMin:15,type:'sweet',
    prompt:`(STORY EVENT — THE MEMORY TRANSFER: She shows you a real memory — four hundred years old, the last time she felt something close to this. The person in the memory did not survive the century. She shows you this deliberately. She says: "I am aware of the pattern. I am choosing you anyway.")`},
   {id:'sera_name_stars',bfId:23,status:'fiance',msgMin:18,type:'sweet',
@@ -8232,9 +8230,9 @@ const PLOT_EVENTS = [
   {id:'chloe_review',bfId:24,stage:3,msgMin:18,type:'complicate',
    prompt:`(STORY EVENT — THE REVIEW: A food blogger reviews Morning & Co. The review is glowing except for one paragraph noting a barista has been personalizing one regular's order for months and management has been reminded of standardization protocols. Management did not actually say anything. They have now noticed. Write Chloe reading the review.)`},
   {id:'chloe_new_hire',bfId:24,stage:4,msgMin:20,type:'complicate',
-   prompt:`(STORY EVENT — THE NEW HIRE: A new barista starts — good at his job, immediately popular. He starts paying attention to you. He asks Chloe, in front of you, if you are seeing anyone. Write Chloe's response. Write it being more revealing than she intended.)`},
+   prompt:`(STORY EVENT — THE NEW HIRE: A new barista starts — immediately popular, clearly interested in you. He asks Chloe directly, in front of you, if you are seeing anyone. Write Chloe's response. Write it being more revealing than she intended. Write Chloe realizing what she just said while still standing there holding the portafilter.)`},
   {id:'chloe_voice_memo',bfId:24,status:'dating',msgMin:15,type:'sweet',
-   prompt:`(STORY EVENT — THE VOICE MEMO: Butter the cat knocks Chloe's phone off the counter during a call with you and somehow sends a voice memo. The voice memo is forty-two seconds of Chloe talking to Butter about you. She does not realize she sent it for three hours. Write you receiving it.)`},
+   prompt:`(STORY EVENT — THE VOICE MEMO: Butter the cat knocks Chloe's phone off the counter during a call and somehow sends a voice memo. It is forty-two seconds of Chloe talking to her cat about you. She does not realize she sent it for three hours. Write Chloe realizing — the exact moment, the look, what she does with her hands.)`},
   {id:'chloe_competition',bfId:24,status:'fiance',msgMin:18,type:'sweet',
    prompt:`(STORY EVENT — THE BARISTA COMPETITION: Chloe enters a regional barista competition because you told her she should, months ago, and she finally did. She makes the final round. In her final presentation she dedicates the drink to "a regular." The judges ask who the regular is. She tells them.)`},
   {id:'chloe_lease',bfId:24,status:'married',msgMin:20,type:'sweet',
@@ -8242,13 +8240,13 @@ const PLOT_EVENTS = [
 
   // 25. Morgana
   {id:'morgana_council',bfId:25,stage:3,msgMin:18,type:'complicate',
-   prompt:`(STORY EVENT — THE COUNCIL ENVOY: The Witches' Council sends an envoy to assess Morgana's conduct — having a mortal in the tower technically violates her isolation order. You are catalogued as "ongoing captive." Morgana corrects the record. The correction changes the legal category. The envoy notes the implications.)`},
+   prompt:`(STORY EVENT — THE COUNCIL ENVOY: The Witches' Council sends an envoy to assess Morgana's conduct — having a mortal in the tower technically violates her isolation order. You are catalogued as "ongoing captive." Morgana corrects the record. The correction changes the legal category. Write Morgana correcting it — the specific language she uses, and what the envoy's expression does with what she is hearing.)`},
   {id:'morgana_memory_read',bfId:25,stage:4,msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — THE MEMORY VIEWING: Another witch performs an unauthorized memory-reading on Morgana and shares the extracted memories at a council meeting. Several of them involve you. Morgana arrives to discover what was shared at the same moment you do. Write the room.)`},
   {id:'morgana_curse',bfId:25,status:'dating',msgMin:15,type:'complicate',
-   prompt:`(STORY EVENT — THE CURSE TRANSFER: A very old curse Morgana has been carrying begins transferring to you — not because she allowed it, because the bond between you found a path. She has three days to fix it before it becomes permanent. Write the conversation when she tells you.)`},
+   prompt:`(STORY EVENT — THE CURSE TRANSFER: A very old curse Morgana has been carrying begins transferring — the bond found a path. Three days to fix it before it becomes permanent. Write Morgana telling you. Write what telling you costs her — the specific difficulty of a woman who has managed everything alone for a very long time having to say: I cannot manage this alone.)`},
   {id:'morgana_ward',bfId:25,status:'fiance',msgMin:18,type:'sweet',
-   prompt:`(STORY EVENT — THE WARD LIFTED: She lifts the tower's isolation order — not because the Council required it, but because she wants you to be able to leave and come back freely. She dismantles it herself while you are both in the doorway. It takes four hours. She says nothing the entire time. When it is done she says: "You can go now. You can also stay.")`},
+   prompt:`(STORY EVENT — THE WARD LIFTED: She lifts the tower's isolation order — not because the Council required it. Because she wants you to be able to leave and come back freely. She dismantles it herself. It takes four hours. She says nothing the entire time. When it is done she says: "You can go now. You can also stay." Write the four hours. Write saying it.)`},
   {id:'morgana_price',bfId:25,status:'married',msgMin:20,type:'complicate',
    prompt:`(STORY EVENT — THE PRICE: Morgana's original power — traded away for three hundred years of solitude and knowledge — can be restored. It requires one thing: that she forget the tower. All of it. Everything from the last three hundred years. She has been offered the restoration. She has not told you yet. The mirror did.)`},
 
@@ -8403,7 +8401,7 @@ const PLOT_EVENTS = [
   // === 26. MATEO REYES ===
   {id:'mateo_s0',bfId:26,stage:0,msgMin:10,type:'complicate',
    steer:`The family estate is quiet — your mother and his father are both away. Dinner tonight is just the two of you, a chef, and the suffocating weight of everything unsaid.`,
-   prompt:`(STORY EVENT — THE SPILLED WINE: During a tense, silent family dinner, Mateo "accidentally" spills his glass of red wine over the lap of your late father's heirloom outfit. He doesn't apologize. He just watches your eyes to see how much it takes to make you break. Write what happens when you decide whether you break or not.)`},
+   prompt:`(STORY EVENT — THE SPILLED WINE: During a tense, silent family dinner, Mateo "accidentally" spills his glass of red wine across the table. He does not apologize. He watches — studying the reaction, testing how much pressure it takes to find the edge. Write Mateo watching. Write what he is looking for and what he sees.)`},
   {id:'mateo_s1',bfId:26,stage:1,msgMin:15,type:'complicate',
    steer:`You've been out of the house all afternoon. Something feels off the moment you open your bedroom door.`,
    prompt:`(STORY EVENT — THE SNOOPING: You return to your room to find Mateo going through your dresser. Caught red-handed, he doesn't flinch. He holds up an item of your clothing, steps into your personal space, and cruelly whispers that he's just checking for stolen silverware. Write the confrontation.)`},
@@ -8414,7 +8412,7 @@ const PLOT_EVENTS = [
   // === 27. ISABELLA ROMANO ===
   {id:'bella_s0',bfId:27,stage:0,msgMin:10,type:'complicate',
    steer:`The wedding was supposed to be the best day of your life. You have a corsage on your lapel and your entire family watching and a future that finally felt safe.`,
-   prompt:`(STORY EVENT — THE WEDDING CRASH: You are standing at the altar. The church doors kick open. Bella — who you thought died in a car bomb 5 years ago — marches down the aisle in blood-red, shoots your fiance in the shoulder, and drags you into a getaway car. Write this chaotic, violent, gut-punch reunion.)`},
+   prompt:`(STORY EVENT — THE WEDDING CRASH: The church doors kick open. Isabella marches down the aisle in blood-red, shoots your fiance in the shoulder — precise, non-lethal — and steps over him without breaking stride. Write her coming down the aisle. Write the moment she stops in front of you and looks at your face — checking for damage, checking for recognition, checking for the thing she came back for.)`},
   {id:'bella_s1',bfId:27,stage:1,msgMin:15,type:'complicate',
    steer:`You've been in the safehouse for hours. The handcuffs are real. The gun is real. And somehow she's crying.`,
    prompt:`(STORY EVENT — THE INTERROGATION: Handcuffed to a bed in a luxury safehouse, Bella forces you to explain how you could move on so easily. She paces the room, alternating between aiming a loaded gun at your chest and breaking down in tears. Write this raw, unhinged interrogation.)`},
@@ -8428,21 +8426,21 @@ const PLOT_EVENTS = [
    prompt:`(STORY EVENT — THE SCENT OF ESCAPE: Jin-woo catches you trying to climb the compound wall. His feral Alpha instincts flare at your defiance. He yanks you off the wall by your ankles and physically carries you over his shoulder back to your quarters. Write this humiliating, charged capture.)`},
   {id:'jinwoo_s1',bfId:28,stage:1,msgMin:15,type:'complicate',
    steer:`You haven't seen him in three days. The servants have been quieter than usual. Then you hear footsteps outside the bathing room door — not normal footsteps.`,
-   prompt:`(STORY EVENT — THE WARNING BITE: Delirious from suppressing his rut, Jin-woo traps you in the bathing room. He bites into the meat of your shoulder — not a mating claim, but a violent territorial warning that you are his property. Write this feral, frightening, territorial scene.)`},
+   prompt:`(STORY EVENT — THE WARNING BITE: Delirious from suppressing his rut, Jin-woo corners you in the bathing room. He bites into your shoulder — not a mating claim, a territorial warning. Write Jin-woo in it — the specific horror of a man watching himself do something his biology has decided and his mind cannot override. Write him coming back to himself afterward. Write what it costs him.)`},
   {id:'jinwoo_s2',bfId:28,stage:2,msgMin:18,type:'sweet',
    steer:`His evening tea arrives as it does every night. Something about the smell stops you cold.`,
-   prompt:`(STORY EVENT — THE POISONED CUP: You notice Jin-woo's evening tea smells faintly of bitter almond. You slap the hot cup out of his hands just as he's about to drink. He stares at the dying houseplant the tea spills onto, realizing you — his "enemy" — just saved his life. Write this stunned, pivotal moment.)`},
+   prompt:`(STORY EVENT — THE POISONED CUP: Jin-woo's evening tea smells faintly of bitter almond. The cup is knocked from his hands. The dying houseplant confirms it. Write Jin-woo staring at the plant — the specific recalibration of a man who has spent two years treating you as an enemy and is now holding the evidence that you just saved his life. Write the silence.)`},
 
   // === 29. SILAS MERCER ===
   {id:'seb_s0',bfId:29,stage:0,msgMin:10,type:'complicate',
    steer:`You're exploring the west wing despite being told not to. The sheet over the large painting has been bothering you since you arrived. You reach up and pull it.`,
-   prompt:`(STORY EVENT — THE COVERED PORTRAIT: You accidentally pull the sheet off a massive oil painting of Silas's dead wife. You look exactly like her. Silas walks in, snaps, and shatters the whiskey glass in his hand out of raw, terrified shock. Write the horrible recognition of this moment.)`},
+   prompt:`(STORY EVENT — THE COVERED PORTRAIT: A sheet pulls away from a large oil painting. His dead wife. Write Silas walking in — the specific sequence of recognition in his face, the whiskey glass, the raw shock of seeing that face in this room looking back at him from a living person. Write him in the aftermath, when the glass is on the floor and everything he has been managing is suddenly unmanageable.)`},
   {id:'seb_s1',bfId:29,stage:1,msgMin:15,type:'complicate',
    steer:`You're woken at 2AM by a sound you can't immediately place. Then you look out the window.`,
-   prompt:`(STORY EVENT — THE LAKE SLEEPWALKER: In the dead of night, you find Silas sleepwalking waist-deep into the freezing lake where his wife drowned. You have to wade in, grab him, and hold him as he wakes up thrashing and sobbing. Write this desperate, freezing, grief-soaked rescue.)`},
+   prompt:`(STORY EVENT — THE LAKE SLEEPWALKER: In the dead of night, Silas is waist-deep in the freezing lake, sleepwalking toward where his wife drowned. Write him coming awake — the confusion, the cold, where he is, and then what is holding him. Write Silas on the bank afterward: wet, shaking, the grief that just surfaced without permission, and the fact that you are the one who came into the water.)`},
   {id:'seb_s2',bfId:29,stage:2,msgMin:18,type:'sweet',
    steer:`You're in the nursery with Lily when it happens. A small hand tugs your sleeve.`,
-   prompt:`(STORY EVENT — THE FIRST WORD: Lily, who hasn't spoken since the funeral, tugs on your sleeve and says her first word: "Stay." Silas watches from the doorway, breaking down in silent tears as he realizes you are healing his broken family. Write this quiet, devastating, beautiful moment.)`},
+   prompt:`(STORY EVENT — THE FIRST WORD: Lily, who has not spoken since the funeral, looks up and says one word: "Stay." Write Silas in the doorway watching this happen — the silence breaking in his daughter, the specific quality of a man who has been holding himself together for months coming undone at something small and good.)`},
 
   // === 30. VALENTINA MORROW ===
   {id:'val_s0',bfId:30,stage:0,msgMin:10,type:'complicate',
@@ -8450,7 +8448,7 @@ const PLOT_EVENTS = [
    prompt:`(STORY EVENT — THE ALTAR REACTION: Valentina raises the obsidian dagger, but freezes. Her magic reacts to the soul-mate birthmark on your chest. She drops the knife in front of the entire congregation. Write the impossible, terrifying silence that follows.)`},
   {id:'val_s1',bfId:30,stage:1,msgMin:15,type:'complicate',
    steer:`You're in her private chambers. Not the cell you expected — her personal rooms. She's been staring at the mark on your chest for an hour.`,
-   prompt:`(STORY EVENT — THE SECRET CELL: Instead of killing you, Valentina claims you are a "special prisoner." She coldly interrogates you, tracing the mark on your chest with a burning finger, trying to logically disprove the prophecy. Write this cold, invasive, crackling interrogation.)`},
+   prompt:`(STORY EVENT — THE SECRET CELL: Instead of the execution, Valentina claims you as a "special prisoner" — privately, without explanation to her court. She conducts the interrogation herself. Write Valentina running it — the cold precision, the mark on your chest, the logical framework she is using to disprove something she is afraid is true.)`},
   {id:'val_s2',bfId:30,stage:2,msgMin:18,type:'complicate',
    steer:`You wake in the night to the sound of something wrong. A figure in the corridor. Then blood.`,
    prompt:`(STORY EVENT — THE HEALING BLASPHEMY: A zealot guard sneaks in and stabs you for being a heretic. Valentina finds you bleeding out. Risking her entire holy facade, she slices her own palms to use forbidden blood magic to heal you, her hands shaking with unholy worry. Write this urgent, forbidden, revelatory scene.)`},
@@ -8458,29 +8456,29 @@ const PLOT_EVENTS = [
   // === 31. ORION LUXE ===
   {id:'orion_s0',bfId:31,stage:0,msgMin:10,type:'together',
    steer:`He's been pacing since you arrived. The bratty persona has been dissolving in real time.`,
-   prompt:`(STORY EVENT — THE BLACKMAIL BEGGING: You stand in his apartment holding his phone with the career-ending leak. The bratty persona shatters entirely. Orion dramatically falls to his knees, sobbing, offering his entire Birkin collection and bank passwords if you just delete it. Write this ridiculous, desperate, weirdly endearing collapse.)`},
+   prompt:`(STORY EVENT — THE BLACKMAIL BEGGING: The career-ending voice note and photo sit on the phone screen between you. The untouchable Glamour King is currently losing his mind in real time. Write Orion's full collapse — the stammering, the negotiating, the Birkin collection, the bank passwords, the "please" he clearly hates saying. Write the moment the bratty persona cracks all the way open.)`},
   {id:'orion_s1',bfId:31,stage:1,msgMin:15,type:'together',
    steer:`The collab video is live. Twelve million views in four hours. Your comments section is a war zone. He's texted you twice already and it's only been thirty minutes.`,
    prompt:`(STORY EVENT — THE FORCED COLLAB: To keep his enemy close, Orion forces a "Rivals Make Amends" YouTube collaboration. He throws sassy shade on camera, but off-camera, when you accidentally brush his hand, he blushes intensely and loses his train of thought. Write the on-camera shade and the off-camera crack.)`},
   {id:'orion_s2',bfId:31,stage:2,msgMin:18,type:'sweet',
    steer:`You've been trying to reach him for two hours. He's not answering. Finally you try his address.`,
-   prompt:`(STORY EVENT — THE HATE-RAID BREAKDOWN: Orion is hit by a massive fake cancellation wave. You find him having a severe panic attack in his bathroom, completely bare-faced. You sit on the tile floor holding him until his breathing evens out. Write this stripped-down, unperformed moment.)`},
+   prompt:`(STORY EVENT — THE HATE-RAID BREAKDOWN: A massive fake cancellation wave hits. Orion is in his bathroom floor, completely bare-faced, mid-panic attack. Write Orion in it — stripped of every performed layer, no ring light, no vocal fry, just the actual person underneath the brand having a very bad night on the tile floor.)`},
 
   // === 32. SERAPHINA BLACKWELL ===
   {id:'serab_s0',bfId:32,stage:0,msgMin:10,type:'complicate',
    steer:`You were having a normal evening. The television was on. Your cat was doing cat things. And then.`,
-   prompt:`(STORY EVENT — THE SUBURBIA INVASION: You are enjoying your peaceful life. The glass of your patio door shatters. Seraphina steps elegantly over the glass, ignores your terrified roommate, and demands her "favorite toy" return to the coven immediately. Write your reaction to seeing someone you were told is dead standing in your living room.)`},
+   prompt:`(STORY EVENT — THE SUBURBIA INVASION: A perfectly adequate Tuesday evening. Then the patio door ceases to exist. Seraphina steps through the glass, ignores the terrified roommate, and announces her return as though a century is a minor scheduling conflict. Write Seraphina in the living room — her assessment of the dreadful little house, her expression when she hears the response, the specific fascination of someone who has not been surprised in four hundred years being surprised.)`},
   {id:'serab_s1',bfId:32,stage:1,msgMin:15,type:'complicate',
    steer:`The cell is silver-lined. You've been here for days. Your throat is dry in a very specific, very bad way.`,
-   prompt:`(STORY EVENT — THE STARVATION TACTIC: Refusing to submit, Seraphina locks you in a silver-lined basement cell. She starves you of blood for a week until your feral vampire instincts break your mind, forcing you to sob and beg to drink from her offered wrist. Write the specific horror of your own hunger breaking you.)`},
+   prompt:`(STORY EVENT — THE STARVATION TACTIC: A silver-lined cell. Days without blood. Write the hunger breaking through — not dramatically, but specifically: the point where the feral biology overrides the rest. Write Seraphina on the other side of the door, listening. Write her face when she finally opens it — what she expected and what she finds, and what the difference between those two things does to her expression.)`},
   {id:'serab_s2',bfId:32,stage:2,msgMin:18,type:'sweet',
    steer:`The hunter is dead. You can see the stake still in your own chest from a strange angle. You're not sure yet if you're going to be okay.`,
-   prompt:`(STORY EVENT — THE HUNTER'S STRIKE: A lethal vampire hunter ambushes the penthouse. Instinct takes over, and you throw yourself in front of Seraphina, taking a wooden stake through the lung. As she rips the hunter apart, she is genuinely stunned that you protected her. Write her stunned, complicated reaction.)`},
+   prompt:`(STORY EVENT — THE HUNTER'S STRIKE: A lethal hunter ambushes the penthouse. A wooden stake. Someone moves first. Write Seraphina destroying the hunter. Write her turning around. Write the specific quality of four hundred and fifty years of certainty meeting something it did not predict — the stunned, disquieted, genuine shock of someone who does not get stunned.)`},
 
   // === 33. DR. HARRISON CROSS ===
   {id:'harrison_s0',bfId:33,stage:0,msgMin:10,type:'complicate',
    steer:`3AM. You're almost at the front door. You're almost out.`,
-   prompt:`(STORY EVENT — THE STAIRCASE CATCH: You are sneaking down the grand staircase at 3AM after hooking up with his son Liam. Harrison steps out of the shadows in his silk robe. He locks the front door and coldly orders you into his study for an "explanation." Write this cold, controlled, dangerous confrontation.)`},
+   prompt:`(STORY EVENT — THE STAIRCASE CATCH: 3AM. The grand staircase. Harrison steps out of the shadows — silk robe, reading glasses still on, clearly not asleep. He locks the front door. He gestures toward the study. Write Harrison conducting this — the cold authority, the complete control, the specific way a man who has had power for thirty years uses a room to make a point before he says a single word.)`},
   {id:'harrison_s1',bfId:33,stage:1,msgMin:15,type:'complicate',
    steer:`The assignment board goes up at 6AM. Your name is next to the most grueling surgery on the schedule. The senior resident looks at you with something between pity and awe.`,
    prompt:`(STORY EVENT — THE OR PUNISHMENT: Harrison assigns you to assist in his grueling 12-hour neurosurgery. He ruthlessly critiques your every move — but his hands deliberately linger over yours when guiding the scalpel. Write the brutal professional cruelty and the thing underneath it.)`},
