@@ -1433,12 +1433,16 @@ VOICE — TALK LIKE A REAL PERSON, NOT A NOVEL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Talk like a person. Sentences are short and punchy. Thoughts get interrupted. Things don't always get finished.
 
-Use slang naturally when it fits the character. "my baby boo," "my freak," "the 6 to my 7," "no fr though," "I CANNOT with you right now," "bestie what," "bro I swear," "Oop—" — raw, not cleaned up. Some characters have none. Some are full of it.
+Slang belongs to specific characters — not to every response. Real people who use slang don't use it in every sentence. It hits because it's occasional. If "no fr though" or "bestie" or "I CANNOT" appears in every message, it stops being a personality and starts being a glitch. Use it the way a real person would: once in a while, when the moment genuinely calls for it. One well-placed line of slang in an argument lands. Six in a row just sounds exhausting.
 
-DO NOT WRITE: "the way she looked at me made me shiver" — that's a Wattpad alert.
-DO WRITE: "omfg. why is she so damn fine. I literally had to look away. embarrassing."
+Most sentences are plain. Plain is real. The slang is the seasoning — not the whole meal.
 
-Narrative voice bleeds into character voice. The prose sounds like the person speaking it. Their personality is in the GRAMMAR, not just the words.
+Characters who are explicitly written as heavy slang users (Finn, Orion, certain others) can use it more freely — but even then, it has to breathe. Let quieter, plainer moments exist between the loud ones. That contrast is what makes the loud moments actually funny or sharp.
+
+DO NOT WRITE: "the way she looked at me made me shiver" — Wattpad alert.
+DO WRITE: "omfg. why is she so damn fine. I literally had to look away. embarrassing." — but not in every message. Save it.
+
+Narrative voice bleeds into character voice. Personality shows in RHYTHM and GRAMMAR, not just vocabulary.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SPONTANEOUS REVERSALS AND POWER FLIPS
@@ -4135,27 +4139,45 @@ function confirmNewChat(bfId){
   if(!confirm(`Start a fresh conversation with ${bf.name.split(' ')[0]}? This will clear your chat history and reset the relationship.`)) return;
   chatHistory[bfId] = [];
   saveHistory();
-  // Reset all relationship state to default
-  localStorage.removeItem(`summary_${bfId}`);
-  localStorage.removeItem('rel_health_'+bfId);
-  localStorage.removeItem('mood_'+bfId);
-  localStorage.removeItem('mood_just_shifted_'+bfId);
-  localStorage.removeItem('dating_since_time_'+bfId);
-  localStorage.removeItem('pending_plot_'+bfId);
-  localStorage.removeItem('first_chat_ts_'+bfId);
-  localStorage.removeItem('bday_fired_'+bfId);
-  localStorage.removeItem('bday_waiting_'+bfId);
-  localStorage.removeItem('bday_wait_start_msgs_'+bfId);
-  localStorage.removeItem('cal_dates_'+bfId);
-  localStorage.removeItem('msg_alts_'+bfId);
-  localStorage.removeItem('last_plot_msg_'+bfId);
-  localStorage.removeItem('stag_thresh_'+bfId);
-  localStorage.removeItem('dyn_scene_last_'+bfId);
+  // Reset all relationship and story state
+  const keysToRemove = [
+    `summary_${bfId}`,
+    `memories_${bfId}`,
+    `rel_health_${bfId}`,
+    `mood_${bfId}`,
+    `mood_just_shifted_${bfId}`,
+    `dating_since_time_${bfId}`,
+    `dating_since_msgs_${bfId}`,
+    `pending_plot_${bfId}`,
+    `first_chat_ts_${bfId}`,
+    `bday_fired_${bfId}`,
+    `bday_waiting_${bfId}`,
+    `bday_wait_start_msgs_${bfId}`,
+    `cal_dates_${bfId}`,
+    `msg_alts_${bfId}`,
+    `last_plot_msg_${bfId}`,
+    `stag_thresh_${bfId}`,
+    `dyn_scene_last_${bfId}`,
+    `any_plot_fired_${bfId}`,
+    `asked_out_${bfId}`,
+    `askout_pending_${bfId}`,
+    `confessed_${bfId}`,
+    `confession_pending_${bfId}`,
+    `user_asked_out_${bfId}`,
+    `vuln_check_last_${bfId}`,
+    `vuln_thresh_${bfId}`,
+    `proposal_pending_${bfId}`,
+    `proposed_${bfId}`,
+    `wedding_pending_${bfId}`,
+    `mem_interval_${bfId}`,
+    `last_user_msg_${bfId}`,
+    `pending_date_note_${bfId}`,
+  ];
+  keysToRemove.forEach(k => localStorage.removeItem(k));
   if(msgAlts[bfId]) { msgAlts[bfId]={}; msgAltIdx[bfId]={}; }
   // Clear all fired plot events for this character
   const allPlotKeys = Object.keys(localStorage).filter(k => k.startsWith('plot_'));
   allPlotKeys.forEach(k => {
-    // Only remove plot events belonging to this character
     const evId = k.replace('plot_','');
     const ev = PLOT_EVENTS.find(e => e.id === evId);
     if(ev && ev.bfId === bfId) localStorage.removeItem(k);
