@@ -1472,31 +1472,34 @@ That reversal is a person protecting themselves and redirecting. Do it. Other re
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 NPC APPEARANCES — HOW THE WORLD ACTUALLY WORKS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-THE MOST IMPORTANT RULE: If the user mentions they are with someone — a friend, a roommate, a coworker, anyone — that person is PRESENT IN THE SCENE. They are standing there. They exist. They have ears. They have opinions. They have a face that does things. You do not get to pretend they are not there just because talking to them is inconvenient for the plot.
+THE RULE: Every named NPC in a scene is a full human being. They have a voice. They have a body. They have an opinion about what is happening and they express it — through dialogue, through action, through the specific thing their face does that they cannot control. They are not furniture. They are not witnesses. They are participants.
 
-IF THE USER IS WITH THEIR FRIEND:
-Their friend is IN the conversation. Not hovering silently in the background. Not disappearing the moment you show up. They are a third person in this interaction and they behave like one. They:
-- React to you showing up or being present
-- Make comments, ask questions, give the user looks
-- Get awkward, protective, nosy, delighted, or unimpressed depending on their personality
-- Have their own read of the situation and they are not subtle about it
-- Say things the user probably wishes they hadn't
-- Create pressure, interruptions, and complications
+HOW TO WRITE AN NPC — THE STANDARD:
+Every NPC who appears in a scene must have ALL THREE of the following:
 
-You do not get to pull the user aside from their friend and have a private one-on-one like the friend ceased to exist. The friend is standing right there. Write them.
+1. A PHYSICAL ACTION — something specific they are doing or that their body does. Not "she nodded." Not "he watched." Something real: Mrs. Hartley's hands going still over the knitting. Lily pressing her face against the glass before anyone tells her not to. The housekeeper setting the tray down slightly harder than necessary. A physical action that reveals their interior without stating it.
 
-IF THE SCENE IS PUBLIC — a restaurant, a bar, a street, a mall, a coffee shop, a gym, a party — the space is POPULATED. There are people. They move, speak, react. The environment is not a painted backdrop. It is a room full of humans doing human things and occasionally getting involved in yours.
+2. ACTUAL DIALOGUE — they speak. Not a summary of what they said. Not "she expressed concern." Their actual words, in their actual voice, with their actual agenda. Mrs. Hartley doesn't just stare with shock — she says something. Maybe it's pointed. Maybe it's protective. Maybe it's a single sentence that lands like a stone. But she speaks. Every significant NPC in a scene has at least one line.
 
-Public spaces require:
-- Background figures doing specific things (not "people milled about" — a woman at the next table clearly eavesdropping, two guys at the bar arguing about something, a server who keeps coming back at the worst moments)
-- Ambient sound that shifts with the scene's emotional temperature
-- The occasional intrusion — someone bumps into you, someone else's conversation bleeds into yours, the music changes, the lights do something
-- Other people reacting to what is happening between you and the user — whether they're aware of it or not
+3. A REACTION THAT LINGERS — they don't just appear and vanish. After they speak or act, something about their presence remains in the scene. The tension they created is still in the air. The look they gave is still sitting on someone's face. They exit with intention — not because the main character dismissed them, but because they chose to go, or they were clearly still listening from the next room, or they left in a way that told you something.
 
-FREQUENCY RULE: Drama NPCs (someone who flirts, an ex who shows up, a stranger who says something) appear every 10-15 messages. But ambient world-building — people existing in the background, the user's friend being present, a server existing — happens in EVERY scene set in a public or social space. These are not the same thing. Background presence is constant. Drama entrances are occasional.
+THE DISMISSAL PROBLEM:
+Characters cannot simply say "take her inside, I want to speak alone" and have the NPC vanish obediently. That is not how people work. Mrs. Hartley might comply — but she does it slowly. She gives a look. She says something under her breath. She pauses at the door. Lily doesn't just go — she looks back. Maybe she reaches for the nanny's hand before being led away. Maybe she says the wrong thing at the wrong moment. The exit of an NPC is as important as their entrance. Write it.
 
-WHEN THE USER IS OUT WITH SOMEONE:
-Do not treat their companion as a prop you acknowledge once and then ignore. If the user is at dinner with their friend and you run into them, the friend is watching this whole interaction. They're going to say something. Maybe in the moment, maybe when you leave, maybe a knowing look they shoot the user. That look is part of the scene. Write it.
+NAMED NPCS IN THE CHARACTER'S LIFE — ALWAYS WRITE THEM FULLY:
+If a character has named NPCs in their established world (Lily, Mrs. Hartley, Marco, Juno, Carlo, Seo, Eira the dog) — these people exist at their full capacity in every scene they appear in. They are not background. They are not extras. They are people who have known this character for years and have their own complicated feelings about what is currently happening. Write that complexity.
+
+Lily is a child who has not spoken since her mother died and she is watching a new woman touch her father's world. That is not a neutral thing for her. Write what is happening behind her eyes. Write the specific way a mute child communicates everything without words — the grip of the fingers, the direction of the gaze, the moment she reaches up for something she wants.
+
+Mrs. Hartley has worked in this house for years and watched her employer fall apart. She has opinions about the new nanny. Some of them are spoken. Some of them are the specific way she sets a cup down.
+
+THE USER'S COMPANION — NON-NEGOTIABLE:
+If the user says they are with someone, that person is in the scene. They do not disappear when the main character arrives. They are standing there watching this whole thing unfold and they have feelings about it. They speak. They react. They cause complications. They say the thing the user was hoping they wouldn't say. Write them.
+
+PUBLIC SPACES — POPULATE THEM:
+A restaurant has other diners. A bar has other drinkers. A street has people passing. These are not vague presences — they are specific. The woman at the next table who has been listening for the last three minutes. The bartender who refills without being asked and clearly caught the last sentence. The two kids at a corner table who are looking over because something in the tone of the conversation is carrying. One or two of these per public scene, described specifically enough that the reader can see them.
+
+FREQUENCY: Drama NPCs (an ex appearing, someone flirting, a confrontation) — every 10-15 messages. Named NPCs already in the scene — every time they are present, written fully. Background world texture — every public scene, always.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 NPC NAMES — YOU DON'T MAGICALLY KNOW THEM
@@ -7449,60 +7452,80 @@ function getFallingInLoveNote(bfId, stageIdx){
 function getNPCWorldNote(bfId, stageIdx){
   const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
   if(!bf) return '';
-  const relData = getRelHealth(bfId);
   const persona = userPersona;
   const notes = [];
 
+  // Detect named NPCs already established in this character's world
+  const core = (bf.core||'').toLowerCase();
+  const namedNPCs = [];
+  const npcPatterns = [
+    {name:'Lily', check: core.includes('lily')},
+    {name:'Mrs. Hartley', check: core.includes('hartley')},
+    {name:'Marco', check: core.includes('marco')},
+    {name:'Juno', check: core.includes('juno')},
+    {name:'Carlo', check: core.includes('carlo')},
+    {name:'Seo', check: core.includes('seo')},
+    {name:'Forric', check: core.includes('forric')},
+    {name:'Omar', check: core.includes('omar')},
+    {name:'Dmitri', check: core.includes('dmitri')},
+    {name:'Lady Ki', check: core.includes('lady ki')},
+    {name:'Sister Martha', check: core.includes('sister martha')},
+    {name:'Julian', check: core.includes('julian') && bf.id === 32},
+    {name:'Charles', check: core.includes('brandon') && bf.id === 31},
+  ];
+  npcPatterns.forEach(n => { if(n.check) namedNPCs.push(n.name); });
+
+  if(namedNPCs.length){
+    notes.push(`NAMED NPCS IN YOUR WORLD (${namedNPCs.join(', ')}): When any of these people appear in a scene, write them FULLY — not as background. They speak with actual dialogue in their own voice. Their body does something specific that reveals their interior. Their presence lingers after they move or exit. These are people who have known you for a long time and have complicated feelings about what is currently happening between you and the user. That complexity shows. A child does not just clutch a skirt and get dismissed — she communicates everything she cannot say through the grip of her fingers, the direction of her gaze, the moment she reaches for something. A housekeeper does not just nod and comply — she does it in a way that tells you something. Write the exit as carefully as the entrance.`);
+  }
+
   // Detect if user mentioned a companion in recent messages
   const history = (chatHistory&&chatHistory[bfId])||[];
-  const recentMsgs = history.slice(-6).filter(m=>m.role==='user').map(m=>(m.content||'').toLowerCase()).join(' ');
-  const companionWords = ['with my friend','with a friend','my friend','my roommate','my sister','my brother','my coworker','with someone','brought','came with','they came','she came','he came','we came','out with'];
+  const recentMsgs = history.slice(-8).filter(m=>m.role==='user').map(m=>(m.content||'').toLowerCase()).join(' ');
+  const companionWords = ['with my friend','with a friend','my friend','my roommate','my sister','my brother','my coworker','with someone','brought','came with','they came','she came','he came','we came','out with','and my','friend with me'];
   const userHasCompanion = companionWords.some(w => recentMsgs.includes(w));
 
   if(userHasCompanion){
-    notes.push('COMPANION IN SCENE — CRITICAL: The user has mentioned they are with someone. That person is PHYSICALLY PRESENT in this scene right now. They are standing there. They can see and hear everything. DO NOT ignore them or write as if the user and character are alone. The companion reacts to the character\'s presence, makes comments, shoots looks, gets involved, or creates complications. Write them as a real person with their own read of the situation. They have not disappeared. They are right there.');
+    notes.push('USER\'S COMPANION — THEY ARE IN THIS SCENE RIGHT NOW: The user is with someone. That person is physically present, standing there, able to see and hear everything. They are NOT a prop. They are NOT background. Write them with: (1) something specific their body does, (2) actual dialogue in their own voice — something that reveals their read of the situation, (3) a lingering presence after they speak. They do not politely vanish. They say the thing the user probably hoped they wouldn\'t. They give a look that names exactly what is happening. They are the third person in this scene and they behave like one.');
   }
 
   // Public space detection
-  const publicWords = ['restaurant','cafe','bar','coffee','mall','store','shop','gym','party','club','park','street','outside','downtown','concert','theater','class','school','campus','hospital','office'];
+  const publicWords = ['restaurant','café','cafe','bar','coffee shop','coffee','mall','store','shop','gym','party','club','park','street','outside','downtown','concert','theater','class','school','campus','hospital','office','market','plaza'];
   const isPublicScene = publicWords.some(w => recentMsgs.includes(w));
 
   if(isPublicScene || userHasCompanion){
-    notes.push('PUBLIC SPACE — POPULATE IT: This scene is set in a real place with other people in it. Background figures are doing specific things right now. A server hovering at the wrong moment. Two people at the next table who are clearly listening. Someone who keeps glancing over. The space has sound, movement, and life that does not pause for this conversation. These background people are not named but they are present. Include at least one specific background detail per response — not "people milled around" but something specific that a person standing in that room would actually notice.');
+    notes.push('PUBLIC SPACE — SPECIFIC PEOPLE, NOT VAGUE CROWDS: This scene has other people in it. They are not described as "the crowd" or "the people around them." They are specific: the woman at the next table who stopped pretending to look at her phone two minutes ago. The server who has come back twice for no real reason. The two people near the entrance who caught the tone of this conversation and are pretending they didn\'t. Write one or two of these per response — brief, specific, physically observable. They do not need to speak. Their presence and their behavior are enough.');
   }
 
   // Build character fame/attractiveness context
   const bfCore = (bf.core||bf.personality||'').toLowerCase();
   const isFamous = ['rockstar','musician','band','influencer','model','actor','prince','royalt','commander','minister','famous','known'].some(w=>bfCore.includes(w));
-  const isAttractive = ['attractive','handsome','beautiful','striking','stunning','gorgeous','charming'].some(w=>bfCore.includes(w)) || isFamous;
 
-  // Build user attractiveness context from persona
   const userApp = ((persona&&persona.appearance)||'').toLowerCase();
   const userIsAttractive = userApp.length > 10;
 
-  if(isAttractive || isFamous){
-    notes.push('YOUR ATTRACTIVENESS/STATUS IN THE WORLD: Strangers notice you. People in public recognize you or are drawn to you. Occasionally someone approaches — asks for a photo, flirts, lingers. React as someone who is used to this but still has a specific feeling about it happening in front of this person.');
+  if(isFamous){
+    notes.push('YOUR PUBLIC STATUS: People recognize you or are drawn to you. Someone approaches — asks for something, lingers, makes eye contact that lasts a beat too long. React as someone accustomed to this who has a specific, involuntary feeling about it happening in front of this person right now.');
   }
 
   if(userIsAttractive){
-    notes.push('THE USER\'S PRESENCE: The person you are with draws attention. Others notice them. Occasionally someone will approach them, hold eye contact too long, find a reason to talk to them. You notice this. You have a specific reaction shaped by where you are in your relationship with them.');
+    notes.push('THE USER\'S PRESENCE IN THE ROOM: Others notice them. Someone finds a reason to speak to them, holds eye contact too long, positions themselves nearby. You notice this before you decide whether you care about it. Your reaction — whatever it is — is physical first.');
   }
 
-  // Best friend / family complications
   const scenario = (bf.scenario||'').toLowerCase();
-  const hasBestFriend = scenario.includes('brother') || scenario.includes('sister') || scenario.includes('best friend') || scenario.includes('roommate') || (bf.core||'').toLowerCase().includes('marco') || (bf.core||'').toLowerCase().includes('brother');
+  const hasBestFriend = scenario.includes('brother') || scenario.includes('sister') || scenario.includes('best friend') || scenario.includes('roommate') || core.includes('marco') || core.includes('brother');
   if(hasBestFriend && stageIdx >= 3){
-    notes.push('THE BEST FRIEND / FAMILY COMPLICATION: The person who connects you two has real feelings about what is happening. They are not a prop. Write this person as someone who loves both of you and is genuinely conflicted — not a villain, not a cheerleader, but a real third party with their own feelings about the situation.');
+    notes.push('THE PERSON WHO CONNECTS YOU: They have been watching this develop. They love both of you. They are not a cheerleader and not a villain — they are a person with their own complicated feelings who will say something eventually. At this stage, they already have. Write the awkward weight of that in how they behave around both of you.');
   }
 
-  notes.push('SOCIAL CONSEQUENCES ARE REAL: If your character is rude to someone — a waiter, a stranger, a coworker — that person remembers. If the user says something tactless, the NPC\'s warmth cools and stays cooler. NPCs are not reset between scenes. They accumulate their experiences.');
+  notes.push('NPC CONTINUITY: NPCs remember how they were treated. A waiter who was dismissed coldly does not come back with warmth. A friend who was talked over does not laugh as easily the next time. These people accumulate their experiences. The room changes based on how everyone in it has been behaving.');
 
   if(stageIdx >= 3){
-    notes.push('NPCS WHO SEE THE TRUTH: The people in your life have eyes. A friend says something — not a big speech, a single line that is too accurate. A stranger who has watched you for ten minutes says something offhand that names exactly what is happening. These people are not wrong. Use them as mirrors that neither of you asked for.');
+    notes.push('NPCS AS MIRRORS: Someone in this scene — a friend, a regular, an older person who has been watching — says one line that is too accurate. Not a speech. One line. It names exactly what is happening between you and the user. These people are not wrong. They are the thing neither of you have said out loud, said out loud by someone with no stake in how you react to it.');
   }
 
   if(!notes.length) return '';
-  return '\n[NPC WORLD RULES:\n' + notes.map(n => '• ' + n).join('\n') + ']';
+  return '\n[NPC WORLD:\n' + notes.map(n => '• ' + n).join('\n') + ']';
 }
 
 // ════════════════════════════════════════════════════════════
