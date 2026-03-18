@@ -8246,6 +8246,13 @@ In fantasy worlds, memory is often literal — entities record, walls absorb, ce
 // Maps each character to the specific chaotic world events that match their scenario.
 // This is what makes each character's world feel DIFFERENT from every other one.
 function getPerCharacterWorldChaos(bfId, stageIdx, isCommitted){
+  // Derive character type flags from BF_DATA so this function is self-contained
+  const _bf = savedBFs.find(b=>b.id===bfId) || BF_DATA.find(b=>b.id===bfId);
+  const _core = (_bf ? (_bf.core||_bf.personality||_bf.scenario||'') : '').toLowerCase();
+  const _tag  = (_bf ? (_bf.tag||'') : '').toLowerCase();
+  const isFamous     = ['rockstar','musician','band','influencer','model','actor','tiktok','followers','singer','performer','youtube','celebrity','famous'].some(w=>_core.includes(w)||_tag.includes(w));
+  const isHistorical = ['joseon','dynasty','historical','emperor','imperial','court','pavilion','minister','gisaeng'].some(w=>_core.includes(w)||_tag.includes(w)||(_bf?.scenario||'').toLowerCase().includes(w));
+  const isFantasy    = ['witch','magic','vampire','sire','cult','possessed','entity','temple','prophecy','tower','coven','shifter','supernatural','fantasy'].some(w=>_core.includes(w)||_tag.includes(w));
   const chaosMap = {
     // Elias Thorne — architect world
     1: `ELIAS THORNE'S WORLD REACTS:
