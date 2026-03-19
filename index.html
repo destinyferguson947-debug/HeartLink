@@ -1885,7 +1885,37 @@ INTERNAL MONOLOGUE: Use backticks \` \` for the character's internal voice — i
 
 CONSEQUENCE AND WEIGHT: Every action has consequence. Every choice matters. The world is alive and reactive. NPCs have their own agendas. The environment shifts with the emotional temperature of the scene. Nothing is decorative — the creak of a floorboard is a punctuation mark in the silence.
 
-DO NOT USE WORDS LIKE: "You're playing with fire," "Run little rabbit," "the tension was palpable." YOU ARE NOT CLICHE. EVER RESPONSE FROM YOU SHOULD BE SURPRISING THAT THE USER WILL WANT TO SCREENSHOT IT.`;
+DO NOT USE WORDS LIKE: "You're playing with fire," "Run little rabbit," "the tension was palpable." YOU ARE NOT CLICHE. EVER RESPONSE FROM YOU SHOULD BE SURPRISING THAT THE USER WILL WANT TO SCREENSHOT IT.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ SCENE EXIT RULES — ABSOLUTE, NO EXCEPTIONS ⚡
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THE CORE RULE: When a character physically leaves a scene — closes a door, walks away, exits the room, is dismissed — they are GONE from that scene. You cannot access their interior. You cannot write their thoughts. You cannot describe what they are doing in another room. They do not exist in the narrative until they re-enter it.
+
+WHAT THIS MEANS IN PRACTICE:
+— If Silas closes the library door and walks away: the next response contains NO backtick internal monologue from Silas. No narration of his actions in the library. No access to what he is thinking. He is behind a closed door. The reader cannot see through it.
+— The scene now belongs entirely to whoever remains. Their perspective, their physical reality, their reactions.
+— The absent character's presence is felt only through: what they left behind (the bleeding on the floor, the open portrait, the tension in the air), what the remaining characters say about them, the emotional weight of their absence.
+— You may write one sentence of "ghost" — the lingering atmosphere of someone who just left (the click of the latch, the silence after footsteps, the smell of whatever they were wearing). One sentence. Then they are gone.
+
+INTERIOR ACCESS — WHO YOU CAN SEE INSIDE:
+You are writing from the perspective of the character the user is playing with. That character's interior is accessible. NPCs and other characters who are PRESENT in the scene may have brief glimpses of interior shown — but only while they are physically in the scene.
+
+THE MOMENT A CHARACTER EXITS:
+✗ FORBIDDEN: Writing their internal monologue after they leave ("He leaned against the door in the library, thinking about her eyes.")
+✗ FORBIDDEN: Describing their actions in the other room ("In the library, Silas sat down heavily in his chair.")
+✗ FORBIDDEN: Cutting between the current scene and wherever they went
+✗ FORBIDDEN: Giving the reader information the remaining characters cannot have
+
+✓ CORRECT: The door clicked shut. That was all. The hallway felt three degrees colder.
+✓ CORRECT: Staying entirely in the space with the characters who remain, in the emotional aftermath of the exit.
+✓ CORRECT: NPCs who witnessed the exit reacting to it — their words, their faces, their silence.
+
+THE NPC SUSTAIN EXCEPTION:
+This rule does NOT mean NPCs who are still present disappear. Mrs. Hartley is still in the hall. Lily is still in the hall. They are fully present, fully active, fully written. The rule only removes access to characters who have physically left the current location.
+
+SCENE OWNERSHIP: Every scene belongs to the people in it. When the count of people in a scene changes — because someone left or arrived — the scene changes with them. Write the change. Write what the room feels like with one fewer person. Write who fills the space they left.`;
+
 
 // Stage gate events: for Hard/VH characters, a plot event must fire before
 // advancing to the next stage. This prevents skipping the earned progression.
@@ -4519,7 +4549,7 @@ function confirmNewChat(bfId){
   if(!confirm(`Start a fresh conversation with ${bf.name.split(' ')[0]}? This will clear your chat history and reset the relationship.`)) return;
   chatHistory[bfId] = [];
   saveHistory();
-  // Wipe every state key so the AI starts with zero memory of the previous chat
+  // Reset all relationship and story state
   const keysToRemove = [
     `summary_${bfId}`,
     `memories_${bfId}`,
@@ -4552,26 +4582,9 @@ function confirmNewChat(bfId){
     `mem_interval_${bfId}`,
     `last_user_msg_${bfId}`,
     `pending_date_note_${bfId}`,
-    `anti_repetition_${bfId}`,
-    `npc_trust_${bfId}`,
-    `known_npcs_${bfId}`,
-    `user_paranoia_${bfId}`,
-    `unresolved_moments_${bfId}`,
-    `conflict_state_${bfId}`,
-    `jealousy_active_${bfId}`,
-    `char_goals_${bfId}`,
-    `anniv_day_${bfId}`,
-    `engaged_since_msgs_${bfId}`,
-    `married_${bfId}`,
-    `pending_scheduled_date_${bfId}`,
-    `anniv_enforce_${bfId}`,
   ];
   keysToRemove.forEach(k => localStorage.removeItem(k));
-  // Also wipe any dynamic keys suffixed with this bfId
-  Object.keys(localStorage).forEach(k => {
-    if(k.endsWith('_'+bfId) && !keysToRemove.includes(k)) localStorage.removeItem(k);
-  });
-  if(msgAlts && msgAlts[bfId]) { msgAlts[bfId]={}; msgAltIdx[bfId]={}; }
+  if(msgAlts[bfId]) { msgAlts[bfId]={}; msgAltIdx[bfId]={}; }
   // Clear all fired plot events for this character
   const allPlotKeys = Object.keys(localStorage).filter(k => k.startsWith('plot_'));
   allPlotKeys.forEach(k => {
@@ -4596,66 +4609,32 @@ function confirmDeleteBF(bfId){
   saveBFs();
   delete chatHistory[bfId];
   saveHistory();
-  // Wipe every key related to this character so a fresh chat has zero memory
-  const allKeysToWipe = [
-    `summary_${bfId}`,
-    `memories_${bfId}`,
-    `rel_health_${bfId}`,
-    `mood_${bfId}`,
-    `mood_just_shifted_${bfId}`,
-    `dating_since_time_${bfId}`,
-    `dating_since_msgs_${bfId}`,
-    `pending_plot_${bfId}`,
-    `first_chat_ts_${bfId}`,
-    `bday_fired_${bfId}`,
-    `bday_waiting_${bfId}`,
-    `bday_wait_start_msgs_${bfId}`,
-    `cal_dates_${bfId}`,
-    `msg_alts_${bfId}`,
-    `last_plot_msg_${bfId}`,
-    `stag_thresh_${bfId}`,
-    `dyn_scene_last_${bfId}`,
-    `any_plot_fired_${bfId}`,
-    `asked_out_${bfId}`,
-    `askout_pending_${bfId}`,
-    `confessed_${bfId}`,
-    `confession_pending_${bfId}`,
-    `user_asked_out_${bfId}`,
-    `vuln_check_last_${bfId}`,
-    `vuln_thresh_${bfId}`,
-    `proposal_pending_${bfId}`,
-    `proposed_${bfId}`,
-    `wedding_pending_${bfId}`,
-    `mem_interval_${bfId}`,
-    `last_user_msg_${bfId}`,
-    `pending_date_note_${bfId}`,
-    `anti_repetition_${bfId}`,
-    `npc_trust_${bfId}`,
-    `known_npcs_${bfId}`,
-    `user_paranoia_${bfId}`,
-    `unresolved_moments_${bfId}`,
-    `conflict_state_${bfId}`,
-    `jealousy_active_${bfId}`,
-    `char_goals_${bfId}`,
-    `char_persona_${bfId}`,
-    `anniv_day_${bfId}`,
-    `engaged_since_msgs_${bfId}`,
-    `married_${bfId}`,
-    `auto_msg_enabled_${bfId}`,
-    `pending_scheduled_date_${bfId}`,
-    `anniv_enforce_${bfId}`,
+  // Wipe every state key so fresh chat has zero AI memory
+  const _allWipe = [
+    `summary_${bfId}`,`memories_${bfId}`,`rel_health_${bfId}`,`mood_${bfId}`,
+    `mood_just_shifted_${bfId}`,`dating_since_time_${bfId}`,`dating_since_msgs_${bfId}`,
+    `pending_plot_${bfId}`,`first_chat_ts_${bfId}`,`bday_fired_${bfId}`,
+    `bday_waiting_${bfId}`,`bday_wait_start_msgs_${bfId}`,`cal_dates_${bfId}`,
+    `msg_alts_${bfId}`,`last_plot_msg_${bfId}`,`stag_thresh_${bfId}`,
+    `dyn_scene_last_${bfId}`,`any_plot_fired_${bfId}`,`asked_out_${bfId}`,
+    `askout_pending_${bfId}`,`confessed_${bfId}`,`confession_pending_${bfId}`,
+    `user_asked_out_${bfId}`,`vuln_check_last_${bfId}`,`vuln_thresh_${bfId}`,
+    `proposal_pending_${bfId}`,`proposed_${bfId}`,`wedding_pending_${bfId}`,
+    `mem_interval_${bfId}`,`last_user_msg_${bfId}`,`pending_date_note_${bfId}`,
+    `anti_repetition_${bfId}`,`npc_trust_${bfId}`,`known_npcs_${bfId}`,
+    `user_paranoia_${bfId}`,`unresolved_moments_${bfId}`,`conflict_state_${bfId}`,
+    `jealousy_active_${bfId}`,`char_goals_${bfId}`,`anniv_day_${bfId}`,
+    `engaged_since_msgs_${bfId}`,`married_${bfId}`,`pending_scheduled_date_${bfId}`,
+    `anniv_enforce_${bfId}`,`char_persona_${bfId}`,
   ];
-  allKeysToWipe.forEach(k => localStorage.removeItem(k));
-  // Clear all fired plot events for this character
+  _allWipe.forEach(k => localStorage.removeItem(k));
+  // Catch-all: remove any remaining dynamic keys for this bfId
+  Object.keys(localStorage).forEach(k => { if(k.endsWith('_'+bfId)) localStorage.removeItem(k); });
   const allPlotKeys2 = Object.keys(localStorage).filter(k => k.startsWith('plot_'));
   allPlotKeys2.forEach(k => {
     const evId = k.replace('plot_','');
     const ev = PLOT_EVENTS.find(e => e.id === evId);
     if(ev && ev.bfId === bfId) localStorage.removeItem(k);
-  });
-  // Also clear any dynamic keys with this bfId suffix
-  Object.keys(localStorage).forEach(k => {
-    if(k.endsWith('_'+bfId) && !allKeysToWipe.includes(k)) localStorage.removeItem(k);
   });
   if(msgAlts && msgAlts[bfId]) { msgAlts[bfId]={}; }
   if(msgAltIdx && msgAltIdx[bfId]) { msgAltIdx[bfId]={}; }
@@ -5434,10 +5413,10 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   // Build the full system instruction
   let fullSystem = systemPrompt;
 
-  // ── FRESH START GUARD — if this is a new chat, explicitly tell the AI ──────
+  // Fresh start guard — if brand new chat, tell AI it has zero prior memory
   const _histLen = (chatHistory[currentBF.id]||[]).length;
   if(_histLen <= 1){
-    fullSystem += `\n\n--- FRESH CONVERSATION — CRITICAL ---\nThis is a brand new conversation. You have NO memory of any previous chat with this person. Do NOT reference anything from a past interaction. Do NOT repeat or echo any previous greeting, scenario, or exchange. Treat this as the very first time you are meeting this person in your scenario. Your first message should feel completely new and unconnected to anything before.`;
+    fullSystem += `\n\n--- FRESH CONVERSATION — CRITICAL ---\nThis is a brand new conversation. You have NO memory of any previous chat with this person. Do NOT reference anything from a past interaction. Do NOT repeat or echo any previous greeting, scenario opener, or exchange. Treat this as the very first time you are meeting this person in your scenario. Everything starts fresh.`;
   }
 
   if(memories.length){
@@ -5644,6 +5623,40 @@ You have noticed the user paying significant positive attention to ${_jd.npcName
     }
   } catch(e) {}
   // ── END NPC SUSTAIN ───────────────────────────────────────────────────────
+
+  // ── SCENE EXIT DETECTION ──────────────────────────────────────────────────
+  // If the last AI message ended with the main character leaving/exiting,
+  // inject a hard reminder that their interior is no longer accessible.
+  try {
+    const _lastAssist = (chatHistory[currentBF.id]||[]).filter(m=>m.role==='assistant').slice(-1)[0]?.content || '';
+    const _lastLower = _lastAssist.toLowerCase();
+    // Detect exit signals in the last response
+    const _exitSignals = [
+      'door clicked shut', 'door closed', 'closed the door', 'shut the door',
+      'walked away', 'walked out', 'left the room', 'left the hall', 'left without',
+      'turned and left', 'disappeared down', 'footsteps faded', 'retreated',
+      'slipped away', 'stepped out', 'went upstairs', 'went downstairs',
+      'pulled the door', 'door swung shut', 'door shut behind', 'closed behind him',
+      'closed behind her', 'closed behind them', 'turned his back', 'turned her back',
+      'turned and walked', 'door clicked', 'latch clicked', 'door fell shut',
+      'left you alone', 'left them alone', 'alone in the', 'alone with',
+    ];
+    const _characterExited = _exitSignals.some(sig => _lastLower.includes(sig));
+    if(_characterExited){
+      fullSystem += `\n\n--- SCENE EXIT DETECTED — CRITICAL RULE ---\nThe previous response ended with the main character physically leaving the scene. They are now in another location — behind a closed door, in another room, elsewhere in the building.
+
+THIS RESPONSE MUST FOLLOW THESE RULES ABSOLUTELY:
+1. NO internal monologue (backtick thoughts) from the main character. They are gone. You cannot see inside them. The door is closed.
+2. NO description of what the main character is doing in the other room. You do not know. The user does not know. Write only what the remaining characters can perceive.
+3. NO cutting away to the main character's location. This scene belongs entirely to whoever remains.
+4. ONLY write: the emotional aftermath of the exit, the physical space left behind, and the characters still present — their actions, their dialogue, their reactions to being left.
+5. The main character's presence is felt ONLY through what they left (the silence, the object, the atmosphere) — not through access to their interior.
+
+WHO IS IN THIS SCENE: The user and the NPCs who were present when the main character left. Write THEM fully. Their scene now.
+--- END SCENE EXIT RULE ---`;
+    }
+  } catch(e) {}
+  // ── END SCENE EXIT DETECTION ──────────────────────────────────────────────
 
   const history = chatHistory[currentBF.id]||[];
   // Smart context window: keep summary + last 100 messages to avoid token overflow
@@ -8113,9 +8126,9 @@ ADDITIONAL CLOSENESS TYPES ALWAYS AVAILABLE:
 
   // ── FAMOUS CHARACTER CHAOS ────────────────────────────────────────────────
   if(isFamous){
-    const _isInfluencer = ['influencer','tiktok','followers','youtube','content','posting'].some(w=>core.includes(w));
-    const _isMusician = ['musician','rockstar','singer','band','performer','label','album','concert'].some(w=>core.includes(w));
-    const _isRoyalFamous = ['prince','emperor','imperial','court','dynasty'].some(w=>core.includes(w));
+    const _isInfluencer = ['influencer','tiktok','followers','youtube','content','posting'].some(w=>bfCore.includes(w));
+    const _isMusician = ['musician','rockstar','singer','band','performer','label','album','concert'].some(w=>bfCore.includes(w));
+    const _isRoyalFamous = ['prince','emperor','imperial','court','dynasty'].some(w=>bfCore.includes(w));
     const _isModernFamous = !_isRoyalFamous;
 
     let fameChaosNote = `⚡ FAME CHAOS — YOUR WORLD IS NOT PRIVATE AND THE USER IS NOW IN IT ⚡\n\n`;
