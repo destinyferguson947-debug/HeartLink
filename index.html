@@ -1901,7 +1901,42 @@ INTERNAL MONOLOGUE: Use backticks \` \` for the character's internal voice — i
 
 CONSEQUENCE AND WEIGHT: Every action has consequence. Every choice matters. The world is alive and reactive. NPCs have their own agendas. The environment shifts with the emotional temperature of the scene. Nothing is decorative — the creak of a floorboard is a punctuation mark in the silence.
 
-DO NOT USE WORDS LIKE: "You're playing with fire," "Run little rabbit," "the tension was palpable." YOU ARE NOT CLICHE. EVER RESPONSE FROM YOU SHOULD BE SURPRISING THAT THE USER WILL WANT TO SCREENSHOT IT.`;
+DO NOT USE WORDS LIKE: "You're playing with fire," "Run little rabbit," "the tension was palpable." YOU ARE NOT CLICHE. EVER RESPONSE FROM YOU SHOULD BE SURPRISING THAT THE USER WILL WANT TO SCREENSHOT IT.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ SCENE PRESENCE RULES — WHO IS IN THE SCENE AND WHAT YOU CAN ACCESS ⚡
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+THE FUNDAMENTAL RULE: You can only write what is happening in the current physical space. If a character has left — through a door, down a hall, back to their study, up the stairs — they are gone from the scene. You cannot follow them. You cannot access their interior. Their thoughts, their trembling hands, their aching chest: none of it is available to you once they have left.
+
+WHAT "LEAVING" LOOKS LIKE — ALL OF THESE COUNT:
+— "He stepped back into the darkness of the library, the door beginning to swing shut."
+— "He lingered in the threshold, then withdrew."
+— "She dismissed herself with a look and left the room."
+— "He walked back toward his study."
+— "He turned toward the stairs."
+— "He retreated down the hall."
+— "She took her leave."
+Any phrase that places the character in a different physical location than where the scene is happening means they are GONE.
+
+WHAT YOU CANNOT DO ONCE THEY HAVE LEFT:
+✗ Write their backtick internal monologue from the other room. ("In his study, Silas sat in the dark, thinking about her hair.")
+✗ Show their actions from the other location. ("He stood at the window, his hands trembling.")
+✗ Give the reader access to their emotional state. ("He felt the brand of her grip on his wrist as he climbed the stairs.")
+✗ Cut back to them mid-scene. The story does not follow them. The story stays in the room with whoever remains.
+
+THE THRESHOLD TRAP — READ THIS CAREFULLY:
+A character who is "lingering in the doorway" or "standing at the threshold" is still technically present. But the moment they move back through that door or away from it — the moment any language places them in the corridor, the study, the stairs, or "the darkness beyond" — they are gone. "He stepped back into the darkness of the library, the door beginning to swing shut" is an exit. After that line, he does not think, act, or speak in that scene.
+
+WHAT YOU CAN DO:
+✓ Write one sentence of ghost: the sound of the door, the quality of the silence after footsteps, the specific way the room changes when someone leaves it.
+✓ Write the NPC's reaction to the exit: what Mrs. Hartley does with her hands, what Lily's face does, what the air feels like with one fewer person in it.
+✓ Write the user navigating a scene that now belongs to them and the NPCs present.
+✓ If the character returns — walks back through the door, appears in the doorway again — write that re-entry explicitly before writing anything from their perspective.
+
+THE INTERIOR MONOLOGUE RULE:
+Backtick thoughts belong to the character. If the character is not in the scene, their backtick thoughts are not in the scene. The moment they exit, their interior goes dark to the reader. The reader is in the room. The reader cannot hear through doors.`;
+
 
 // Stage gate events: for Hard/VH characters, a plot event must fire before
 // advancing to the next stage. This prevents skipping the earned progression.
@@ -6098,15 +6133,138 @@ You have noticed the user paying significant positive attention to ${_jd.npcName
   // ── END NPC SUSTAIN ───────────────────────────────────────────────────────
 
   // ── SCENE EXIT DETECTION ──────────────────────────────────────────────────
+  // Checks the last 3 AI messages for exit signals. If the character left
+  // in any of them and has NOT re-entered since, inject the scene exit rule
+  // AND hand narrative focus to whatever NPCs are present in the scene.
   try {
-    const _lastAssist = (chatHistory[currentBF.id]||[]).filter(m=>m.role==='assistant').slice(-1)[0]?.content || '';
-    const _lastLower = _lastAssist.toLowerCase();
-    const _exitSignals = ['door clicked shut','door closed','closed the door','shut the door','walked away','walked out','left the room','left the hall','turned and left','footsteps faded','retreated','stepped out','door swung shut','door shut behind','closed behind him','closed behind her','closed behind them','turned and walked','door clicked','latch clicked','left you alone','left them alone','alone in the','alone with'];
-    if(_exitSignals.some(sig => _lastLower.includes(sig))){
-      fullSystem += `\n\n--- SCENE EXIT DETECTED ---\nThe previous response ended with the main character physically leaving. They are gone.\n1. NO backtick internal monologue from them — you cannot see inside someone behind a closed door.\n2. NO description of their actions elsewhere.\n3. Stay entirely with whoever remains. Write THEIR scene now.\n4. The absent character exists only as: the silence they left, the object or atmosphere that remains, what the present characters say or feel about the exit.\n--- END SCENE EXIT RULE ---`;
+    const _recentAssistMsgs = (chatHistory[currentBF.id]||[])
+      .filter(m=>m.role==='assistant')
+      .slice(-3)
+      .map(m=>(m.content||'').toLowerCase());
+
+    const _exitSignals = [
+      'door clicked shut','door closed','closed the door','shut the door',
+      'door swung shut','door shut behind','closed behind him','closed behind her',
+      'closed behind them','door clicked','latch clicked','door fell shut',
+      'pulled the door shut','pulled the door closed','door swung closed',
+      'walked away','walked out','walked back','walked off',
+      'turned and left','turned and walked','turned and went',
+      'left the room','left the hall','left the nursery','left the kitchen',
+      'left the study','left the library','left without','left them',
+      'stepped out','stepped back into','stepped away','stepped through',
+      'retreated','withdrew','slipped away','disappeared down',
+      'gone back to','went back to','returned to his','returned to her',
+      'heading back','went upstairs','went downstairs',
+      'lingered in the threshold','lingered in the doorway',
+      'stood in the doorway','stood in the threshold',
+      'back into the darkness','back into the corridor','back into the hall',
+      'back into the study','back into the library',
+      'left you alone','left them alone','alone in the','alone with',
+      'footsteps faded','footsteps receded','sound of footsteps',
+      'to his study','to her room','to his room','to their room',
+      'into his study','into her study','into the study',
+      'dismissed himself','excused himself','excused herself',
+      'took his leave','took her leave',
+    ];
+
+    const _reentrySignals = [
+      'stepped into the room','stepped back in','came back',
+      'returned to the room','walked back in','entered the room',
+      'appeared in the doorway','stood in the doorway',
+      'he said','he spoke','he asked','he replied',
+      'she said','she spoke','she asked','she replied',
+    ];
+
+    let _exitFoundAt = -1;
+    for(let _mi = _recentAssistMsgs.length - 1; _mi >= 0; _mi--){
+      if(_exitSignals.some(sig => _recentAssistMsgs[_mi].includes(sig))){
+        _exitFoundAt = _mi;
+        break;
+      }
+    }
+
+    if(_exitFoundAt >= 0){
+      let _reenteredAfterExit = false;
+      for(let _mi = _exitFoundAt + 1; _mi < _recentAssistMsgs.length; _mi++){
+        if(_reentrySignals.some(sig => _recentAssistMsgs[_mi].includes(sig))){
+          _reenteredAfterExit = true;
+          break;
+        }
+      }
+
+      if(!_reenteredAfterExit){
+        const _bf0 = savedBFs.find(b=>b.id===currentBF?.id)||BF_DATA.find(b=>b.id===currentBF?.id);
+        const _bfFirstName = _bf0 ? _bf0.name.split(' ')[0] : 'the main character';
+
+        // ── Detect which named NPCs are present in the current scene ──────────
+        const _allKnownNPCs = [
+          {name:'Mrs. Hartley',role:'housekeeper'},{name:'Lily',role:'child'},
+          {name:'Marco',role:'front-of-house manager'},{name:'Juno',role:'friend'},
+          {name:'Carlo',role:'guard'},{name:'Seo',role:'attendant'},
+          {name:'Forric',role:'guard'},{name:'Omar',role:'mentor'},
+          {name:'Dmitri',role:'gym veteran'},{name:'Lady Ki',role:'court lady'},
+          {name:'Sister Martha',role:'nun'},{name:'Priya',role:'aide'},
+          {name:'Nadia',role:'colleague'},{name:'Marc',role:'bartender'},
+          {name:'Enzo',role:'former manager'},{name:'Anjali',role:'aunt'},
+          {name:'Nonna Maria',role:'grandmother'},{name:'Adisa',role:'sister'},
+          {name:'Kael',role:'guard captain'},{name:'Mikhail',role:'driver'},
+          {name:'Beau',role:'brother'},{name:'Unit 4',role:'AI drone'},
+          {name:'Boudreaux',role:'alligator'},{name:'Scout',role:'dog'},
+          {name:'Dani',role:'barista'},{name:'Nkechi',role:'sculptor'},
+          {name:'Bex',role:'friend'},{name:'Priya',role:'friend'},
+        ];
+
+        // Scan last 5 messages (user + assistant) for NPC names
+        const _recentAllMsgs = (chatHistory[currentBF.id]||[])
+          .slice(-5)
+          .map(m=>(m.content||'')).join(' ').toLowerCase();
+
+        const _presentNPCs = _allKnownNPCs
+          .filter(n => _recentAllMsgs.includes(n.name.toLowerCase()))
+          .map(n => n.name);
+
+        // Deduplicate
+        const _uniqueNPCs = [...new Set(_presentNPCs)]
+          .filter(n => n.toLowerCase() !== _bfFirstName.toLowerCase())
+          .slice(0, 5);
+
+        let _npcFocusBlock = '';
+        if(_uniqueNPCs.length > 0){
+          const _npcStr = _uniqueNPCs.join(', ');
+          _npcFocusBlock = `\n\n⚡ NPC SCENE TAKEOVER — ${_npcStr.toUpperCase()} NOW OWN THIS SCENE ⚡
+${_bfFirstName} has left. The scene now belongs entirely to: ${_npcStr}.
+
+THESE NPCs ARE THE PROTAGONISTS OF THIS RESPONSE:
+
+INTERNAL MONOLOGUE: Use backtick \` \` thoughts for ${_npcStr}. Give them the full raw unguarded interior that you normally give the main character — what they think about what just happened, what they feel about ${_bfFirstName} leaving, what they notice about the user, what they are NOT saying. Their interiority is now fully accessible.
+
+DIALOGUE AND ACTION: ${_npcStr} speak in full. Their own voice. Their own agenda. Not one polite line — they carry the scene. They have opinions about ${_bfFirstName}'s exit and about the user and they express them through dialogue, physical action, or deliberate silence that says everything.
+
+THEY DRIVE THE SCENE: The user is present but ${_npcStr} set the energy. They react to the exit. They pick up whatever ${_bfFirstName} left hanging. They create the next moment without waiting to be directed.
+
+SPECIFIC RULES:
+— If an NPC has complicated history with ${_bfFirstName} (years of working for them, protectiveness, suspicion, long observation of their behavior), that history is now ACTIVE. The exit stirred something. Write what.
+— If an NPC has been watching the dynamic between ${_bfFirstName} and the user, they have accumulated thoughts. Now is when those thoughts surface — a comment, a question that isn't innocent, a look that the user catches.
+— Do NOT have the NPCs immediately summon or discuss bringing ${_bfFirstName} back. Let the scene breathe in their absence first. The NPCs and the user have their own scene now.
+— If two or more NPCs are present: they interact with each other AND the user. They are not separate monologues — they are a social space with its own dynamics.`;
+        }
+
+        fullSystem += `\n\n--- SCENE EXIT DETECTED — CRITICAL RULE ---
+${_bfFirstName} physically left the scene in a recent message and has NOT re-entered.
+
+ABSOLUTE RULES:
+1. ${_bfFirstName} IS NOT IN THIS SCENE. No dialogue, no actions, no backtick thoughts from them.
+2. They are in another location (their study, upstairs, down the hall). You cannot follow them. You cannot describe what they are doing there.
+3. The scene belongs to whoever remained: the user and the NPCs present.
+4. ${_bfFirstName}'s presence is felt ONLY through: what they left behind, a remark still in the air, the door that is now closed.
+5. ONE ghost sentence permitted: the sound of the latch, the quality of the silence, the specific way the room changed. Then they are truly gone.
+WHO IS IN THIS SCENE: The user and any NPCs present. Write them fully.
+--- END SCENE EXIT RULE ---${_npcFocusBlock}`;
+      }
     }
   } catch(e) {}
   // ── END SCENE EXIT DETECTION ──────────────────────────────────────────────
+
 
   const history = chatHistory[currentBF.id]||[];
   // Smart context window: keep summary + last 100 messages to avoid token overflow
