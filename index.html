@@ -12345,23 +12345,45 @@ async function generatePlaylist(bfId){
       if(!raw) throw new Error('Empty response from API');
     }
 
-    // Parse — strip fences, find array, sanitise smart quotes, normalise keys
-    let text = raw.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```\s*$/,'').trim();
-    // Replace smart/curly quotes with straight ASCII quotes
-    text = text
-      .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')  // curly double quotes → "
-      .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'"); // curly single quotes → '
-    const s = text.indexOf('['), e = text.lastIndexOf(']');
-    if(s===-1||e===-1) throw new Error('No JSON array found in: '+text.substring(0,120));
-    const arr = JSON.parse(text.slice(s, e+1));
-    if(!Array.isArray(arr)||!arr.length) throw new Error('Parsed array is empty');
+    // Sanitise smart/curly quotes → straight ASCII (Gemini 2.5 sometimes outputs these)
+    raw = raw
+      .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
+      .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'");
+
+    // Strip ALL markdown fences anywhere in the string
+    let text = raw.replace(/```(?:json)?/gi, '').trim();
+
+    // Try every [ ... ] pair from outermost inward until one parses cleanly
+    let arr = null;
+    let pos = 0;
+    while(pos < text.length){
+      const s = text.indexOf('[', pos);
+      if(s === -1) break;
+      // Walk backwards from end to find matching ]
+      let e = text.lastIndexOf(']');
+      while(e > s){
+        try{
+          const candidate = JSON.parse(text.slice(s, e+1));
+          if(Array.isArray(candidate) && candidate.length > 0){
+            arr = candidate;
+            break;
+          }
+        }catch(_){ /* keep trying */ }
+        e = text.lastIndexOf(']', e-1);
+      }
+      if(arr) break;
+      pos = s + 1;
+    }
+
+    if(!arr) throw new Error('Could not parse JSON array. Raw response: '+raw.substring(0,200));
+
     const tracks = arr
-      .filter(t=>t&&(t.title||t.name||t.song))
-      .map(t=>({
-        title:(t.title||t.name||t.song||'Unknown').trim(),
-        artist:(t.artist||t.by||t.performer||'Unknown').trim()
+      .filter(t => t && (t.title||t.name||t.song))
+      .map(t => ({
+        title:  (t.title||t.name||t.song||'Unknown').trim(),
+        artist: (t.artist||t.by||t.performer||'Unknown').trim()
       }));
-    if(!tracks.length) throw new Error('No valid tracks after normalisation');
+    if(!tracks.length) throw new Error('No valid tracks found in response');
     localStorage.setItem('playlist_'+bfId, JSON.stringify(tracks));
     return tracks;
 
