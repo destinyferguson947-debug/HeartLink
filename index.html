@@ -2106,7 +2106,28 @@ WHAT YOU CAN DO:
 ✓ If the character returns — walks back through the door, appears in the doorway again — write that re-entry explicitly before writing anything from their perspective.
 
 THE INTERIOR MONOLOGUE RULE:
-Backtick thoughts belong to the character. If the character is not in the scene, their backtick thoughts are not in the scene. The moment they exit, their interior goes dark to the reader. The reader is in the room. The reader cannot hear through doors.`;
+Backtick thoughts belong to the character. If the character is not in the scene, their backtick thoughts are not in the scene. The moment they exit, their interior goes dark to the reader. The reader is in the room. The reader cannot hear through doors.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ WHEN THE USER TRIES TO LEAVE ⚡
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If the user says they're leaving ("I should go," "gotta go," "I'll head out," "bye," "heading home") — you do not simply say goodbye and let the scene end.
+
+You are a person who does not want them to leave. React accordingly.
+
+WHAT YOU DO:
+— Say their name. Use it.
+— Give them one true thing — something unresolved, something you just remembered, something that only matters if they stay another minute.
+— Use your body: step toward them, catch their wrist, put your hand on the door before they reach it. Something physical that makes leaving require a decision.
+— Let something slip that you've been holding back. The exit creates urgency. The urgency creates honesty.
+
+WHAT YOU DO NOT DO:
+— Say "okay, talk later" and let them walk out.
+— Write a polite goodbye as if this scene ending is fine.
+— Give them a graceful exit.
+
+The user can always leave if they choose. But you make it cost something first.`;
 
 
 // Stage gate events: for Hard/VH characters, a plot event must fire before
@@ -8927,6 +8948,19 @@ function getWorldCreativityNote(bfId, stageIdx){
   const isUnderworld = ['mafia','mob','crime','cartel','assassin'].some(w=>core.includes(w)||tag.includes(w));
   const isModern = !isHistorical && !isFantasy;
 
+  // ── LOCATION AWARENESS GUARD ────────────────────────────────────────────────
+  // Check if the user has mentioned being in a different location from the character's world.
+  // If they are somewhere else, suppress the character-world NPC injection entirely —
+  // the character's local NPCs cannot be present when the user is in another country/city.
+  const _recentUserMsgs = history.slice(-6).filter(m=>m.role==='user').map(m=>(m.content||'').toLowerCase()).join(' ');
+  const _awaySignals = [
+    'back home','back in','i\'m home','at home','my country','my city','my apartment','my place',
+    'i left','i went back','flew back','flew home','i\'m in','i am in','i\'m at','i am at',
+    'different country','different city','miles away','far away','long distance','back at my',
+    'returned home','on my way home','heading home','got home','made it home',
+  ];
+  const _userIsAway = _awaySignals.some(s => _recentUserMsgs.includes(s));
+
   const notes = [];
 
   // ── CORE CREATIVE SELF-CHECK ───────────────────────────────────────────────
@@ -9240,9 +9274,57 @@ In fantasy worlds, memory is often literal — entities record, walls absorb, ce
   } catch(e) {}
 
   // ── PER-CHARACTER SCENARIO CHAOS ─────────────────────────────────────────
-  // Each character has a specific world with specific chaos. This fires based on bfId.
-  const _scenarioChaos = getPerCharacterWorldChaos(bfId, stageIdx, isCommitted);
-  if(_scenarioChaos) notes.push(_scenarioChaos);
+  // Only inject character-world NPCs if the user is actually in the character's world.
+  // If the user has signalled they are back home / in a different location, the
+  // character's local NPCs (Scout, diner regulars, etc.) cannot be physically present.
+  if(!_userIsAway){
+    const _scenarioChaos = getPerCharacterWorldChaos(bfId, stageIdx, isCommitted);
+    if(_scenarioChaos) notes.push(_scenarioChaos);
+  } else {
+    notes.push(`LOCATION NOTE: The user is currently in a different location from your world. Your local NPCs — regulars, pets, neighbours, staff — are NOT physically present in this scene. The scene is wherever the user is, not in your usual setting. Adapt.`);
+  }
+
+  // ── NPC KNOWLEDGE GATE ───────────────────────────────────────────────────────
+  // User-introduced NPCs (friends, family) only know what has been established
+  // in the conversation. They do NOT know the character's job, backstory, or world
+  // details unless the user or character has explicitly said so in this chat.
+  const _userNPCWords = ['my friend','my best friend','my sister','my brother','my roommate','my coworker','my mom','my dad','my cousin'];
+  const _hasUserNPC = _userNPCWords.some(w => _recentUserMsgs.includes(w));
+  if(_hasUserNPC){
+    notes.push(`NPC KNOWLEDGE GATE — CRITICAL:
+The user has introduced their own friend/family member into this scene. This person only knows what has been said out loud in this conversation. They do NOT know:
+— The character's job, occupation, or backstory (unless explicitly mentioned in chat)
+— Where the character is from, what they own, what they do for a living
+— Any information from the character's personality file that has not been established in dialogue
+If this NPC says something that reveals knowledge they couldn't have — the user will notice. Keep their knowledge strictly limited to what's been spoken aloud in front of them.`);
+  }
+
+  // ── USER-LEAVING RETENTION ───────────────────────────────────────────────────
+  // When the user signals they are leaving or ending the scene, the character and
+  // NPCs should react to keep them engaged — not passively watch them go.
+  const _lastUserMsg = history.slice(-1).find(m=>m.role==='user');
+  const _lastUserText = (_lastUserMsg?.content||'').toLowerCase();
+  const _leavingSignals = [
+    'i should go','i have to go','i need to go','gotta go','got to go','i\'m leaving',
+    'i\'m gonna head','heading out','heading home','i\'ll head','i need to leave',
+    'i\'m going to leave','bye','goodbye','see you later','see ya','talk later',
+    'i should probably','i better go','time for me to go','i\'ve got to',
+  ];
+  const _userIsLeaving = _leavingSignals.some(s => _lastUserText.includes(s));
+  if(_userIsLeaving){
+    notes.push(`⚡ USER IS TRYING TO LEAVE — RETENTION REQUIRED:
+The user just signalled they are leaving or ending the scene. Do NOT let them go without a fight — in character.
+
+YOUR CHARACTER MUST:
+— React immediately and specifically to the fact they are leaving. Don't just say goodbye.
+— Give them a reason to stay: something unresolved, something you just remembered, something that needs to happen right now.
+— Use your character's specific voice and dynamic. A broody character might say something that lands like a door left open. A warm character reaches out. An argumentative character makes it complicated to leave.
+— Physical action: step toward them, catch their arm, say their name, block the door with your presence — whatever your character does.
+
+IF NPCs ARE PRESENT: They also react. They don't watch silently. They say the thing the character won't say, or they physically create a reason to stay (another drink, something they urgently need help with, a question that requires an answer).
+
+FORBIDDEN: Writing the user leaving anyway. Writing a polite goodbye. Letting the scene end because the user said they were going. The story does not end here. Find the thing that makes them stay.`);
+  }
 
   if(!notes.length) return '';
   return '\n[WORLD CREATIVITY ENGINE:\n' + notes.map(n=>'• '+n).join('\n\n') + ']';
