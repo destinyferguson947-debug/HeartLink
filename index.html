@@ -12066,12 +12066,25 @@ async function submitDailyAnswer(){
   const fn = bf?.name.split(' ')[0]||'He';
   const memText = `When asked "${q}", they said: "${answer}"`;
   const mems = getMemories(currentBF.id);
-  const newMem = {id: Date.now(), text: memText, auto: true, ts: Date.now()};
-  mems.push(newMem);
+  mems.push({id: Date.now(), text: memText, auto: true, ts: Date.now()});
   saveMemories(currentBF.id, mems);
-  // Generate character reaction via AI
-  const instruction = `(The user just answered your question: "${q}" — they said: "${answer}". React to this answer naturally in your voice. Show that you're genuinely listening. Maybe ask a follow-up. This is a real moment of them sharing something personal. Keep it under 4 sentences.)`;
-  if(apiKey) await callGemini(instruction);
+  // React — pass ONLY the question/answer as context, not the full story history.
+  // Full history causes the AI to repeat the question then add a reaction at the bottom.
+  if(apiKey||proxyMode){
+    const sysPrompt = generateSystemPrompt(currentBF);
+    const reaction = await callAnyAPI(sysPrompt, [
+      {role:'model', content: `I wanted to ask you something — ${q}`},
+      {role:'user',  content: answer},
+      {role:'user',  content: `(React naturally to their answer in your voice. Genuinely listen. Maybe ask one follow-up. Under 4 sentences. Do NOT repeat the question.)`}
+    ], 300, 1.0);
+    if(reaction){
+      const clean = reaction.trim().replace(/^["'*]|["'*]$/g,'').trim();
+      if(!chatHistory[currentBF.id]) chatHistory[currentBF.id]=[];
+      chatHistory[currentBF.id].push({role:'assistant', content:clean});
+      saveHistory();
+      renderMessages();
+    }
+  }
   showToast('Answer saved as a memory 💭');
 }
 
@@ -13979,12 +13992,33 @@ async function submitDailyAnswerTexts(bfId){
   const mems = getMemories(bfId);
   mems.push({id:Date.now(), text:memText, auto:true, ts:Date.now()});
   saveMemories(bfId, mems);
-  // Send the answer as a text from user, then generate character reply
+  // Save user answer to texts
   addTextMessage(bfId, 'user', answer);
   if(_textsActiveBfId===bfId) renderTextsMsgs(bfId);
+  // Generate reaction — use a clean minimal context so the AI doesn't repeat the question
+  // Only pass the question + answer, not the full history which causes repetition
   const emoji = getCharEmoji(bfId);
-  const instruction = `(The user just answered your question "${q}" — they said: "${answer}". React to this in texting voice. Show you're actually listening. Maybe ask something back. Add ${emoji} if it fits. 1-3 sentences.)`;
-  await generateAndSaveAutoMsg(bf, instruction, true);
+  const fn = bf.name.split(' ')[0];
+  const age = getCharacterAge(bf);
+  const mood = getMood(bfId);
+  const moodPrompt = getMoodPrompt(bfId)||'';
+  const sysPrompt = `You are ${fn}, ${age<0?'ageless':age+' years old'}. ${(bf.personality||'').substring(0,300)}
+You are texting. Keep it short (1-3 sentences), natural, casual. NO asterisks or action descriptions. Just the message.
+Current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}.${moodPrompt?'\n'+moodPrompt:''}`;
+  try{
+    // Send ONLY the question-answer pair as context — no prior history
+    const reply = await callAnyAPI(sysPrompt, [
+      {role:'model', content:q},
+      {role:'user',  content:answer},
+      {role:'user',  content:`(React naturally to their answer above in 1-3 sentences. Show you actually heard them. Maybe follow up. Add ${emoji} if it fits your mood. Do NOT repeat the question.)`}
+    ], 200, 1.0);
+    if(reply){
+      const clean = reply.trim().replace(/^["'*]|["'*]$/g,'').trim();
+      addTextMessage(bfId,'assistant',clean);
+      if(_textsActiveBfId===bfId) renderTextsMsgs(bfId);
+      if(document.getElementById('page-texts')?.classList.contains('active')) renderTextsPage();
+    }
+  }catch(e){ console.error('Daily Q reaction failed:',e); }
   showToast('Answer saved as memory 💭');
 }
 
