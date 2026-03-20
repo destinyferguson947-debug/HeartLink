@@ -12264,7 +12264,7 @@ const SCRAPBOOK_TRIGGERS = {
 };
 
 async function generateScrapbookCard(bfId, triggerKey){
-  if(!apiKey) return;
+  if(!apiKey && !proxyMode) return;
   const trigger = SCRAPBOOK_TRIGGERS[triggerKey];
   if(!trigger) return;
   const storeKey = trigger.key+'_'+bfId;
@@ -12276,26 +12276,26 @@ async function generateScrapbookCard(bfId, triggerKey){
   const recentHistory = (chatHistory[bfId]||[]).slice(-6).filter(m=>m.role==='assistant').map(m=>m.content||'').join('\n').substring(0,800);
   const prompt = `You are writing a short memory card for a scrapbook. The milestone is: "${trigger.title}" for the character ${fn}.
 Based on this recent context: "${recentHistory}"
-Write 2-3 sentences in the character's voice — what this moment meant, how it felt, one specific detail. 
+Write 2-3 sentences in the character's voice — what this moment meant, how it felt, one specific detail.
 Write it as if ${fn} is writing in a private journal about this moment.
 Be specific, emotional, and real. No generic phrases. Start with the feeling, not the event.`;
   try{
-    const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:150,temperature:0.9}})
-    });
-    const data = await resp.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const text = await callAnyAPI(
+      `You are ${fn}, writing a private journal entry. Write in first person, emotionally honest, specific.`,
+      [{role:'user', content:prompt}],
+      200,
+      0.95
+    );
     if(text){
-      const card = { id:Date.now(), trigger:triggerKey, emoji:trigger.emoji, title:trigger.title, text, ts:Date.now() };
+      const card = { id:Date.now(), trigger:triggerKey, emoji:trigger.emoji, title:trigger.title, text:text.trim(), ts:Date.now() };
       const key = 'scrapbook_'+bfId;
       let cards = [];
       try{ cards = JSON.parse(localStorage.getItem(key)||'[]'); }catch(e){}
       cards.push(card);
       localStorage.setItem(key, JSON.stringify(cards));
-      addAlbumExtra(bfId, trigger.emoji+' '+trigger.title+': '+text);
+      addAlbumExtra(bfId, trigger.emoji+' '+trigger.title+': '+text.trim());
     }
-  }catch(e){}
+  }catch(e){ console.error('Scrapbook card failed:', e); }
 }
 function getScrapbookCards(bfId){
   try{ return JSON.parse(localStorage.getItem('scrapbook_'+bfId)||'[]'); }catch(e){ return []; }
@@ -12305,7 +12305,7 @@ function getScrapbookCards(bfId){
 // PLAYLIST SYSTEM — AI generates real song playlist per character
 // ════════════════════════════════════════════════════════════
 async function generatePlaylist(bfId){
-  if(!apiKey) return null;
+  if(!apiKey && !proxyMode) return null;
   const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
   if(!bf) return null;
   const fn = bf.name.split(' ')[0];
@@ -12313,28 +12313,35 @@ async function generatePlaylist(bfId){
   const prompt = `Create a music playlist for the fictional character ${fn}.
 Character description: ${core}
 
-Return ONLY a JSON array of 8 real songs that actually exist. Format:
+Return ONLY a valid JSON array of 8 real songs that actually exist. Format exactly:
 [{"title":"Song Name","artist":"Artist Name"},...]
 
 Rules:
-- These must be REAL songs by REAL artists that actually exist
+- These must be REAL songs by REAL artists that actually exist and are on streaming platforms
 - Choose songs that match the character's personality, mood, and story
 - Mix genres if it fits the character
-- No explanations, just the JSON array`;
+- Return ONLY the JSON array, no explanation, no markdown code blocks, no extra text`;
   try{
-    const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:400,temperature:0.7}})
-    });
-    const data = await resp.json();
-    let text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||'[]';
-    text = text.replace(/```json|```/g,'').trim();
-    const tracks = JSON.parse(text);
-    if(Array.isArray(tracks)&&tracks.length){
+    const reply = await callAnyAPI(
+      'You are a music curator. Return only valid JSON arrays. No markdown, no explanation.',
+      [{role:'user', content:prompt}],
+      500,
+      0.8
+    );
+    if(!reply) return null;
+    // Strip any accidental markdown fences
+    let text = reply.trim().replace(/^```(?:json)?|```$/gm,'').trim();
+    // Find the JSON array even if there's surrounding text
+    const arrMatch = text.match(/\[[\s\S]*\]/);
+    if(!arrMatch) return null;
+    const tracks = JSON.parse(arrMatch[0]);
+    if(Array.isArray(tracks) && tracks.length){
       localStorage.setItem('playlist_'+bfId, JSON.stringify(tracks));
       return tracks;
     }
-  }catch(e){}
+  }catch(e){
+    console.error('Playlist generation failed:', e);
+  }
   return null;
 }
 function getStoredPlaylist(bfId){
@@ -12407,11 +12414,28 @@ async function renderAlbumPlaylist(bfId){
   const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
   if(!bf){ el.innerHTML='<div class="album-empty">Character not found.</div>'; return; }
   const fn = bf.name.split(' ')[0];
+  // Check API key first
+  if(!apiKey && !proxyMode){
+    el.innerHTML=`<div class="album-empty" style="text-align:center;padding:2rem">
+      <div style="font-size:2rem;margin-bottom:0.5rem">🔑</div>
+      <div style="font-weight:600;margin-bottom:0.3rem">API key needed</div>
+      <div style="font-size:0.78rem;color:var(--text-muted)">Add your Gemini API key on the Home page to generate ${fn}'s playlist.</div>
+    </div>`;
+    return;
+  }
   let tracks = getStoredPlaylist(bfId);
   if(!tracks){
     el.innerHTML=`<div class="playlist-card"><div class="playlist-header"><div class="playlist-title">${fn}'s Playlist</div></div><div class="playlist-generating">✦ Generating ${fn}'s playlist...<br><br><small style="opacity:0.7">Based on his personality and story</small></div></div>`;
     tracks = await generatePlaylist(bfId);
-    if(!tracks){ el.innerHTML='<div class="album-empty">Could not generate playlist. Check your API key.</div>'; return; }
+    if(!tracks){
+      el.innerHTML=`<div class="album-empty" style="text-align:center;padding:2rem">
+        <div style="font-size:2rem;margin-bottom:0.5rem">😔</div>
+        <div style="font-weight:600;margin-bottom:0.3rem">Couldn't generate playlist</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1rem">The AI had trouble returning valid song data.</div>
+        <a href="#" onclick="renderAlbumPlaylist(${bfId});return false" style="color:var(--rose);font-size:0.82rem">↺ Try again</a>
+      </div>`;
+      return;
+    }
   }
   el.innerHTML=`<div class="playlist-card">
     <div class="playlist-header">
