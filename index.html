@@ -1207,6 +1207,16 @@
       <div id="persona-saved-badge" style="display:none;margin-top:0.8rem">
         <div class="persona-active-badge">✓ Persona active — the AI will remember you in all chats</div>
       </div>
+
+      <!-- Love Language -->
+      <div style="margin-top:1.8rem;padding-top:1.5rem;border-top:1px solid var(--border)">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--rose-dark);font-weight:600;margin-bottom:0.3rem">💞 Love Language</div>
+        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.9rem;line-height:1.5">How you give and receive love shapes how your characters express affection toward you. Setting this makes every interaction feel more personal.</div>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+          <button class="btn-primary" onclick="openLoveLanguageModal()" style="padding:0.6rem 1.4rem;font-size:0.88rem">💞 Set Love Languages</button>
+          <div id="ll-current-display" style="font-size:0.78rem;color:var(--text-muted);font-style:italic"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -4275,9 +4285,13 @@ function openModal(id){
   document.getElementById('modal-personality').innerHTML=`<p>${personalityText.replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>')}</p>`;
   document.getElementById('sec-personality-tokens').textContent=`${tokenCount(personalityText)} tokens`;
 
-  // First message preview (stage 0 rule as preview)
-  const firstMsgText = bf.stageRules ? bf.stageRules[0] : (bf.backstory||'No preview available.');
-  document.getElementById('modal-backstory').innerHTML=`<p style="font-style:italic;color:var(--text-muted)">${firstMsgText}</p>`;
+  // First message preview — use stageRules[0] for chars 1-35, firstMessage for 36+
+  const firstMsgText = bf.stageRules
+    ? bf.stageRules[0]
+    : bf.firstMessage
+      ? bf.firstMessage.substring(0, 400) + (bf.firstMessage.length > 400 ? '...' : '')
+      : (bf.backstory || bf.states?.s0 || 'No preview available.');
+  document.getElementById('modal-backstory').innerHTML=`<p style="font-style:italic;color:var(--text-muted)">${firstMsgText.replace(/\n\n/g,'</p><p style="font-style:italic;color:var(--text-muted)">').replace(/\n/g,'<br>')}</p>`;
   document.getElementById('sec-backstory-tokens').textContent=`${tokenCount(firstMsgText)} tokens`;
 
   // Difficulty note
@@ -4891,6 +4905,8 @@ function initPersonaPage(){
   editingPersonaIndex = activePersonaIndex;
   loadPersonaIntoEditor(p);
   updateEditorTitle();
+  // Update love language display
+  updateLLDisplay();
 }
 
 function renderPersonaSlots(){
@@ -11955,12 +11971,23 @@ function selectLL(who, id, el){
   if(who==='user') localStorage.setItem('_ll_pending_user', id);
   else localStorage.setItem('_ll_pending_char', id);
 }
+function updateLLDisplay(){
+  const el = document.getElementById('ll-current-display');
+  if(!el) return;
+  const userLL = getUserLoveLanguage();
+  const charLL = localStorage.getItem('default_char_love_language')||'acts';
+  const llNames = {words:'Words of Affirmation',acts:'Acts of Service',gifts:'Gift Giving',time:'Quality Time',touch:'Physical Touch'};
+  const llEmojis = {words:'💬',acts:'🛠️',gifts:'🎁',time:'⏱️',touch:'🤝'};
+  el.textContent = `You receive: ${llEmojis[userLL]||''} ${llNames[userLL]||userLL} · They give: ${llEmojis[charLL]||''} ${llNames[charLL]||charLL}`;
+}
+
 function saveLoveLanguages(){
   const pu = localStorage.getItem('_ll_pending_user');
   const pc = localStorage.getItem('_ll_pending_char');
   if(pu){ localStorage.setItem('user_love_language', pu); localStorage.removeItem('_ll_pending_user'); }
   if(pc){ localStorage.setItem('default_char_love_language', pc); localStorage.removeItem('_ll_pending_char'); }
   document.getElementById('ll-modal').style.display='none';
+  updateLLDisplay();
   showToast('Love languages saved 💗');
 }
 function getLoveLanguagePrompt(bfId){
