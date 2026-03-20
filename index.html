@@ -12309,22 +12309,20 @@ async function generatePlaylist(bfId){
   const fn = bf.name.split(' ')[0];
   // Keep personality short and clean — strip backtick blocks
   const personality = (bf.personality||bf.core||'')
-    .replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,250);
+    .replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,200);
 
-  const prompt = `List 8 real songs for a playlist for ${fn}. Personality: ${personality}. Return ONLY a JSON array like [{"title":"Song","artist":"Artist"}]. Real songs only.`;
+  const prompt = `List 8 real songs for ${fn}. Personality: ${personality}. Return ONLY a JSON array: [{"title":"Song","artist":"Artist"},{"title":"Song2","artist":"Artist2"},...]. 8 entries total. Real songs only.`;
 
   try{
     let raw = '';
 
     if(proxyMode && proxyUrl){
-      // Proxy path
       raw = await callAnyAPI(
         'Return only a valid JSON array. No markdown. No explanation.',
         [{role:'user', content:prompt}],
-        400, 0.7
+        1200, 0.7
       );
     } else {
-      // Direct Gemini — dedicated fetch, smart quotes sanitised in parser below
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
@@ -12333,8 +12331,8 @@ async function generatePlaylist(bfId){
           body: JSON.stringify({
             contents:[{role:'user', parts:[{text:prompt}]}],
             generationConfig:{
-              maxOutputTokens:500,
-              temperature:0.7
+              maxOutputTokens: 1200,
+              temperature: 0.7
             }
           })
         }
@@ -12345,40 +12343,48 @@ async function generatePlaylist(bfId){
       if(!raw) throw new Error('Empty response from API');
     }
 
-    // Sanitise smart/curly quotes → straight ASCII (Gemini 2.5 sometimes outputs these)
+    // Sanitise smart/curly quotes → straight ASCII
     raw = raw
       .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
       .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'");
 
-    // Strip markdown fences — covers ASCII backtick, fullwidth backtick (U+FF40),
-    // modifier letter grave (U+02CB), and any triple-backtick-like sequence
+    // Strip markdown fences — ASCII backtick, fullwidth (U+FF40), modifier grave (U+02CB)
     let text = raw
-      .replace(/[\u0060\uFF40\u02CB]{3}(?:json)?/gi, '')  // ```json or ｀｀｀json
-      .replace(/[\u0060\uFF40\u02CB]{3}/g, '')              // closing ```
+      .replace(/[\u0060\uFF40\u02CB]{3}(?:json)?/gi, '')
+      .replace(/[\u0060\uFF40\u02CB]{3}/g, '')
       .trim();
 
-    // Try every [ ... ] pair from outermost inward until one parses cleanly
+    // Find the opening bracket
+    const arrStart = text.indexOf('[');
+    if(arrStart === -1) throw new Error('No [ found. Raw: '+raw.substring(0,150));
+    let jsonText = text.slice(arrStart);
+
+    // Try parsing as-is first
     let arr = null;
-    let pos = 0;
-    while(pos < text.length){
-      const s = text.indexOf('[', pos);
-      if(s === -1) break;
-      let e = text.lastIndexOf(']');
-      while(e > s){
-        try{
-          const candidate = JSON.parse(text.slice(s, e+1));
-          if(Array.isArray(candidate) && candidate.length > 0){
-            arr = candidate;
-            break;
-          }
-        }catch(_){}
-        e = text.lastIndexOf(']', e-1);
+    try{
+      arr = JSON.parse(jsonText);
+    }catch(_){
+      // Response may be truncated — find last COMPLETE object by scanning for "}," or "}" patterns
+      // Extract all complete {"title":...,"artist":...} objects using regex
+      const trackRegex = /\{\s*"title"\s*:\s*"([^"]+)"\s*,\s*"artist"\s*:\s*"([^"]+)"\s*\}/g;
+      const found = [];
+      let m;
+      while((m = trackRegex.exec(jsonText)) !== null){
+        found.push({title: m[1].trim(), artist: m[2].trim()});
       }
-      if(arr) break;
-      pos = s + 1;
+      if(found.length > 0){
+        arr = found;
+      } else {
+        // Last resort: try closing the truncated array
+        const lastBrace = jsonText.lastIndexOf('}');
+        if(lastBrace > -1){
+          try{ arr = JSON.parse(jsonText.slice(0, lastBrace+1) + ']'); }catch(_){}
+        }
+      }
     }
 
-    if(!arr) throw new Error('Could not parse JSON array. Raw response: '+raw.substring(0,200));
+    if(!arr || !Array.isArray(arr) || !arr.length)
+      throw new Error('Parse failed. Raw: '+raw.substring(0,200));
 
     const tracks = arr
       .filter(t => t && (t.title||t.name||t.song))
@@ -12386,12 +12392,11 @@ async function generatePlaylist(bfId){
         title:  (t.title||t.name||t.song||'Unknown').trim(),
         artist: (t.artist||t.by||t.performer||'Unknown').trim()
       }));
-    if(!tracks.length) throw new Error('No valid tracks found in response');
+    if(!tracks.length) throw new Error('No valid tracks. Raw: '+raw.substring(0,150));
     localStorage.setItem('playlist_'+bfId, JSON.stringify(tracks));
     return tracks;
 
   }catch(e){
-    // Store the error so renderAlbumPlaylist can show it
     localStorage.setItem('playlist_err_'+bfId, e.message||String(e));
     console.error('Playlist generation failed:', e);
     return null;
