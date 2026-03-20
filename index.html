@@ -813,6 +813,100 @@
 
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-thumb { background: var(--rose-light); border-radius: 3px; }
+
+  /* ── LOVE LANGUAGE PICKER ── */
+  .ll-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:0.6rem; margin-top:0.5rem; }
+  .ll-option { border:1.5px solid var(--border); border-radius:0.8rem; padding:0.7rem 0.6rem; cursor:pointer; text-align:center; background:var(--card); transition:all 0.2s; }
+  .ll-option:hover { border-color:var(--rose-light); background:var(--warm); }
+  .ll-option.selected { border-color:var(--rose); background:rgba(201,102,122,0.08); }
+  .ll-option-emoji { font-size:1.4rem; margin-bottom:0.2rem; }
+  .ll-option-label { font-size:0.75rem; font-weight:600; color:var(--rose-dark); }
+  .ll-option-desc { font-size:0.65rem; color:var(--text-muted); margin-top:0.15rem; line-height:1.3; }
+
+  /* ── HEALTH LOG ── */
+  .health-log-entry { display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0; border-bottom:1px solid var(--border); font-size:0.78rem; }
+  .health-log-entry:last-child { border-bottom:none; }
+  .health-log-icon { font-size:0.9rem; flex-shrink:0; margin-top:1px; }
+  .health-log-text { color:var(--text); flex:1; line-height:1.4; }
+  .health-log-delta { font-size:0.72rem; font-weight:600; flex-shrink:0; }
+  .health-log-delta.pos { color:#2d9e6b; }
+  .health-log-delta.neg { color:#c94f4f; }
+
+  /* ── VOICE NOTE BUBBLE ── */
+  .voice-note-bubble { background:linear-gradient(135deg,var(--warm),var(--card)); border:1.5px solid var(--rose-light); border-radius:1.2rem; padding:0.8rem 1rem; display:inline-flex; align-items:center; gap:0.75rem; max-width:260px; cursor:pointer; transition:all 0.2s; }
+  .voice-note-bubble:hover { border-color:var(--rose); box-shadow:0 2px 12px rgba(201,102,122,0.15); }
+  .voice-note-play { width:32px; height:32px; border-radius:50%; background:var(--rose); color:#fff; border:none; cursor:pointer; font-size:0.9rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.2s; }
+  .voice-note-play:hover { background:var(--rose-dark); }
+  .voice-note-info { flex:1; min-width:0; }
+  .voice-note-label { font-size:0.7rem; font-weight:600; color:var(--rose); text-transform:uppercase; letter-spacing:0.5px; }
+  .voice-note-waveform { display:flex; align-items:center; gap:2px; height:18px; margin-top:3px; }
+  .voice-note-bar { width:3px; border-radius:2px; background:var(--rose-light); transition:height 0.1s; }
+  .voice-note-bubble.playing .voice-note-bar { background:var(--rose); }
+  body.dark .voice-note-bubble { background:linear-gradient(135deg,#2e1a22,#261820); }
+
+  /* ── PLAYLIST CARD ── */
+  .playlist-card { background:var(--card); border:1px solid var(--border); border-radius:1rem; overflow:hidden; }
+  .playlist-header { background:linear-gradient(135deg,var(--rose-dark),var(--rose)); color:#fff; padding:1rem 1.1rem 0.8rem; }
+  .playlist-title { font-family:'Cormorant Garamond',serif; font-size:1.1rem; font-weight:600; }
+  .playlist-sub { font-size:0.72rem; opacity:0.8; margin-top:0.2rem; }
+  .playlist-track { display:flex; align-items:center; gap:0.7rem; padding:0.55rem 1rem; border-bottom:1px solid var(--border); }
+  .playlist-track:last-child { border-bottom:none; }
+  .playlist-track-num { font-size:0.72rem; color:var(--text-muted); width:16px; text-align:center; }
+  .playlist-track-info { flex:1; min-width:0; }
+  .playlist-track-name { font-size:0.83rem; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .playlist-track-artist { font-size:0.71rem; color:var(--text-muted); }
+  .playlist-generating { padding:1.5rem; text-align:center; color:var(--text-muted); font-size:0.82rem; }
+
+  /* ── RELATIONSHIP TIMELINE ── */
+  .rel-timeline { position:relative; padding-left:2rem; }
+  .rel-timeline::before { content:''; position:absolute; left:0.65rem; top:0; bottom:0; width:2px; background:linear-gradient(to bottom,var(--rose-light),var(--border)); border-radius:2px; }
+  .rel-timeline-item { position:relative; margin-bottom:1.2rem; }
+  .rel-timeline-dot { position:absolute; left:-1.65rem; top:0.2rem; width:12px; height:12px; border-radius:50%; background:var(--border); border:2px solid var(--card); z-index:1; }
+  .rel-timeline-dot.done { background:var(--rose); }
+  .rel-timeline-dot.current { background:var(--rose); box-shadow:0 0 0 4px rgba(201,102,122,0.2); animation:pulse-dot 2s infinite; }
+  .rel-timeline-dot.future { background:var(--border); }
+  @keyframes pulse-dot { 0%,100%{box-shadow:0 0 0 4px rgba(201,102,122,0.2)} 50%{box-shadow:0 0 0 8px rgba(201,102,122,0.05)} }
+  .rel-timeline-label { font-size:0.78rem; font-weight:600; color:var(--text); }
+  .rel-timeline-label.done { color:var(--rose-dark); }
+  .rel-timeline-label.future { color:var(--text-muted); }
+  .rel-timeline-sub { font-size:0.7rem; color:var(--text-muted); margin-top:0.1rem; line-height:1.4; }
+  .rel-timeline-locked { font-size:0.68rem; color:var(--text-muted); font-style:italic; }
+
+  /* ── DAILY QUESTION CARD ── */
+  .daily-q-card { background:linear-gradient(135deg,var(--warm),var(--card)); border:1.5px solid var(--rose-light); border-radius:1rem; padding:1rem 1.1rem; margin:0.8rem 0; }
+  .daily-q-label { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--rose); margin-bottom:0.4rem; }
+  .daily-q-text { font-family:'Cormorant Garamond',serif; font-size:1.05rem; color:var(--text); line-height:1.4; margin-bottom:0.7rem; }
+  .daily-q-input { width:100%; border:1px solid var(--border); border-radius:0.6rem; padding:0.5rem 0.7rem; font-size:0.82rem; background:var(--card); color:var(--text); resize:none; font-family:inherit; }
+  .daily-q-input:focus { outline:none; border-color:var(--rose-light); }
+  .daily-q-send { margin-top:0.5rem; background:var(--rose); color:#fff; border:none; border-radius:0.6rem; padding:0.4rem 1rem; font-size:0.8rem; cursor:pointer; transition:all 0.2s; }
+  .daily-q-send:hover { background:var(--rose-dark); }
+
+  /* ── MOTION TRACKER BANNER ── */
+  .motion-banner { position:fixed; bottom:80px; right:12px; background:var(--card); border:1.5px solid var(--rose-light); border-radius:1rem; padding:0.5rem 0.9rem; font-size:0.75rem; color:var(--text); box-shadow:var(--shadow); z-index:200; display:none; align-items:center; gap:0.5rem; max-width:220px; }
+  .motion-banner.visible { display:flex; }
+  .motion-banner-icon { font-size:1rem; }
+
+  /* ── MORNING/NIGHT CARD ── */
+  .time-msg-card { background:linear-gradient(135deg,#fff8e7,#fdf6f0); border:1.5px solid #f0d090; border-radius:1rem; padding:0.8rem 1rem; margin-bottom:0.8rem; }
+  body.dark .time-msg-card { background:linear-gradient(135deg,#2a1e0e,#261820); border-color:#5a4020; }
+  .time-msg-icon { font-size:1.4rem; margin-bottom:0.3rem; }
+  .time-msg-text { font-size:0.83rem; color:var(--text); line-height:1.5; }
+
+  /* ── REL HEALTH VISUAL ── */
+  .health-visual { display:flex; align-items:center; gap:0.8rem; padding:0.8rem; background:var(--warm); border-radius:0.8rem; margin-bottom:0.8rem; }
+  .health-heart { font-size:1.8rem; transition:all 0.4s; }
+  .health-status-text { font-size:0.82rem; color:var(--text); font-style:italic; }
+  .health-status-why { font-size:0.72rem; color:var(--text-muted); margin-top:0.2rem; }
+
+  /* ── SCRAPBOOK AI CARD ── */
+  .scrapbook-ai-card { background:var(--card); border:2px solid var(--rose-light); border-radius:1rem; padding:1rem; margin:0.5rem 0; position:relative; overflow:hidden; }
+  .scrapbook-ai-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--rose),var(--rose-light),var(--rose)); }
+  .scrapbook-card-header { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem; }
+  .scrapbook-card-emoji { font-size:1.2rem; }
+  .scrapbook-card-title { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--rose); }
+  .scrapbook-card-date { font-size:0.68rem; color:var(--text-muted); margin-left:auto; }
+  .scrapbook-card-text { font-family:'Cormorant Garamond',serif; font-size:0.95rem; color:var(--text); line-height:1.6; font-style:italic; }
+  .scrapbook-card-sig { font-size:0.7rem; color:var(--rose); margin-top:0.5rem; font-style:normal; }
 </style>
   <!-- heartlink-build-v11 -->
   <!-- heartlink-build-v12 -->
@@ -1148,7 +1242,17 @@
     <div class="album-header">📸 Memory Album</div>
     <div class="album-sub">Every moment that mattered — scenes that brought you closer, the ones that complicated everything, and the milestones you carry.</div>
     <div class="album-char-tabs" id="album-char-tabs"></div>
+    <!-- Sub-tabs -->
+    <div style="display:flex;gap:0.5rem;margin:0.8rem 0 1rem;flex-wrap:wrap">
+      <button class="album-subtab active" id="subtab-scrapbook" onclick="switchAlbumTab('scrapbook')">🗒️ Scrapbook</button>
+      <button class="album-subtab" id="subtab-timeline" onclick="switchAlbumTab('timeline')">📅 Timeline</button>
+      <button class="album-subtab" id="subtab-playlist" onclick="switchAlbumTab('playlist')">🎵 His Playlist</button>
+      <button class="album-subtab" id="subtab-memories" onclick="switchAlbumTab('memories')">💭 He Remembers</button>
+    </div>
     <div id="album-content"></div>
+    <div id="album-timeline-content" style="display:none"></div>
+    <div id="album-playlist-content" style="display:none"></div>
+    <div id="album-memories-content" style="display:none"></div>
   </div>
 </div>
 
@@ -1293,6 +1397,39 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- MOTION TRACKER BANNER -->
+<div class="motion-banner" id="motion-banner">
+  <span class="motion-banner-icon" id="motion-banner-icon">🚶</span>
+  <span id="motion-banner-text">He noticed you're on the move...</span>
+</div>
+
+<!-- DAILY QUESTION OVERLAY -->
+<div id="daily-q-overlay" style="display:none;position:fixed;inset:0;background:rgba(42,26,31,0.7);z-index:600;backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center">
+  <div style="background:var(--card);border-radius:1.2rem;padding:1.5rem;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+    <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--rose);margin-bottom:0.5rem">💬 Daily Question</div>
+    <div id="daily-q-char-name" style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--text);margin-bottom:0.8rem"></div>
+    <div id="daily-q-question" class="daily-q-text"></div>
+    <textarea id="daily-q-answer" class="daily-q-input" rows="3" placeholder="Your answer..."></textarea>
+    <div style="display:flex;gap:0.5rem;margin-top:0.6rem">
+      <button class="daily-q-send" onclick="submitDailyAnswer()">Send Answer 💌</button>
+      <button style="background:none;border:1px solid var(--border);border-radius:0.6rem;padding:0.4rem 0.8rem;font-size:0.8rem;cursor:pointer;color:var(--text-muted)" onclick="dismissDailyQ()">Later</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOVE LANGUAGE SETUP MODAL -->
+<div id="ll-modal" style="display:none;position:fixed;inset:0;background:rgba(42,26,31,0.7);z-index:600;backdrop-filter:blur(6px);align-items:center;justify-content:center">
+  <div style="background:var(--card);border-radius:1.2rem;padding:1.5rem;max-width:480px;width:92%;box-shadow:0 8px 40px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--rose-dark);font-weight:600;margin-bottom:0.3rem">💞 Love Languages</div>
+    <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem">How do you give and receive love? This shapes how your characters express affection.</div>
+    <div style="font-size:0.82rem;font-weight:600;color:var(--text);margin-bottom:0.5rem">Your love language (how you like to receive):</div>
+    <div class="ll-grid" id="ll-user-grid"></div>
+    <div style="font-size:0.82rem;font-weight:600;color:var(--text);margin:1rem 0 0.5rem">Default character style (can be overridden per-character):</div>
+    <div class="ll-grid" id="ll-char-grid"></div>
+    <button style="margin-top:1rem;width:100%;background:var(--rose);color:#fff;border:none;border-radius:0.8rem;padding:0.7rem;font-size:0.88rem;cursor:pointer;font-family:inherit" onclick="saveLoveLanguages()">Save 💗</button>
+  </div>
+</div>
 
 <script>
 let apiKey = localStorage.getItem('gemini_api_key') || '';
@@ -5269,6 +5406,8 @@ function openChat(id){
   renderMessages();
   renderMemoryPanel();
   if(!chatHistory[id].length) sendGreeting();
+  // Check for daily question when opening chat
+  setTimeout(()=>checkDailyQuestion(), 2000);
   // Init and display mood
   initMood(id);
   updateMoodBadge(id);
@@ -5700,6 +5839,7 @@ async function sendMessage(){
   addMessage('user',text);
   // Reactively shift mood based on what user said
   if(currentBF) reactivelyShiftMood(currentBF.id, text);
+  if(currentBF) checkJealousyTrigger(text, currentBF.id);
   // Record last user message time for auto-msg + relationship decay
   if(currentBF) localStorage.setItem('last_user_msg_'+currentBF.id, Date.now().toString());
   document.getElementById('send-btn').disabled=true;
@@ -5942,6 +6082,22 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   if(extraPrompt){
     fullSystem += `\n\n--- MANDATORY CUSTOM INSTRUCTIONS (from user — you MUST follow these exactly, they override everything else) ---\n${extraPrompt}\n--- END CUSTOM INSTRUCTIONS ---`;
   }
+
+  // ── Anniversary note ────────────────────────────────────────────────────────
+  const _anniversaryNote = getAnniversaryNote(currentBF.id);
+  if(_anniversaryNote) fullSystem += _anniversaryNote;
+
+  // ── Love language injection ─────────────────────────────────────────────────
+  const _llNote = getLoveLanguagePrompt(currentBF.id);
+  if(_llNote) fullSystem += _llNote;
+
+  // ── Time of day context ─────────────────────────────────────────────────────
+  const _timeCtx = getTimeContextNote(currentBF.id);
+  if(_timeCtx) fullSystem += _timeCtx;
+
+  // ── Jealousy note ───────────────────────────────────────────────────────────
+  const _jealNote = getJealousyNote(currentBF.id);
+  if(_jealNote) fullSystem += _jealNote;
   // ── Full calendar awareness ─────────────────────────────────────────────────
   const _calIG = getInGameDate(currentBF.id);
   const _calMonthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -6646,10 +6802,12 @@ function getStatusRank(status){
   return ranks[status] ?? 0;
 }
 
-function boostRelHealth(bfId, amount){
+function boostRelHealth(bfId, amount, reason){
   const data = getRelHealth(bfId);
   if(data.status === 'divorced' || data.status === 'broken_up') return;
-  data.health = Math.min(100, (data.health||50) + amount);
+  const _prevH = data.health||50;
+  data.health = Math.min(100, _prevH + amount);
+  if(reason) { data.tooltipMsg = reason; addHealthLog(bfId, amount, reason, true); }
   // NOTE: Status NEVER auto-changes to 'dating' from health alone.
   // Dating/fiance/married status is only set via explicit in-story events
   // (ask-out, confession, proposal, wedding). Health only affects the warmth
@@ -6671,6 +6829,7 @@ function decayRelHealth(bfId, amount, reason){
   data.health = Math.max(0, (data.health||50) - amount);
   data.tooltipMsg = reason;
   data.lastDecay = Date.now();
+  addHealthLog(bfId, -amount, reason, false);
   // Dating→complicated
   if(data.status === 'dating' && data.health < 50) {
     data.status = 'complicated'; data.tooltipMsg = reason;
@@ -7164,6 +7323,7 @@ function checkProposalResponse(){
     showHeartRain();
     showToast('💍 You said yes! Now Engaged!');
     addMilestone(currentBF.id, `${currentBF.name.split(' ')[0]} proposed — and you said yes. You are engaged.`);
+    setTimeout(()=>generateScrapbookCard(currentBF.id,'fiance'), 3000);
     checkWedding();
   } else if(noWords.some(w=>accept.includes(w))){
     localStorage.removeItem('proposal_pending_'+currentBF.id);
@@ -7201,6 +7361,7 @@ function checkWedding(){
     await callGemini(weddingMsg);
     showToast('👑 Married! Congratulations!');
     if(currentBF) addMilestone(currentBF.id, currentBF.name.split(' ')[0]+' and you got married.');
+    if(currentBF) setTimeout(()=>generateScrapbookCard(currentBF.id,'married'), 4000);
   }, 1500);
 }
 
@@ -7464,6 +7625,8 @@ function grantDatingStatus(bfId, milestoneText){
   showHeartRain();
   showToast("💗 You're officially dating!");
   if(milestoneText) addMilestone(bfId, milestoneText);
+  // Generate AI scrapbook card for this milestone
+  setTimeout(()=>generateScrapbookCard(bfId,'dating'), 3000);
 }
 
 // ── Helper: reject ask-out — health drop + stage demotion ────────────────────
@@ -7884,19 +8047,34 @@ async function callGeminiForBF(bf, instruction){
   currentBF = savedCurrentBF;
 }
 
-async function generateAndSaveAutoMsg(bf, instruction){
+async function generateAndSaveAutoMsg(bf, instruction, routeToTexts){
   if(!apiKey && !proxyMode) return;
-  const sysPrompt = generateSystemPrompt(bf);
-  const history = chatHistory[bf.id]||[];
-  const msgs = history.slice(-20).map(m=>({role:m.role, content:m.content}));
+  // If character is texting-unlocked and routeToTexts is not explicitly false,
+  // send auto-messages to the Texts tab so they feel like phone notifications
+  const _useTexts = routeToTexts !== false && isTextsUnlocked(bf.id);
+  const sysPrompt = _useTexts
+    ? `You are ${bf.name}. ${(bf.personality||'').substring(0,400)}
+You are sending a text message on your phone. Keep it short (1-3 sentences), natural, casual. 
+NO action descriptions (*does something*). Just the text message itself. No quotes around it.`
+    : generateSystemPrompt(bf);
+  const history = _useTexts ? getTextHistory(bf.id) : (chatHistory[bf.id]||[]);
+  const msgs = history.slice(-10).map(m=>({role:m.role==='user'?'user':'model', content:m.content}));
   msgs.push({role:'user', content:instruction});
   try{
-    const reply = await callAnyAPI(sysPrompt, msgs, 1200, 1.0);
+    const reply = await callAnyAPI(sysPrompt, msgs, 300, 1.05);
     if(reply){
-      if(!chatHistory[bf.id]) chatHistory[bf.id]=[];
-      chatHistory[bf.id].push({role:'assistant',content:reply});
-      saveHistory();
-      if(currentBF?.id === bf.id) renderMessages();
+      const clean = reply.trim().replace(/^["'*]|["'*]$/g,'').trim();
+      if(_useTexts){
+        addTextMessage(bf.id,'assistant',clean);
+        if(_textsActiveBfId===bf.id) renderTextsMsgs(bf.id);
+        if(document.getElementById('page-texts')?.classList.contains('active')) renderTextsPage();
+        else renderTextsContactList([...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0),'');
+      } else {
+        if(!chatHistory[bf.id]) chatHistory[bf.id]=[];
+        chatHistory[bf.id].push({role:'assistant',content:clean});
+        saveHistory();
+        if(currentBF?.id === bf.id) renderMessages();
+      }
     }
   }catch(e){}
 }
@@ -8179,6 +8357,12 @@ function openRelProfile(bfId){
           <div style="height:100%;width:${relData.health}%;background:${color};border-radius:4px;transition:width 0.5s"></div>
         </div>
         ${relData.tooltipMsg ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;font-style:italic">${relData.tooltipMsg}</div>` : ''}
+        ${(()=>{
+          const hs = getHealthStatusText(bf.id);
+          const log = getHealthLog(bf.id).slice(-5).reverse();
+          const logHtml = log.map(e=>`<div class="health-log-entry"><span class="health-log-icon">${e.pos?'💚':'💔'}</span><span class="health-log-text">${e.reason}</span><span class="health-log-delta ${e.pos?'pos':'neg'}">${e.pos?'+':''}${e.delta}</span></div>`).join('');
+          return `<div class="health-visual"><span class="health-heart">${hs.heart}</span><div><div class="health-status-text">${hs.text}</div>${hs.why?`<div class="health-status-why">${hs.why}</div>`:''}</div></div>${log.length?`<div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);margin:0.5rem 0 0.3rem">Why it changed:</div><div>${logHtml}</div>`:''}`;
+        })()}
       </div>
       <!-- Relationship Stage Progress — two-row system -->
       <div style="margin-bottom:1.4rem">
@@ -11619,6 +11803,22 @@ let relDecayInterval = null;
 // ════════════════════════════════════════════════════════
 let _albumBfId = null;
 
+let _albumSubTab = 'scrapbook';
+function switchAlbumTab(tab){
+  _albumSubTab = tab;
+  ['scrapbook','timeline','playlist','memories'].forEach(t=>{
+    const btn = document.getElementById('subtab-'+t);
+    if(btn) btn.classList.toggle('active', t===tab);
+    const el = document.getElementById('album-'+t+'-content') || document.getElementById('album-content');
+    if(t==='scrapbook'){ if(document.getElementById('album-content')) document.getElementById('album-content').style.display = tab==='scrapbook'?'':'none'; }
+    else { const pel = document.getElementById('album-'+t+'-content'); if(pel) pel.style.display = t===tab?'':'none'; }
+  });
+  if(tab==='scrapbook') renderAlbumCards(_albumBfId);
+  else if(tab==='timeline') renderAlbumTimeline(_albumBfId);
+  else if(tab==='playlist') renderAlbumPlaylist(_albumBfId);
+  else if(tab==='memories') renderAlbumMemoriesTab(_albumBfId);
+}
+
 function renderAlbumPage(){
   const tabsEl=document.getElementById('album-char-tabs');
   const contentEl=document.getElementById('album-content');
@@ -11636,7 +11836,7 @@ function renderAlbumPage(){
     const img=(bf.image&&!bf.image.startsWith('PLACEHOLDER'))?`<img src="${bf.image}" alt="">`:`<span>${bf.emoji||'🧑'}</span>`;
     return `<div class="album-char-tab${bf.id===_albumBfId?' active':''}" onclick="selectAlbumChar(${bf.id})">${img}${bf.name.split(' ')[0]}</div>`;
   }).join('');
-  renderAlbumCards(_albumBfId);
+  switchAlbumTab(_albumSubTab||'scrapbook');
 }
 
 function selectAlbumChar(bfId){
@@ -11645,7 +11845,7 @@ function selectAlbumChar(bfId){
   document.querySelectorAll('.album-char-tab').forEach((t,i)=>{
     t.classList.toggle('active',chatted[i]&&chatted[i].id===bfId);
   });
-  renderAlbumCards(bfId);
+  switchAlbumTab(_albumSubTab||'scrapbook');
 }
 
 function renderAlbumCards(bfId){
@@ -11695,6 +11895,709 @@ function addAlbumExtra(bfId,text){
 }
 
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// HEALTH LOG — tracks why relationship health changed
+// ════════════════════════════════════════════════════════════
+function addHealthLog(bfId, delta, reason, isPositive){
+  if(!bfId||!reason) return;
+  const key = 'health_log_'+bfId;
+  let log = [];
+  try{ log = JSON.parse(localStorage.getItem(key)||'[]'); }catch(e){}
+  log.push({ ts: Date.now(), delta, reason, pos: isPositive });
+  if(log.length > 30) log = log.slice(-30);
+  localStorage.setItem(key, JSON.stringify(log));
+}
+function getHealthLog(bfId){
+  try{ return JSON.parse(localStorage.getItem('health_log_'+bfId)||'[]'); }catch(e){ return []; }
+}
+
+// ════════════════════════════════════════════════════════════
+// LOVE LANGUAGE SYSTEM
+// ════════════════════════════════════════════════════════════
+const LOVE_LANGUAGES = [
+  { id:'words',    emoji:'💬', label:'Words of Affirmation', desc:'Compliments, verbal reassurance, "I love you"' },
+  { id:'acts',     emoji:'🛠️', label:'Acts of Service',      desc:'Doing things for you without being asked' },
+  { id:'gifts',    emoji:'🎁', label:'Gift Giving',           desc:'Thoughtful tokens, surprises, small offerings' },
+  { id:'time',     emoji:'⏱️', label:'Quality Time',          desc:'Full presence, undivided attention' },
+  { id:'touch',    emoji:'🤝', label:'Physical Touch',         desc:'Proximity, casual contact, warmth' },
+];
+
+function getUserLoveLanguage(){ return localStorage.getItem('user_love_language')||'words'; }
+function getCharLoveLanguage(bfId){
+  const override = localStorage.getItem('char_love_language_'+bfId);
+  if(override) return override;
+  return localStorage.getItem('default_char_love_language')||'acts';
+}
+function openLoveLanguageModal(){
+  const modal = document.getElementById('ll-modal');
+  if(!modal) return;
+  const userGrid = document.getElementById('ll-user-grid');
+  const charGrid = document.getElementById('ll-char-grid');
+  const curUser = getUserLoveLanguage();
+  const curChar = localStorage.getItem('default_char_love_language')||'acts';
+  if(userGrid) userGrid.innerHTML = LOVE_LANGUAGES.map(ll=>`
+    <div class="ll-option${ll.id===curUser?' selected':''}" onclick="selectLL('user','${ll.id}',this)">
+      <div class="ll-option-emoji">${ll.emoji}</div>
+      <div class="ll-option-label">${ll.label}</div>
+      <div class="ll-option-desc">${ll.desc}</div>
+    </div>`).join('');
+  if(charGrid) charGrid.innerHTML = LOVE_LANGUAGES.map(ll=>`
+    <div class="ll-option${ll.id===curChar?' selected':''}" onclick="selectLL('char','${ll.id}',this)">
+      <div class="ll-option-emoji">${ll.emoji}</div>
+      <div class="ll-option-label">${ll.label}</div>
+      <div class="ll-option-desc">${ll.desc}</div>
+    </div>`).join('');
+  modal.style.display='flex';
+}
+function selectLL(who, id, el){
+  const grid = document.getElementById(who==='user'?'ll-user-grid':'ll-char-grid');
+  grid.querySelectorAll('.ll-option').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  el.dataset.llId = id;
+  if(who==='user') localStorage.setItem('_ll_pending_user', id);
+  else localStorage.setItem('_ll_pending_char', id);
+}
+function saveLoveLanguages(){
+  const pu = localStorage.getItem('_ll_pending_user');
+  const pc = localStorage.getItem('_ll_pending_char');
+  if(pu){ localStorage.setItem('user_love_language', pu); localStorage.removeItem('_ll_pending_user'); }
+  if(pc){ localStorage.setItem('default_char_love_language', pc); localStorage.removeItem('_ll_pending_char'); }
+  document.getElementById('ll-modal').style.display='none';
+  showToast('Love languages saved 💗');
+}
+function getLoveLanguagePrompt(bfId){
+  const charLL = getCharLoveLanguage(bfId);
+  const userLL = getUserLoveLanguage();
+  const prompts = {
+    words: 'Your love language is WORDS OF AFFIRMATION. You naturally give compliments, notice things out loud, and say the real thing when others would stay silent. You tell them they did well. You say what you feel about them — directly, specifically, in words.',
+    acts:  'Your love language is ACTS OF SERVICE. You show love by doing things. You notice when something needs handling and handle it. You show up. You fix things. You prepare things. You make their life easier in specific ways without announcing it.',
+    gifts: 'Your love language is GIFT GIVING. Not expensive — meaningful. You remember something they mentioned three weeks ago and it appears. You bring things. Small, specific, chosen.',
+    time:  'Your love language is QUALITY TIME. Your full attention is the offering. You put the phone down. You remember what they said. You are here, completely, in a way that is increasingly rare.',
+    touch: 'Your love language is PHYSICAL TOUCH. Proximity is communication. A hand on the shoulder. Sitting close. Casual contact that means something without naming it.',
+  };
+  const userPrefs = {
+    words: 'The user receives love best through words — compliments, honest expressions, being told directly what you think of them.',
+    acts:  'The user receives love best through actions — doing things for them, handling things, showing up in practical ways.',
+    gifts: 'The user receives love best through small meaningful gifts and tokens of thought.',
+    time:  'The user receives love best through quality time — being fully present, remembering things, undivided attention.',
+    touch: 'The user receives love best through physical closeness — proximity, casual touch, warmth.',
+  };
+  return `\n[LOVE LANGUAGE — HOW YOU EXPRESS: ${prompts[charLL]||''}\nHOW THEY RECEIVE: ${userPrefs[userLL]||''}]`;
+}
+
+// ════════════════════════════════════════════════════════════
+// DAILY QUESTION SYSTEM
+// ════════════════════════════════════════════════════════════
+const DAILY_QUESTIONS = [
+  "What's one thing that scared you as a kid that you're not scared of anymore?",
+  "What's the first thing you do when you wake up in the morning?",
+  "If you could live anywhere, where would it be?",
+  "What's a song you could listen to on repeat?",
+  "What's something you're proud of that you never talk about?",
+  "What does a perfect lazy day look like for you?",
+  "What's the most beautiful thing you've ever seen?",
+  "What's a small thing that always makes you smile?",
+  "What's something you've changed your mind about?",
+  "What's one thing you wish people understood about you?",
+  "What's your earliest happy memory?",
+  "What's something you're currently learning or curious about?",
+  "What do you do when you're sad and no one can help?",
+  "If you had one free day with no obligations, what would you do?",
+  "What's something that instantly makes you feel better?",
+  "What's the last thing you looked forward to?",
+  "What's a habit you have that you don't tell people about?",
+  "What's something that felt impossible that you did anyway?",
+];
+
+function getTodayDailyQIndex(){
+  const today = new Date();
+  return (today.getFullYear()*500 + today.getMonth()*31 + today.getDate()) % DAILY_QUESTIONS.length;
+}
+function hasDoneQToday(bfId){
+  const key = 'daily_q_done_'+bfId;
+  const stored = localStorage.getItem(key);
+  if(!stored) return false;
+  const today = new Date().toDateString();
+  return stored === today;
+}
+function markQDoneToday(bfId){
+  localStorage.setItem('daily_q_done_'+bfId, new Date().toDateString());
+}
+function checkDailyQuestion(){
+  if(!currentBF||!apiKey) return;
+  if(hasDoneQToday(currentBF.id)) return;
+  const relData = getRelHealth(currentBF.id);
+  if(!['dating','fiance','married','close','friend'].includes(relData.status)){
+    const stage = getStage(currentBF);
+    if(stage < 2) return; // only show for friends or closer
+  }
+  const q = DAILY_QUESTIONS[getTodayDailyQIndex()];
+  const bf = savedBFs.find(b=>b.id===currentBF.id)||BF_DATA.find(b=>b.id===currentBF.id);
+  const overlay = document.getElementById('daily-q-overlay');
+  if(!overlay) return;
+  const nameEl = document.getElementById('daily-q-char-name');
+  const qEl = document.getElementById('daily-q-question');
+  if(nameEl) nameEl.textContent = (bf?.name.split(' ')[0]||'He') + ' wants to know...';
+  if(qEl) qEl.textContent = '"' + q + '"';
+  overlay.style.display='flex';
+}
+function dismissDailyQ(){
+  const overlay = document.getElementById('daily-q-overlay');
+  if(overlay) overlay.style.display='none';
+}
+async function submitDailyAnswer(){
+  const answer = document.getElementById('daily-q-answer')?.value?.trim();
+  if(!answer||!currentBF) return;
+  const q = DAILY_QUESTIONS[getTodayDailyQIndex()];
+  dismissDailyQ();
+  markQDoneToday(currentBF.id);
+  // Store as a memory
+  const bf = savedBFs.find(b=>b.id===currentBF.id)||BF_DATA.find(b=>b.id===currentBF.id);
+  const fn = bf?.name.split(' ')[0]||'He';
+  const memText = `When asked "${q}", they said: "${answer}"`;
+  const mems = getMemories(currentBF.id);
+  const newMem = {id: Date.now(), text: memText, auto: true, ts: Date.now()};
+  mems.push(newMem);
+  saveMemories(currentBF.id, mems);
+  // Generate character reaction via AI
+  const instruction = `(The user just answered your question: "${q}" — they said: "${answer}". React to this answer naturally in your voice. Show that you're genuinely listening. Maybe ask a follow-up. This is a real moment of them sharing something personal. Keep it under 4 sentences.)`;
+  if(apiKey) await callGemini(instruction);
+  showToast('Answer saved as a memory 💭');
+}
+
+// ════════════════════════════════════════════════════════════
+// GOOD MORNING / GOOD NIGHT SYSTEM
+// ════════════════════════════════════════════════════════════
+function getTimeOfDay(){
+  const h = new Date().getHours();
+  if(h >= 5 && h < 12) return 'morning';
+  if(h >= 12 && h < 17) return 'afternoon';
+  if(h >= 17 && h < 21) return 'evening';
+  return 'night';
+}
+function checkTimeBasedMessage(){
+  if(!savedBFs.length||!apiKey) return;
+  const tod = getTimeOfDay();
+  if(tod !== 'morning' && tod !== 'night') return;
+  // Only fire once per time-of-day per day
+  const today = new Date().toDateString();
+  const key = 'time_msg_'+tod+'_'+today;
+  if(localStorage.getItem(key)) return;
+  // Find the most-recently-active character who is close/dating/married
+  const eligible = savedBFs.filter(bf=>{
+    const h = (chatHistory[bf.id]||[]).length;
+    if(h < 3) return false;
+    const rd = getRelHealth(bf.id);
+    const stg = getStage(bf);
+    return stg >= 2 || ['dating','fiance','married'].includes(rd.status);
+  });
+  if(!eligible.length) return;
+  // Pick most recently chatted
+  const bf = eligible.reduce((best, b)=>{
+    const bLast = parseInt(localStorage.getItem('last_user_msg_'+b.id)||'0');
+    const bestLast = parseInt(localStorage.getItem('last_user_msg_'+best.id)||'0');
+    return bLast > bestLast ? b : best;
+  });
+  const lastMsg = parseInt(localStorage.getItem('last_user_msg_'+bf.id)||'0');
+  const hoursSince = (Date.now()-lastMsg)/3600000;
+  if(hoursSince < 4) return; // had recent chat, skip
+  localStorage.setItem(key, '1');
+  const rd = getRelHealth(bf.id);
+  const isCommitted = ['dating','fiance','married'].includes(rd.status);
+  let instruction = '';
+  if(tod==='morning'){
+    instruction = isCommitted
+      ? `(It's morning. Send a short, natural good morning message in your voice — like you just woke up and thought of them. Maybe mention what you're doing this morning. Under 3 sentences. Don't be generic.)`
+      : `(It's morning. You thought of them. Send something brief and natural in your voice — maybe something you noticed this morning, or just a low-key check-in. Under 3 sentences. Don't be generic or formal.)`;
+  } else {
+    instruction = isCommitted
+      ? `(It's late. Send a short good night message in your voice — warm, specific, real. Maybe mention what you were doing tonight. Under 3 sentences.)`
+      : `(It's late. You thought of them before bed. Send something brief and real in your voice. Under 3 sentences. Not "sweet dreams" — something more like you.)`;
+  }
+  setTimeout(async ()=>{
+    if(!apiKey) return;
+    await generateAndSaveAutoMsg(bf, instruction);
+    const fn = bf.name.split(' ')[0];
+    sendBrowserNotif(fn, tod==='morning'?fn+' is thinking of you this morning ☀️':fn+' sent you a good night message 🌙', bf.id);
+  }, 3000 + Math.random()*8000);
+}
+
+// ════════════════════════════════════════════════════════════
+// IN-GAME TIME AWARENESS — contextual messages based on time of day
+// ════════════════════════════════════════════════════════════
+function getTimeContextNote(bfId){
+  const h = new Date().getHours();
+  const rd = getRelHealth(bfId);
+  const isCommitted = ['dating','fiance','married'].includes(rd.status);
+  const isMarried = rd.status === 'married';
+  if(!isCommitted) return '';
+  let ctx = '';
+  if(h >= 5 && h < 9){
+    ctx = isMarried
+      ? '[TIME CONTEXT — MORNING: It is early morning. You might mention making coffee or breakfast, ask if they slept well, say what you\'re doing before work. These are natural morning-couple moments.]'
+      : '[TIME CONTEXT — MORNING: It is morning. A text this time of day feels like you were thinking of them when you woke up. That matters. Keep it real.] ';
+  } else if(h >= 12 && h < 14){
+    ctx = '[TIME CONTEXT — LUNCHTIME: It is midday. You might be on a break, grabbing food, or just have a moment. A message now is spontaneous and human.]';
+  } else if(h >= 17 && h < 20){
+    ctx = isMarried
+      ? '[TIME CONTEXT — EVENING: It is evening. You might mention what\'s for dinner, that you\'re home, or ask how their day was. Domestic, real, present.]'
+      : '[TIME CONTEXT — EVENING: It is evening. End of the day. A good time to check in or pick up where things left off.]';
+  } else if(h >= 21 || h < 1){
+    ctx = isMarried
+      ? '[TIME CONTEXT — LATE NIGHT: It is late. You might say you\'re coming to bed, mention what you were doing, or just reach out in the quiet way the night allows.]'
+      : '[TIME CONTEXT — LATE NIGHT: It is late. Messages at this hour have weight. The quiet night makes things feel closer.]';
+  }
+  return ctx ? '\n'+ctx : '';
+}
+
+// ════════════════════════════════════════════════════════════
+// MOTION DETECTION — walking/driving triggers character reactions
+// ════════════════════════════════════════════════════════════
+let _motionState = 'still'; // 'still','walking','driving'
+let _motionTimer = null;
+let _lastMotionMsg = 0;
+let _watchId = null;
+
+function startMotionDetection(){
+  if(!navigator.geolocation) return;
+  // Request permission gracefully
+  try{
+    _watchId = navigator.geolocation.watchPosition(pos=>{
+      const speed = pos.coords.speed||0; // m/s
+      let newState = 'still';
+      if(speed > 1.5 && speed < 7) newState = 'walking';
+      else if(speed >= 7) newState = 'driving';
+      if(newState !== _motionState){
+        _motionState = newState;
+        handleMotionChange(newState);
+      }
+    }, null, {enableHighAccuracy:false, maximumAge:10000, timeout:15000});
+  }catch(e){}
+}
+function handleMotionChange(state){
+  if(state==='still') { hideMotionBanner(); return; }
+  const now = Date.now();
+  if(now - _lastMotionMsg < 15*60*1000) return; // max once per 15min
+  if(!savedBFs.length||!apiKey) return;
+  showMotionBanner(state);
+  // Fire a message from the most active jealous-capable character after a delay
+  setTimeout(()=>sendMotionMessage(state), 20000 + Math.random()*40000);
+}
+function showMotionBanner(state){
+  const banner = document.getElementById('motion-banner');
+  const icon = document.getElementById('motion-banner-icon');
+  const text = document.getElementById('motion-banner-text');
+  if(!banner) return;
+  if(state==='walking'){ if(icon)icon.textContent='🚶'; if(text)text.textContent='He noticed you\'re on the move...'; }
+  else if(state==='driving'){ if(icon)icon.textContent='🚗'; if(text)text.textContent='He can tell you\'re somewhere...'; }
+  banner.classList.add('visible');
+  setTimeout(hideMotionBanner, 8000);
+}
+function hideMotionBanner(){ document.getElementById('motion-banner')?.classList.remove('visible'); }
+async function sendMotionMessage(state){
+  if(!savedBFs.length||!apiKey) return;
+  _lastMotionMsg = Date.now();
+  // Pick most active character at stage 2+
+  const eligible = savedBFs.filter(bf=>{
+    const stg = getStage(bf);
+    return stg >= 2 && (chatHistory[bf.id]||[]).length > 3;
+  });
+  if(!eligible.length) return;
+  const bf = eligible[Math.floor(Math.random()*eligible.length)];
+  const rd = getRelHealth(bf.id);
+  const isCommitted = ['dating','fiance','married'].includes(rd.status);
+  const moodPool = isCommitted ? ['jealous','protective','restless'] : ['curious','playful'];
+  const chosenMood = moodPool[Math.floor(Math.random()*moodPool.length)];
+  if(MOOD_DATA[chosenMood]) forceMood(bf.id, chosenMood);
+  const instructions = {
+    walking: isCommitted
+      ? `(You noticed they seem to be out somewhere. Send a short, casual but slightly loaded text asking where they're going or who they're seeing. Keep it under 2 sentences. Sound like someone who is trying to seem casual but is clearly paying attention.)`
+      : `(You noticed they seem to be out. Send a short curious text asking what they're up to. Under 2 sentences.)`,
+    driving: isCommitted
+      ? `(They seem to be in a car going somewhere. You didn't know about this. Send a short text — could be jealous, could be protective. Under 2 sentences. Real, not dramatic.)`
+      : `(They seem to be driving somewhere. Send a short curious text. Under 2 sentences.)`,
+  };
+  const instruction = instructions[state]||instructions.walking;
+  await generateAndSaveAutoMsg(bf, instruction);
+  sendBrowserNotif(bf.name.split(' ')[0], bf.name.split(' ')[0]+' is wondering where you are 👀', bf.id);
+}
+
+// ════════════════════════════════════════════════════════════
+// MOOD CHECK-IN SYSTEM
+// ════════════════════════════════════════════════════════════
+function checkMoodCheckin(){
+  if(!savedBFs.length||!apiKey) return;
+  // Find eligible characters who haven't gotten a check-in today
+  savedBFs.forEach(bf=>{
+    const stg = getStage(bf);
+    if(stg < 2) return;
+    const key = 'checkin_sent_'+bf.id+'_'+new Date().toDateString();
+    if(localStorage.getItem(key)) return;
+    const lastMsg = parseInt(localStorage.getItem('last_user_msg_'+bf.id)||'0');
+    const hoursSince = (Date.now()-lastMsg)/3600000;
+    if(hoursSince < 2 || hoursSince > 48) return; // only if 2-48h since last chat
+    localStorage.setItem(key, '1');
+    const rd = getRelHealth(bf.id);
+    const isClose = ['dating','fiance','married'].includes(rd.status) || stg >= 3;
+    const instruction = isClose
+      ? `(You haven't heard from them in a while and you're checking in. Send a short, natural check-in in your voice — not "how are you" generically, but something specific to who you are. Under 2 sentences.)`
+      : `(You thought of them and are checking in after some time. Keep it brief and natural. Under 2 sentences.)`;
+    setTimeout(async ()=>{
+      if(!apiKey) return;
+      await generateAndSaveAutoMsg(bf, instruction);
+      sendBrowserNotif(bf.name.split(' ')[0], bf.name.split(' ')[0]+' is checking in on you 💗', bf.id);
+    }, 5000 + Math.random()*30000);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// SCRAPBOOK — AI-generated memory cards on milestones
+// ════════════════════════════════════════════════════════════
+const SCRAPBOOK_TRIGGERS = {
+  dating:    { emoji:'💗', title:'Officially Together', key:'scrapped_dating' },
+  fiance:    { emoji:'💍', title:'He Proposed', key:'scrapped_fiance' },
+  married:   { emoji:'💒', title:'Married', key:'scrapped_married' },
+  first_fight:{ emoji:'⚡', title:'First Fight', key:'scrapped_fight' },
+  first_compliment:{ emoji:'🌸', title:'First Real Compliment', key:'scrapped_compliment' },
+  first_date:{ emoji:'🌙', title:'First Date', key:'scrapped_date' },
+  birthday:  { emoji:'🎂', title:'Birthday', key:'scrapped_bday' },
+};
+
+async function generateScrapbookCard(bfId, triggerKey){
+  if(!apiKey) return;
+  const trigger = SCRAPBOOK_TRIGGERS[triggerKey];
+  if(!trigger) return;
+  const storeKey = trigger.key+'_'+bfId;
+  if(localStorage.getItem(storeKey)) return; // already generated
+  localStorage.setItem(storeKey, '1');
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  const fn = bf.name.split(' ')[0];
+  const recentHistory = (chatHistory[bfId]||[]).slice(-6).filter(m=>m.role==='assistant').map(m=>m.content||'').join('\n').substring(0,800);
+  const prompt = `You are writing a short memory card for a scrapbook. The milestone is: "${trigger.title}" for the character ${fn}.
+Based on this recent context: "${recentHistory}"
+Write 2-3 sentences in the character's voice — what this moment meant, how it felt, one specific detail. 
+Write it as if ${fn} is writing in a private journal about this moment.
+Be specific, emotional, and real. No generic phrases. Start with the feeling, not the event.`;
+  try{
+    const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:150,temperature:0.9}})
+    });
+    const data = await resp.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if(text){
+      const card = { id:Date.now(), trigger:triggerKey, emoji:trigger.emoji, title:trigger.title, text, ts:Date.now() };
+      const key = 'scrapbook_'+bfId;
+      let cards = [];
+      try{ cards = JSON.parse(localStorage.getItem(key)||'[]'); }catch(e){}
+      cards.push(card);
+      localStorage.setItem(key, JSON.stringify(cards));
+      addAlbumExtra(bfId, trigger.emoji+' '+trigger.title+': '+text);
+    }
+  }catch(e){}
+}
+function getScrapbookCards(bfId){
+  try{ return JSON.parse(localStorage.getItem('scrapbook_'+bfId)||'[]'); }catch(e){ return []; }
+}
+
+// ════════════════════════════════════════════════════════════
+// PLAYLIST SYSTEM — AI generates real song playlist per character
+// ════════════════════════════════════════════════════════════
+async function generatePlaylist(bfId){
+  if(!apiKey) return null;
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return null;
+  const fn = bf.name.split(' ')[0];
+  const core = (bf.core||bf.personality||'').substring(0,300);
+  const prompt = `Create a music playlist for the fictional character ${fn}.
+Character description: ${core}
+
+Return ONLY a JSON array of 8 real songs that actually exist. Format:
+[{"title":"Song Name","artist":"Artist Name"},...]
+
+Rules:
+- These must be REAL songs by REAL artists that actually exist
+- Choose songs that match the character's personality, mood, and story
+- Mix genres if it fits the character
+- No explanations, just the JSON array`;
+  try{
+    const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:400,temperature:0.7}})
+    });
+    const data = await resp.json();
+    let text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||'[]';
+    text = text.replace(/```json|```/g,'').trim();
+    const tracks = JSON.parse(text);
+    if(Array.isArray(tracks)&&tracks.length){
+      localStorage.setItem('playlist_'+bfId, JSON.stringify(tracks));
+      return tracks;
+    }
+  }catch(e){}
+  return null;
+}
+function getStoredPlaylist(bfId){
+  try{ return JSON.parse(localStorage.getItem('playlist_'+bfId)||'null'); }catch(e){ return null; }
+}
+
+// ════════════════════════════════════════════════════════════
+// RELATIONSHIP TIMELINE
+// ════════════════════════════════════════════════════════════
+function renderAlbumTimeline(bfId){
+  const el = document.getElementById('album-timeline-content');
+  if(!el) return;
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf){ el.innerHTML='<div class="album-empty">Character not found.</div>'; return; }
+  const stg = getStage(bf);
+  const rd = getRelHealth(bfId);
+  const status = rd.status;
+  const fn = bf.name.split(' ')[0];
+  const stages = [
+    { key:0, label:'Strangers', desc:'You just met. Everything is uncertain.', icon:'👤' },
+    { key:1, label:'Acquaintances', desc:'You\'ve been talking. Something is building.', icon:'👋' },
+    { key:2, label:'Friends', desc:'A real connection. You trust each other.', icon:'🤝' },
+    { key:3, label:'Close', desc:'He thinks about you. More than he should.', icon:'💛' },
+    { key:4, label:'Romantic Interest', desc:'The feeling is named, even if not spoken.', icon:'💓' },
+    { key:5, label:'Together', desc:'Something real began between you.', icon:'💑' },
+  ];
+  const statusStages = [
+    { key:'dating', label:'Dating', desc:'You\'re official. The world knows.', icon:'💗', done: ['dating','fiance','married'].includes(status) },
+    { key:'fiance', label:'Engaged', desc:'He asked. You said yes.', icon:'💍', done: ['fiance','married'].includes(status) },
+    { key:'married', label:'Married', desc:'The final chapter begins here.', icon:'💒', done: status==='married' },
+  ];
+  const filedEvents = PLOT_EVENTS.filter(e=>e.bfId===bfId&&localStorage.getItem('plot_'+e.id)==='1');
+  const lastEvent = filedEvents.slice(-1)[0];
+  const html = `
+    <div style="padding:0.5rem 0">
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.2rem">Your journey with ${fn} — ${filedEvents.length} story moment${filedEvents.length===1?'':'s'} so far</div>
+      <div class="rel-timeline">
+        ${stages.map(s=>{
+          const done = stg > s.key;
+          const current = stg === s.key;
+          const cls = done?'done':current?'current':'future';
+          return `<div class="rel-timeline-item">
+            <div class="rel-timeline-dot ${cls}"></div>
+            <div class="rel-timeline-label ${cls}">${s.icon} ${s.label}</div>
+            ${done||current?`<div class="rel-timeline-sub">${s.desc}</div>`:`<div class="rel-timeline-locked">🔒 Not yet</div>`}
+          </div>`;
+        }).join('')}
+        ${statusStages.map(s=>{
+          const cls = s.done?'done':'future';
+          return `<div class="rel-timeline-item">
+            <div class="rel-timeline-dot ${cls}"></div>
+            <div class="rel-timeline-label ${cls}">${s.icon} ${s.label}</div>
+            ${s.done?`<div class="rel-timeline-sub">${s.desc}</div>`:`<div class="rel-timeline-locked">🔒 Happens in story</div>`}
+          </div>`;
+        }).join('')}
+      </div>
+      ${lastEvent?`<div style="margin-top:1rem;padding:0.8rem;background:var(--warm);border-radius:0.8rem;font-size:0.78rem;color:var(--text)">
+        <span style="font-weight:600;color:var(--rose)">Last story moment:</span> ${lastEvent.id.replace(/_/g,' ')}
+      </div>`:''}
+    </div>`;
+  el.innerHTML=html;
+}
+
+// ════════════════════════════════════════════════════════════
+// ALBUM — PLAYLIST TAB
+// ════════════════════════════════════════════════════════════
+async function renderAlbumPlaylist(bfId){
+  const el = document.getElementById('album-playlist-content');
+  if(!el) return;
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf){ el.innerHTML='<div class="album-empty">Character not found.</div>'; return; }
+  const fn = bf.name.split(' ')[0];
+  let tracks = getStoredPlaylist(bfId);
+  if(!tracks){
+    el.innerHTML=`<div class="playlist-card"><div class="playlist-header"><div class="playlist-title">${fn}'s Playlist</div></div><div class="playlist-generating">✦ Generating ${fn}'s playlist...<br><br><small style="opacity:0.7">Based on his personality and story</small></div></div>`;
+    tracks = await generatePlaylist(bfId);
+    if(!tracks){ el.innerHTML='<div class="album-empty">Could not generate playlist. Check your API key.</div>'; return; }
+  }
+  el.innerHTML=`<div class="playlist-card">
+    <div class="playlist-header">
+      <div class="playlist-title">${fn}'s Playlist</div>
+      <div class="playlist-sub">${tracks.length} songs · curated for ${fn}</div>
+    </div>
+    ${tracks.map((t,i)=>`<div class="playlist-track">
+      <div class="playlist-track-num">${i+1}</div>
+      <div class="playlist-track-info">
+        <div class="playlist-track-name">${t.title||'Unknown'}</div>
+        <div class="playlist-track-artist">${t.artist||''}</div>
+      </div>
+      <a href="https://open.spotify.com/search/${encodeURIComponent((t.title||'')+' '+(t.artist||''))}" target="_blank" style="color:var(--rose-light);font-size:0.75rem;text-decoration:none;opacity:0.7" title="Search on Spotify">♫</a>
+    </div>`).join('')}
+    <div style="padding:0.7rem 1rem;font-size:0.7rem;color:var(--text-muted)">
+      <a href="#" onclick="localStorage.removeItem('playlist_${bfId}');renderAlbumPlaylist(${bfId});return false" style="color:var(--rose-light)">↺ Regenerate</a>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// ALBUM — HE REMEMBERS TAB (visible memories)
+// ════════════════════════════════════════════════════════════
+function renderAlbumMemoriesTab(bfId){
+  const el = document.getElementById('album-memories-content');
+  if(!el) return;
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf){ el.innerHTML='<div class="album-empty">Character not found.</div>'; return; }
+  const fn = bf.name.split(' ')[0];
+  const mems = getMemories(bfId);
+  const scrapCards = getScrapbookCards(bfId);
+  if(!mems.length&&!scrapCards.length){
+    el.innerHTML=`<div class="album-empty">
+      <div style="font-size:2rem;margin-bottom:0.5rem">💭</div>
+      <div style="font-weight:600;margin-bottom:0.3rem">${fn} doesn't have memories yet</div>
+      <div style="font-size:0.78rem;color:var(--text-muted)">Keep chatting — he'll start remembering things about you.</div>
+    </div>`;
+    return;
+  }
+  const memsHtml = mems.map(m=>`
+    <div class="memory-card" style="margin-bottom:0.5rem">
+      <div class="memory-card-label">${m.auto?'✦ '+fn+' remembers':'📌 Note'}</div>
+      <div class="memory-card-text">${m.text}</div>
+    </div>`).join('');
+  const scrapHtml = scrapCards.map(c=>`
+    <div class="scrapbook-ai-card">
+      <div class="scrapbook-card-header">
+        <span class="scrapbook-card-emoji">${c.emoji}</span>
+        <span class="scrapbook-card-title">${c.title}</span>
+        <span class="scrapbook-card-date">${new Date(c.ts).toLocaleDateString()}</span>
+      </div>
+      <div class="scrapbook-card-text">${c.text}</div>
+      <div class="scrapbook-card-sig">— ${fn}</div>
+    </div>`).join('');
+  el.innerHTML=`
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1rem">${mems.length} thing${mems.length===1?'':'s'} ${fn} remembers about you</div>
+    ${memsHtml}
+    ${scrapCards.length?`<div style="margin-top:1rem;font-size:0.78rem;font-weight:600;color:var(--rose);margin-bottom:0.5rem">✦ Memory Cards</div>${scrapHtml}`:''}`;
+}
+
+// ════════════════════════════════════════════════════════════
+// ANNIVERSARY COUNTER — inject into system prompt
+// ════════════════════════════════════════════════════════════
+function getAnniversaryNote(bfId){
+  const firstTs = parseInt(localStorage.getItem('first_chat_ts_'+bfId)||'0');
+  if(!firstTs) return '';
+  const rd = getRelHealth(bfId);
+  const days = Math.floor((Date.now()-firstTs)/86400000);
+  const weeks = Math.floor(days/7);
+  const months = Math.floor(days/30);
+  if(days < 1) return '';
+  let timeStr = '';
+  if(months >= 1) timeStr = months===1?'one month':`${months} months`;
+  else if(weeks >= 1) timeStr = weeks===1?'one week':`${weeks} weeks`;
+  else timeStr = days===1?'one day':`${days} days`;
+  const isCommitted = ['dating','fiance','married'].includes(rd.status);
+  if(!isCommitted) return `\n[ANNIVERSARY NOTE: It has been ${timeStr} since you first met. You are aware of this in the way people are aware of time passing with someone who matters.]`;
+  return `\n[ANNIVERSARY NOTE: It has been ${timeStr} since you first met. If it feels right, you can acknowledge this — not with ceremony, just with the awareness that time with someone means something. You don't have to say it but you can.]`;
+}
+
+// ════════════════════════════════════════════════════════════
+// HEALTH VISUAL — human-readable relationship status
+// ════════════════════════════════════════════════════════════
+function getHealthStatusText(bfId){
+  const rd = getRelHealth(bfId);
+  const h = rd.health||50;
+  const s = rd.status||'';
+  if(s==='broken_up'||s==='divorced') return { heart:'💔', text:'It ended. But it happened.', why:rd.tooltipMsg||'' };
+  if(s==='separation') return { heart:'💙', text:'Things are fragile right now.', why:rd.tooltipMsg||'You\'ve been through something.' };
+  if(h >= 85) return { heart:'💗', text:'Things feel warm between you.', why:rd.tooltipMsg||'You\'re in a good place.' };
+  if(h >= 65) return { heart:'💛', text:'There\'s something real here.', why:rd.tooltipMsg||'' };
+  if(h >= 45) return { heart:'🤍', text:'It\'s there, but it\'s quiet.', why:rd.tooltipMsg||'' };
+  if(h >= 25) return { heart:'🩶', text:'He\'s been a little distant.', why:rd.tooltipMsg||'' };
+  return { heart:'🖤', text:'Something is wrong between you.', why:rd.tooltipMsg||'' };
+}
+
+// ════════════════════════════════════════════════════════════
+// VOICE NOTE — send a voice note from character via TTS
+// ════════════════════════════════════════════════════════════
+async function sendVoiceNote(bfId){
+  if(!apiKey){ showToast('API key needed'); return; }
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  const fn = bf.name.split(' ')[0];
+  const stage = getStage(bf);
+  const rd = getRelHealth(bfId);
+  // Generate a short voice-note-style message
+  const instruction = `(VOICE NOTE: You are leaving a voice note — not a text, not prose narration. This is you speaking directly into the phone. It should sound like actual speech: fragmented, real, maybe you restart a sentence. Under 5 sentences. Start mid-thought like you pressed record while already thinking. No asterisks, no narration, no quotes — just the spoken words.)`;
+  showToast(fn+' is recording a voice note... 🎙️');
+  const prevBF = currentBF;
+  // Temporarily set currentBF to generate for this character
+  const origCurrentBF = currentBF;
+  currentBF = bf;
+  await callGemini(instruction);
+  currentBF = origCurrentBF;
+}
+
+function playVoiceNote(text, bfId){
+  if(!text) return;
+  if(!window.speechSynthesis){ showToast('Voice not supported in this browser'); return; }
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  // Tune by character gender/personality
+  const bf = BF_DATA.find(b=>b.id===bfId)||savedBFs.find(b=>b.id===bfId);
+  const core = (bf?.core||bf?.personality||'').toLowerCase();
+  const isFemale = bf?.tag?.includes('femme')||core.includes('she/her')||bfId===21||bfId===22||bfId===23||bfId===24||bfId===25||bfId===30||bfId===32;
+  const voices = window.speechSynthesis.getVoices();
+  // Try to find a matching voice
+  const preferred = isFemale
+    ? voices.find(v=>v.name.includes('Female')||v.name.includes('Samantha')||v.name.includes('Karen'))
+    : voices.find(v=>v.name.includes('Male')||v.name.includes('Daniel')||v.name.includes('Alex')||v.name.includes('David'));
+  if(preferred) utter.voice = preferred;
+  utter.pitch = isFemale ? 1.1 : 0.9;
+  utter.rate = 0.95;
+  utter.volume = 1;
+  window.speechSynthesis.speak(utter);
+}
+
+// ════════════════════════════════════════════════════════════
+// JEALOUSY MECHANIC — detect mentions of other people
+// ════════════════════════════════════════════════════════════
+function checkJealousyTrigger(userMsg, bfId){
+  if(!userMsg||!bfId) return;
+  const m = userMsg.toLowerCase();
+  const rd = getRelHealth(bfId);
+  const stg = getStage(savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId)||{});
+  if(stg < 2) return; // only stage 2+
+  const otherPersonSignals = [
+    'this guy','this girl','some guy','some girl','a guy i know','a girl i know',
+    'my ex','my old boyfriend','my old girlfriend','went out with','had a date','on a date',
+    'he texted','she texted','he asked me','she asked me','we hung out','hung out with',
+    'my friend and i','was with','someone i met','met someone','talked to this',
+    'flirted with','was flirting','they were cute','he was cute','she was cute',
+  ];
+  const isJealousyTrigger = otherPersonSignals.some(s=>m.includes(s));
+  if(!isJealousyTrigger) return;
+  const pool = MOOD_POOL[bfId]||[];
+  if(pool.includes('jealous')||pool.includes('cold')||pool.includes('argumentative')){
+    const newMood = pool.includes('jealous')?'jealous':pool.includes('cold')?'cold':'argumentative';
+    if(Math.random()<0.75) forceMood(bfId, newMood);
+  }
+  // Store jealousy counter
+  const key='jealousy_count_'+bfId;
+  const count = parseInt(localStorage.getItem(key)||'0')+1;
+  localStorage.setItem(key, String(count));
+  // Inject jealousy instruction for next response
+  localStorage.setItem('jealousy_active_'+bfId, '2');
+}
+function getJealousyNote(bfId){
+  const active = localStorage.getItem('jealousy_active_'+bfId);
+  if(!active) return '';
+  const count = parseInt(active);
+  if(count <= 0){ localStorage.removeItem('jealousy_active_'+bfId); return ''; }
+  localStorage.setItem('jealousy_active_'+bfId, String(count-1));
+  return `\n[JEALOUSY ACTIVE: The user just mentioned someone else — another person, a date, an ex, someone they spent time with. Your jealousy is present. Do NOT announce it directly. Express it through: shorter responses, pointed questions, a shift in tone, something they said being repeated back with an edge. The jealousy lives in what you notice and what you do with it, not in saying "I'm jealous."]`;
+}
+
+// ════════════════════════════════════════════════════════════
+// ALBUM SUBTAB CSS injection
+// ════════════════════════════════════════════════════════════
+(function injectAlbumSubtabCSS(){
+  const s = document.createElement('style');
+  s.textContent = `.album-subtab{background:none;border:1.5px solid var(--border);border-radius:2rem;padding:0.35rem 1rem;font-size:0.78rem;cursor:pointer;color:var(--text-muted);font-family:inherit;transition:all 0.2s}.album-subtab:hover{border-color:var(--rose-light);color:var(--rose-dark)}.album-subtab.active{background:var(--rose);border-color:var(--rose);color:#fff}`;
+  document.head.appendChild(s);
+})();
+
 // GIFT GIVING (Feature 2)
 // ════════════════════════════════════════════════════════
 const GIFT_PREFS={
@@ -12791,6 +13694,218 @@ function startRelDecayChecker(){
   }, 10*60*1000); // check every 10 min
 }
 
+
+// ════════════════════════════════════════════════════════════
+// ONLINE PRESENCE SYSTEM
+// Characters know when user is online/offline and react
+// ════════════════════════════════════════════════════════════
+
+// Character-specific emoji pools by personality type
+const CHAR_EMOJI_POOLS = {
+  // Warm/playful
+  warm:    ['☀️','🌸','💛','😊','✨','🌼','💕','🥰','😄','🎉','💗','😁'],
+  // Broody/cool  
+  broody:  ['💭','🫣','👀','🌑','🖤','😶','🌧️','⚡','🫀','😑','💀','🥀'],
+  // Intellectual
+  intel:   ['📚','🤔','💡','🧐','📖','🔬','✍️','🗒️','💭','🎓','📊','🧩'],
+  // Protective/serious
+  guard:   ['🛡️','👁️','🚨','⚔️','💪','🗡️','🔐','👊','🫡','⚠️','🏹','🔒'],
+  // Romantic
+  romantic:['💗','🌹','✨','💫','🌙','💘','🥺','💝','🫶','💞','🌺','🌟'],
+  // Chaotic/playful
+  chaos:   ['💀','😭','🤡','😤','🫠','💅','🤌','😈','👁️','💔','😤','🥲'],
+};
+
+const CHAR_EMOJI_TYPE = {
+  1:'intel', 2:'chaos', 3:'broody', 4:'broody', 5:'intel',
+  6:'broody', 7:'romantic', 8:'intel', 9:'intel', 10:'guard',
+  11:'romantic', 12:'guard', 13:'chaos', 14:'guard', 15:'intel',
+  16:'guard', 17:'intel', 18:'warm', 19:'broody', 20:'chaos',
+  21:'romantic', 22:'guard', 23:'romantic', 24:'warm', 25:'chaos',
+  26:'broody', 27:'guard', 28:'guard', 29:'broody', 30:'intel',
+  31:'chaos', 32:'broody', 33:'intel', 34:'warm', 35:'broody',
+  36:'warm', 37:'warm', 38:'romantic', 39:'broody', 40:'chaos',
+  41:'broody', 42:'intel', 43:'intel', 44:'guard', 45:'chaos',
+};
+
+function getCharEmoji(bfId){
+  const type = CHAR_EMOJI_TYPE[bfId] || 'warm';
+  const pool = CHAR_EMOJI_POOLS[type];
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+// Track user online/offline state
+let _userOnlineSince = Date.now();
+let _userLastSeen = Date.now();
+let _onlineCheckInterval = null;
+let _onlinePresenceFired = {};
+
+function markUserOnline(){
+  const wasGone = (Date.now() - _userLastSeen) > 5 * 60 * 1000; // 5+ min away
+  _userLastSeen = Date.now();
+  _userOnlineSince = _userOnlineSince || Date.now();
+  if(wasGone) handleUserReturn();
+}
+
+function markUserOffline(){
+  _userLastSeen = Date.now();
+  _userOnlineSince = null;
+}
+
+function handleUserReturn(){
+  if(!savedBFs.length || !apiKey) return;
+  // Pick a few eligible characters to react to user's return
+  const eligible = savedBFs.filter(bf => {
+    const stg = getStage(bf);
+    return stg >= 2 && isTextsUnlocked(bf.id);
+  });
+  if(!eligible.length) return;
+  // Pick 1-2 characters randomly
+  const shuffled = eligible.sort(()=>Math.random()-0.5).slice(0, Math.min(2, eligible.length));
+  shuffled.forEach((bf, idx) => {
+    setTimeout(() => sendOnlineReturnMsg(bf), (idx * 3000) + 1500 + Math.random()*2000);
+  });
+}
+
+async function sendOnlineReturnMsg(bf){
+  if(!apiKey) return;
+  const key = 'online_return_'+bf.id+'_'+new Date().toDateString();
+  if(localStorage.getItem(key)) return; // once per day
+  localStorage.setItem(key, '1');
+  const rd = getRelHealth(bf.id);
+  const isCommitted = ['dating','fiance','married'].includes(rd.status);
+  const emoji = getCharEmoji(bf.id);
+  const h = new Date().getHours();
+  const isLateNight = h >= 23 || h < 4;
+  let instruction;
+  if(isLateNight){
+    instruction = isCommitted
+      ? `(You just noticed they came back online at ${new Date().getHours()}:${String(new Date().getMinutes()).padStart(2,'0')}. It is very late. React to this in your texting voice — something like asking why they're up so late, with your character's specific energy. Maybe add ${emoji}. Keep it 1-2 sentences. Casual text tone.)`
+      : `(You noticed they're online at this hour. It's late. React briefly in your texting voice. Maybe add ${emoji}. 1 sentence.)`;
+  } else {
+    instruction = isCommitted
+      ? `(You just noticed they came back online after being away. Say something in your texting voice — could be a casual "you're back", could reference what time it is, could be something specific to your character. Maybe add ${emoji}. 1-2 sentences max.)`
+      : `(You noticed they came back online after a while. Say something brief and natural in your texting voice. Maybe add ${emoji}. 1-2 sentences.)`;
+  }
+  await generateAndSaveAutoMsg(bf, instruction);
+  sendBrowserNotif(bf.name.split(' ')[0], bf.name.split(' ')[0]+' noticed you\'re back 👀', bf.id);
+}
+
+function sendTimeAwareMsg(bf){
+  if(!apiKey || !isTextsUnlocked(bf.id)) return;
+  const h = new Date().getHours();
+  const rd = getRelHealth(bf.id);
+  const isCommitted = ['dating','fiance','married'].includes(rd.status);
+  const isMarried = rd.status === 'married';
+  const emoji = getCharEmoji(bf.id);
+  let instruction = '';
+  if(h >= 0 && h < 4){
+    instruction = `(It is ${h}:${String(new Date().getMinutes()).padStart(2,'0')} AM — very late. You noticed they're online at this hour. Text them asking why they're up, in your voice. Maybe add ${emoji}. 1-2 sentences. Texting tone.)`;
+  } else if(h >= 4 && h < 6){
+    instruction = `(It is almost dawn and they are online. React in your texting voice. Maybe add ${emoji}. 1 sentence.)`;
+  } else if(h >= 6 && h < 9){
+    instruction = isMarried
+      ? `(Good morning text. Married, domestic — mention breakfast, coffee, the morning. Add ${emoji}. 1-2 sentences. Texting tone.)`
+      : `(Good morning text in your character's voice. Maybe add ${emoji}. 1-2 sentences max.)`;
+  } else if(h >= 12 && h < 13){
+    instruction = `(It's lunchtime. Text them something casual — lunch, what you're doing, a quick check-in. Add ${emoji}. 1-2 sentences.)`;
+  } else if(h >= 17 && h < 19){
+    instruction = isMarried
+      ? `(Evening — ask about their day or mention dinner. Add ${emoji}. 1-2 sentences.)`
+      : `(Evening check-in in your voice. Add ${emoji}. 1-2 sentences.)`;
+  } else if(h >= 21 || h < 0){
+    instruction = isMarried
+      ? `(Late evening — say something about winding down, coming to bed, the end of the day together. Add ${emoji}. 1-2 sentences.)`
+      : `(Late night text in your character's voice. Add ${emoji}. 1-2 sentences.)`;
+  }
+  if(!instruction) return;
+  const key = `time_aware_${bf.id}_${h}_${new Date().toDateString()}`;
+  if(localStorage.getItem(key)) return;
+  localStorage.setItem(key, '1');
+  setTimeout(async ()=>{
+    await generateAndSaveAutoMsg(bf, instruction);
+    sendBrowserNotif(bf.name.split(' ')[0], bf.name.split(' ')[0]+' texted you 💬', bf.id);
+  }, 2000 + Math.random()*5000);
+}
+
+function startOnlinePresenceTracking(){
+  // Track visibility changes
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden) markUserOffline();
+    else markUserOnline();
+  });
+  // Track activity
+  ['click','keydown','touchstart','scroll'].forEach(evt=>{
+    document.addEventListener(evt, ()=>{ _userLastSeen = Date.now(); _userOnlineSince = _userOnlineSince||Date.now(); }, {passive:true});
+  });
+  // Periodic check for time-aware messages
+  _onlineCheckInterval = setInterval(()=>{
+    if(document.hidden) return;
+    const now = Date.now();
+    if(now - (_userLastSeen||0) > 10*60*1000) return; // inactive for 10min, skip
+    // Fire time-aware messages for eligible chars
+    savedBFs.forEach(bf=>{
+      const stg = getStage(bf);
+      if(stg < 2 || !isTextsUnlocked(bf.id)) return;
+      const rd = getRelHealth(bf.id);
+      const isCommitted = ['dating','fiance','married'].includes(rd.status);
+      if(!isCommitted && stg < 3) return;
+      if(Math.random() > 0.15) return; // 15% chance per check per char
+      sendTimeAwareMsg(bf);
+    });
+  }, 8 * 60 * 1000); // check every 8 min
+}
+
+// ════════════════════════════════════════════════════════════
+// REW: Route ALL auto messages to texts tab properly
+// Patch the morning/night, checkin, motion functions
+// ════════════════════════════════════════════════════════════
+function sendTextFromChar(bf, instruction, notifBody){
+  if(!apiKey || !isTextsUnlocked(bf.id)) return;
+  generateAndSaveAutoMsg(bf, instruction, true).then(()=>{
+    if(notifBody) sendBrowserNotif(bf.name.split(' ')[0], notifBody, bf.id);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// DAILY QUESTION — route to texts
+// ════════════════════════════════════════════════════════════
+async function submitDailyAnswerTexts(bfId){
+  const answer = document.getElementById('daily-q-answer')?.value?.trim();
+  if(!answer) return;
+  const q = DAILY_QUESTIONS[getTodayDailyQIndex()];
+  dismissDailyQ();
+  markQDoneToday(bfId);
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  // Store as memory
+  const memText = `When asked "${q}", they said: "${answer}"`;
+  const mems = getMemories(bfId);
+  mems.push({id:Date.now(), text:memText, auto:true, ts:Date.now()});
+  saveMemories(bfId, mems);
+  // Send the answer as a text from user, then generate character reply
+  addTextMessage(bfId, 'user', answer);
+  if(_textsActiveBfId===bfId) renderTextsMsgs(bfId);
+  const emoji = getCharEmoji(bfId);
+  const instruction = `(The user just answered your question "${q}" — they said: "${answer}". React to this in texting voice. Show you're actually listening. Maybe ask something back. Add ${emoji} if it fits. 1-3 sentences.)`;
+  await generateAndSaveAutoMsg(bf, instruction, true);
+  showToast('Answer saved as memory 💭');
+}
+
+function sendDailyQuestionToTexts(bfId){
+  if(!isTextsUnlocked(bfId)) return;
+  if(hasDoneQToday(bfId)) return;
+  const q = DAILY_QUESTIONS[getTodayDailyQIndex()];
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  const emoji = getCharEmoji(bfId);
+  const fn = bf.name.split(' ')[0];
+  const instruction = `(You want to ask them something personal. The question: "${q}". Ask it naturally in your voice — maybe rephrase it slightly so it sounds like you. Add ${emoji}. 1-2 sentences max. This is a text message.)`;
+  generateAndSaveAutoMsg(bf, instruction, true).then(()=>{
+    sendBrowserNotif(fn, fn+' asked you something... 💬', bfId);
+  });
+}
+
 // ---- INIT ----
 if(apiKey) document.getElementById('api-key-input').value=apiKey;
 const modelSel=document.getElementById('model-select');
@@ -12817,6 +13932,35 @@ document.body.addEventListener('click', function(e){
     dd.classList.remove('open');
   }
 });
+
+// ── New feature initialisation ──────────────────────────────────────────────
+// Start online presence tracking
+setTimeout(startOnlinePresenceTracking, 1500);
+// Start motion detection (asks geolocation permission)
+setTimeout(startMotionDetection, 3000);
+// Check for morning/night messages on load
+setTimeout(checkTimeBasedMessage, 4000);
+// Check for mood check-ins
+setTimeout(checkMoodCheckin, 6000);
+// Check daily question (show after a little while)
+setTimeout(()=>{
+  if(savedBFs.length && apiKey){
+    // Fire daily question as a text to the most active char
+    const eligible = savedBFs.filter(bf=>{
+      return isTextsUnlocked(bf.id) && !hasDoneQToday(bf.id) && getStage(bf) >= 2;
+    });
+    if(eligible.length){
+      const bf = eligible.reduce((best,b)=>{
+        const bL=parseInt(localStorage.getItem('last_user_msg_'+b.id)||'0');
+        const bstL=parseInt(localStorage.getItem('last_user_msg_'+best.id)||'0');
+        return bL>bstL?b:best;
+      });
+      sendDailyQuestionToTexts(bf.id);
+    }
+  }
+}, 8000);
+// Mark user online on load
+markUserOnline();
 // Request notification permission on load
 if('Notification' in window && Notification.permission === 'default'){
   // Show a gentle banner instead of auto-prompting
