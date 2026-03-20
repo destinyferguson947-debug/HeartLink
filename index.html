@@ -12324,7 +12324,7 @@ async function generatePlaylist(bfId){
         400, 0.7
       );
     } else {
-      // Direct Gemini — use responseMimeType to force clean JSON output
+      // Direct Gemini — dedicated fetch, smart quotes sanitised in parser below
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
@@ -12334,8 +12334,7 @@ async function generatePlaylist(bfId){
             contents:[{role:'user', parts:[{text:prompt}]}],
             generationConfig:{
               maxOutputTokens:500,
-              temperature:0.7,
-              responseMimeType:'application/json'
+              temperature:0.7
             }
           })
         }
@@ -12346,8 +12345,12 @@ async function generatePlaylist(bfId){
       if(!raw) throw new Error('Empty response from API');
     }
 
-    // Parse — strip fences, find array, normalise keys
+    // Parse — strip fences, find array, sanitise smart quotes, normalise keys
     let text = raw.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```\s*$/,'').trim();
+    // Replace smart/curly quotes with straight ASCII quotes
+    text = text
+      .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')  // curly double quotes → "
+      .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'"); // curly single quotes → '
     const s = text.indexOf('['), e = text.lastIndexOf(']');
     if(s===-1||e===-1) throw new Error('No JSON array found in: '+text.substring(0,120));
     const arr = JSON.parse(text.slice(s, e+1));
