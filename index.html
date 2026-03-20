@@ -970,7 +970,6 @@
       <select id="model-select" onchange="saveModel()" style="flex:1;min-width:200px;border:1.5px solid var(--border);border-radius:0.5rem;padding:0.5rem 0.8rem;font-family:'DM Sans',sans-serif;font-size:0.85rem;background:var(--card);color:var(--text);outline:none;cursor:pointer;">
         <option value="gemini-2.5-flash" selected>🔥 Gemini 2.5 Flash — Recommended (free, fast)</option>
         <option value="gemini-2.5-flash-lite">⚡ Gemini 2.5 Flash-Lite — Lightest &amp; free</option>
-        <option value="gemini-2.5-pro">🧠 Gemini 2.5 Pro — Best quality (free tier)</option>
         <option value="gemini-3-flash-preview">✨ Gemini 3 Flash Preview — Most powerful (free preview)</option>
         <option value="gemini-3.1-flash-lite-preview">💫 Gemini 3.1 Flash-Lite Preview — Newest &amp; free</option>
       </select>
@@ -12308,40 +12307,67 @@ async function generatePlaylist(bfId){
   const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
   if(!bf) return null;
   const fn = bf.name.split(' ')[0];
-  const core = (bf.core||bf.personality||'').substring(0,300);
-  const prompt = `Create a music playlist for the fictional character ${fn}.
-Character description: ${core}
+  // Keep personality short and clean — strip backtick blocks
+  const personality = (bf.personality||bf.core||'')
+    .replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,250);
 
-Return ONLY a valid JSON array of 8 real songs that actually exist. Format exactly:
-[{"title":"Song Name","artist":"Artist Name"},...]
+  const prompt = `List 8 real songs for a playlist for ${fn}. Personality: ${personality}. Return ONLY a JSON array like [{"title":"Song","artist":"Artist"}]. Real songs only.`;
 
-Rules:
-- These must be REAL songs by REAL artists that actually exist and are on streaming platforms
-- Choose songs that match the character's personality, mood, and story
-- Mix genres if it fits the character
-- Return ONLY the JSON array, no explanation, no markdown code blocks, no extra text`;
   try{
-    const reply = await callAnyAPI(
-      'You are a music curator. Return only valid JSON arrays. No markdown, no explanation.',
-      [{role:'user', content:prompt}],
-      500,
-      0.8
-    );
-    if(!reply) return null;
-    // Strip any accidental markdown fences
-    let text = reply.trim().replace(/^```(?:json)?|```$/gm,'').trim();
-    // Find the JSON array even if there's surrounding text
-    const arrMatch = text.match(/\[[\s\S]*\]/);
-    if(!arrMatch) return null;
-    const tracks = JSON.parse(arrMatch[0]);
-    if(Array.isArray(tracks) && tracks.length){
-      localStorage.setItem('playlist_'+bfId, JSON.stringify(tracks));
-      return tracks;
+    let raw = '';
+
+    if(proxyMode && proxyUrl){
+      // Proxy path
+      raw = await callAnyAPI(
+        'Return only a valid JSON array. No markdown. No explanation.',
+        [{role:'user', content:prompt}],
+        400, 0.7
+      );
+    } else {
+      // Direct Gemini — use responseMimeType to force clean JSON output
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            contents:[{role:'user', parts:[{text:prompt}]}],
+            generationConfig:{
+              maxOutputTokens:500,
+              temperature:0.7,
+              responseMimeType:'application/json'
+            }
+          })
+        }
+      );
+      const data = await res.json();
+      if(data.error) throw new Error('API error: '+JSON.stringify(data.error));
+      raw = data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+      if(!raw) throw new Error('Empty response from API');
     }
+
+    // Parse — strip fences, find array, normalise keys
+    let text = raw.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```\s*$/,'').trim();
+    const s = text.indexOf('['), e = text.lastIndexOf(']');
+    if(s===-1||e===-1) throw new Error('No JSON array found in: '+text.substring(0,120));
+    const arr = JSON.parse(text.slice(s, e+1));
+    if(!Array.isArray(arr)||!arr.length) throw new Error('Parsed array is empty');
+    const tracks = arr
+      .filter(t=>t&&(t.title||t.name||t.song))
+      .map(t=>({
+        title:(t.title||t.name||t.song||'Unknown').trim(),
+        artist:(t.artist||t.by||t.performer||'Unknown').trim()
+      }));
+    if(!tracks.length) throw new Error('No valid tracks after normalisation');
+    localStorage.setItem('playlist_'+bfId, JSON.stringify(tracks));
+    return tracks;
+
   }catch(e){
+    // Store the error so renderAlbumPlaylist can show it
+    localStorage.setItem('playlist_err_'+bfId, e.message||String(e));
     console.error('Playlist generation failed:', e);
+    return null;
   }
-  return null;
 }
 function getStoredPlaylist(bfId){
   try{ return JSON.parse(localStorage.getItem('playlist_'+bfId)||'null'); }catch(e){ return null; }
@@ -12427,11 +12453,13 @@ async function renderAlbumPlaylist(bfId){
     el.innerHTML=`<div class="playlist-card"><div class="playlist-header"><div class="playlist-title">${fn}'s Playlist</div></div><div class="playlist-generating">✦ Generating ${fn}'s playlist...<br><br><small style="opacity:0.7">Based on his personality and story</small></div></div>`;
     tracks = await generatePlaylist(bfId);
     if(!tracks){
+      const errMsg = localStorage.getItem('playlist_err_'+bfId)||'Unknown error';
+      localStorage.removeItem('playlist_err_'+bfId);
       el.innerHTML=`<div class="album-empty" style="text-align:center;padding:2rem">
         <div style="font-size:2rem;margin-bottom:0.5rem">😔</div>
         <div style="font-weight:600;margin-bottom:0.3rem">Couldn't generate playlist</div>
-        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1rem">The AI had trouble returning valid song data.</div>
-        <a href="#" onclick="renderAlbumPlaylist(${bfId});return false" style="color:var(--rose);font-size:0.82rem">↺ Try again</a>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.5rem;font-family:monospace;background:var(--warm);padding:0.4rem 0.6rem;border-radius:0.4rem;text-align:left;word-break:break-all">${errMsg}</div>
+        <a href="#" onclick="localStorage.removeItem('playlist_err_${bfId}');renderAlbumPlaylist(${bfId});return false" style="color:var(--rose);font-size:0.82rem">↺ Try again</a>
       </div>`;
       return;
     }
