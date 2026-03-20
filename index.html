@@ -4757,37 +4757,22 @@ function getNextEventHint(bf){
 
   // Build type-specific emotional nudge
   const typeHints = {
-    together: 'Something is quietly building between you. A significant moment is approaching that will shift how you see each other. Begin laying its groundwork now — let the specific people and atmosphere of your world enter this conversation naturally.',
-    complicate: 'A complication is coming — something from your history, your world, or your character that will create real friction. Begin surfacing the edges of it: let something slightly unresolved show, let a relevant detail from your past enter the conversation.',
-    sweet: 'Something tender and significant is approaching — a moment of genuine vulnerability or connection. Begin softening the ground: let your guard drop one degree, let something small and true slip out unprompted.',
+    together: 'Something is quietly building between you. Let the specific texture of your world and shared history enter the scene naturally — a detail, a habit, a small truth. Do not rush toward anything. Just be present and let it develop.',
+    complicate: 'Something slightly unresolved is present in the scene. You are not quite at ease — there is a tension in you that has not surfaced yet. Let it exist underneath the conversation: in a pause, in something you almost say, in a detail of your world that is slightly wrong.',
+    sweet: 'You are more open than usual right now. Let something small and honest slip through — an observation, a gesture, a moment of genuine ease that you would not normally allow. Do not name it. Just let it exist.',
   };
   const typeNudge = typeHints[next.type] || typeHints.together;
 
-  // Build the location steering instruction
-  // Prefer the event's explicit `steer` field; fall back to regex-extracted location
-  if(next.steer){
-    locationSteer = `
-SCENE STEERING (act on this naturally — do not announce it, do not rush it):
-${next.steer}
-Use this as your cue to naturally move the scene toward where it needs to go. Let it arise organically from your world and the people in it. Do not announce the destination. Do not force the moment. Simply let circumstances, other characters, and the natural flow of your life create the opening.`;
-  } else if(location){
-    locationSteer = `
-SCENE STEERING — LOCATION (act on this naturally, do not announce it):
-The next significant moment between you will happen at: ${location}.
-You need to get there. Steer the conversation or scene toward going to this place — naturally, as yourself. Do NOT teleport there. Do NOT announce "let's go to ${location}." Instead: mention it as somewhere you need to be, suggest it as a natural next move, reference something there you need to do or show them, or let circumstances create a reason to head that way. Make the suggestion feel like it arose from the moment, not from a plan. If you are already there, let the scene deepen and settle — you are in the right place.`;
-  }
-
-  // First concrete sentence of the event for additional context
-  const firstSentence = prompt.replace(/\(STORY EVENT[^)]+\)\s*/, '').split(/\.\s/)[0] || '';
-  const cleanFirst = firstSentence.replace(/\(|\)/g, '').trim();
+  // Only inject the emotional/atmospheric nudge — NEVER the specific steer scenario.
+  // The steer field describes the exact event scene and is reserved for the bridge
+  // prompt at the moment the event fires. Leaking it here causes the scene to play
+  // out twice — once organically, once as the official event.
+  // Location steering is also removed for the same reason.
 
   return `
 --- NARRATIVE DIRECTION (private — do not state this, only act on it) ---
-The story is building toward: "${title || 'a significant moment'}".
 ${typeNudge}
-${locationSteer}
-Atmosphere to seed now: ${cleanFirst.length > 20 ? cleanFirst.substring(0,160)+(cleanFirst.length>160?'...':'') : 'Let your world and its specific details enter the scene naturally.'}
-CRITICAL: Do not trigger the event yourself. Do not write the scene. Simply let the atmosphere, the people, and the location of your world move in this direction. Seed, do not execute.
+CRITICAL: Do not write any plot event or dramatic scene. Simply let the emotional texture above inform how you exist in this moment. Seed, do not execute.
 ---`;
 }
 
