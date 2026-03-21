@@ -309,6 +309,13 @@
   .send-btn { background: var(--rose); color: #fff; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 12px rgba(201,102,122,0.3); }
   .send-btn:hover { background: var(--rose-dark); transform: scale(1.05); }
   .send-btn:disabled { background: var(--rose-light); cursor: not-allowed; transform: none; }
+  .stop-btn { background: #c94f4f; color: #fff; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 1rem; cursor: pointer; transition: all 0.2s; display: none; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 12px rgba(201,79,79,0.3); }
+  .stop-btn:hover { background: #a03030; transform: scale(1.05); }
+  .stop-btn.visible { display: flex; }
+  .reroll-bar { display: none; gap: 0.4rem; align-items: center; padding: 0 0.2rem; }
+  .reroll-bar.visible { display: flex; }
+  .reroll-btn { background: none; border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.3rem 0.75rem; font-size: 0.75rem; cursor: pointer; color: var(--text-muted); font-family: 'DM Sans', sans-serif; transition: all 0.2s; display: flex; align-items: center; gap: 0.3rem; }
+  .reroll-btn:hover { border-color: var(--rose-light); color: var(--rose-dark); background: var(--warm); }
   .system-prompt-input { width: 100%; border: 1.5px solid var(--border); border-radius: 0.75rem; padding: 0.5rem 0.9rem; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; background: rgba(255,255,255,0.7); color: var(--text-muted); outline: none; resize: none; max-height: 70px; transition: border-color 0.2s; line-height: 1.5; }
   .system-prompt-input:focus { border-color: var(--rose-light); }
   .system-prompt-input::placeholder { font-style: italic; }
@@ -5443,6 +5450,12 @@ function openChat(id){
       <div class="chat-input-row">
         <textarea class="chat-input" id="chat-input" placeholder="Message ${bf.name.split(' ')[0]}..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
         <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send">➤</button>
+        <button class="stop-btn" id="stop-btn" onclick="stopGeneration()" title="Stop generating">■</button>
+      </div>
+      <div class="reroll-bar" id="reroll-bar">
+        <span style="font-size:0.72rem;color:var(--text-muted)">Sent by mistake?</span>
+        <button class="reroll-btn" onclick="editLastUserMsg()" title="Edit your last message">✏️ Edit message</button>
+        <button class="reroll-btn" onclick="rerollLastUserMsg()" title="Resend your last message and get a new reply">↺ Reroll reply</button>
       </div>
     </div>
   `;
@@ -5858,6 +5871,70 @@ function getCutOffReaction(bf){
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+// ── Generation state ─────────────────────────────────────────────────────────
+let _generationAborted = false;
+
+function setGenerating(on){
+  _generationAborted = false;
+  const sendBtn = document.getElementById('send-btn');
+  const stopBtn = document.getElementById('stop-btn');
+  const rerollBar = document.getElementById('reroll-bar');
+  if(sendBtn){ sendBtn.disabled = on; }
+  if(stopBtn){ stopBtn.classList.toggle('visible', on); }
+  if(rerollBar){ rerollBar.classList.toggle('visible', !on && (chatHistory[currentBF?.id]||[]).filter(m=>m.role==='user').length > 0); }
+}
+
+function stopGeneration(){
+  _generationAborted = true;
+  hideTyping();
+  setGenerating(false);
+  showToast('Generation stopped ■');
+}
+
+function editLastUserMsg(){
+  if(!currentBF) return;
+  const history = chatHistory[currentBF.id]||[];
+  // Find the last user message
+  let lastUserIdx = -1;
+  for(let i = history.length-1; i >= 0; i--){ if(history[i].role==='user'){ lastUserIdx=i; break; } }
+  if(lastUserIdx === -1) return;
+  const lastUserMsg = history[lastUserIdx];
+  // Remove it and the AI reply that followed (if any)
+  const toRemove = history.length - lastUserIdx;
+  chatHistory[currentBF.id].splice(lastUserIdx, toRemove);
+  saveHistory();
+  renderMessages();
+  // Put the message back in the input box
+  const input = document.getElementById('chat-input');
+  if(input){
+    input.value = lastUserMsg.content;
+    input.focus();
+    autoResize(input);
+  }
+  document.getElementById('reroll-bar')?.classList.remove('visible');
+  showToast('Message restored to input ✏️');
+}
+
+async function rerollLastUserMsg(){
+  if(!currentBF) return;
+  const history = chatHistory[currentBF.id]||[];
+  // Find the last user message
+  let lastUserIdx = -1;
+  for(let i = history.length-1; i >= 0; i--){ if(history[i].role==='user'){ lastUserIdx=i; break; } }
+  if(lastUserIdx === -1) return;
+  const lastUserMsg = history[lastUserIdx].content;
+  // Remove the AI reply(s) after the last user message
+  chatHistory[currentBF.id].splice(lastUserIdx+1);
+  saveHistory();
+  renderMessages();
+  // Re-generate
+  setGenerating(true);
+  showTyping();
+  await callGemini(lastUserMsg);
+  setGenerating(false);
+  showToast('Reply rerolled ↺');
+}
+
 async function sendMessage(){
   const input=document.getElementById('chat-input');
   if(!input) return;
@@ -5875,10 +5952,10 @@ async function sendMessage(){
     const oocText = oocMatch[1].trim();
     addMessage('user', text);
     const oocInstruction = `[OOC — out of character message from user, speak as yourself honestly, not in character]: ${oocText}`;
-    document.getElementById('send-btn').disabled=true;
+    setGenerating(true);
     showTyping();
     await callGemini(oocInstruction);
-    document.getElementById('send-btn').disabled=false;
+    setGenerating(false);
     return;
   }
 
@@ -5888,13 +5965,14 @@ async function sendMessage(){
   if(currentBF) checkJealousyTrigger(text, currentBF.id);
   // Record last user message time for auto-msg + relationship decay
   if(currentBF) localStorage.setItem('last_user_msg_'+currentBF.id, Date.now().toString());
-  document.getElementById('send-btn').disabled=true;
+  setGenerating(true);
   // Check if user is asking the character out — before the reply so character can respond naturally
   checkUserAsksOut();
   showTyping();
   const cutOffPrefix = wasCutOff ? getCutOffReaction(currentBF) + '\n\n' : '';
   await callGemini(text, cutOffPrefix);
-  document.getElementById('send-btn').disabled=false;
+  setGenerating(false);
+  if(_generationAborted) return; // user stopped — skip post-processing
   // Auto-detect date proposal in the AI's latest reply and schedule it
   const _latestReply = (chatHistory[currentBF.id]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
   if(_latestReply) detectAndScheduleDateProposal(currentBF.id, _latestReply.content);
@@ -13417,7 +13495,8 @@ function openTextsChat(bfId){
   const autoOn=getAutoMsgEnabled(bfId);
   const img=(bf.image&&!bf.image.startsWith('PLACEHOLDER'))?`<img src="${bf.image}" alt="">`:`<span style="font-size:1.2rem">${bf.emoji||'🧑'}</span>`;
   const pinnedMsg=getPinnedText(bfId);
-  const pinnedHtml=pinnedMsg?`<div class="texts-pinned"><div class="texts-pinned-label">📌 Pinned</div>${pinnedMsg.content}</div>`:'';
+  const _pinnedEscaped = pinnedMsg ? pinnedMsg.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
+  const pinnedHtml=pinnedMsg?`<div class="texts-pinned" style="position:relative"><div class="texts-pinned-label">📌 Pinned <button onclick="textsUnpin(${bfId})" style="background:none;border:none;cursor:pointer;font-size:0.7rem;color:var(--text-muted);padding:0 2px;margin-left:4px" title="Unpin">✕ unpin</button></div>${_pinnedEscaped}</div>`:'';
 
   areaEl.innerHTML=`
     <div class="texts-chat-header">
@@ -13489,6 +13568,18 @@ function textsPinMsg(bfId, idx){
   setPinnedText(bfId,msg);
   openTextsChat(bfId); // re-render to show pinned
   showToast('📌 Message pinned!');
+}
+
+function textsUnpin(bfId){
+  localStorage.removeItem('texts_pinned_'+bfId);
+  openTextsChat(bfId);
+  showToast('📌 Message unpinned');
+}
+
+function textsUnpin(bfId){
+  localStorage.removeItem('texts_pinned_'+bfId);
+  openTextsChat(bfId);
+  showToast('📌 Message unpinned');
 }
 
 function _textsFormat(text){
