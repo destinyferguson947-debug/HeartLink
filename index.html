@@ -13728,30 +13728,8 @@ ${recentStory}
 Reply ONLY with your text message. No quotes, no stage directions.`;
 
   try{
-    // Direct Gemini fetch with thinkingBudget:0 — disables internal reasoning tokens
-    // so ALL of maxOutputTokens goes to the actual response, not thinking.
-    // This is the fix for mid-sentence cutoffs on Gemini 2.5 Flash.
-    if(!proxyMode && apiKey){
-      const _model = 'gemini-3.1-flash-lite-preview';
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${_model}:generateContent?key=${apiKey}`,
-        {method:'POST', headers:{'Content-Type':'application/json'},
-         body: JSON.stringify({
-           system_instruction:{parts:[{text:sysPrompt}]},
-           contents:[{role:'user', parts:[{text:userMsg}]}],
-           generationConfig:{maxOutputTokens:1200, temperature:1.0, topP:0.95},
-           thinkingConfig:{thinkingBudget:0}
-         })}
-      );
-      const data = await res.json();
-      if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text||'';
-      if(!text) throw new Error('Empty reply. finishReason='+data.candidates?.[0]?.finishReason);
-      return text.trim().replace(/^["']|["']$/g,'');
-    }
-    // Proxy path
     const reply=await callAnyAPI(sysPrompt,[{role:'user',content:userMsg}],1200,1.0);
-    if(!reply) throw new Error('Empty reply from proxy');
+    if(!reply) throw new Error('Empty reply');
     return reply.trim().replace(/^["']|["']$/g,'');
   }catch(e){
     console.error('textsGenReply failed:',e.message||e);
