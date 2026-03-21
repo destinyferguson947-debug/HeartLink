@@ -13382,7 +13382,32 @@ async function fireEndingScene(bf,age){
 // Storage
 function getTextHistory(bfId){ try{return JSON.parse(localStorage.getItem('text_history_'+bfId)||'[]');}catch(e){return[];} }
 function saveTextHistory(bfId,arr){ localStorage.setItem('text_history_'+bfId,JSON.stringify(arr)); }
+
+// Self-healer: fix any messages with non-string content (e.g. [object Object] from multipart bug)
+function healTextHistory(bfId){
+  const arr = getTextHistory(bfId);
+  let changed = false;
+  const healed = arr.filter(m=>{
+    if(typeof m.content !== 'string'){
+      // Try to recover a string
+      if(m.content && typeof m.content === 'object' && m.content.multipart){
+        // multipart object accidentally stored — split into first part only
+        m.content = Array.isArray(m.content.multipart) ? m.content.multipart[0]||'' : '';
+      } else {
+        m.content = String(m.content||'');
+      }
+      changed = true;
+    }
+    // Drop empty messages
+    if(!m.content.trim()){ changed=true; return false; }
+    return true;
+  });
+  if(changed) saveTextHistory(bfId, healed);
+  return healed;
+}
 function addTextMessage(bfId,role,content){
+  // Guard: content must be a string
+  if(typeof content !== 'string') content = String(content||'');
   const arr=getTextHistory(bfId);
   arr.push({role,content,ts:Date.now(),read:role==='user'});
   saveTextHistory(bfId,arr);
@@ -13472,29 +13497,31 @@ let _activeGroupId = null;
 function renderTextsPage(){
   const listEl=document.getElementById('texts-contact-list');
   if(!listEl) return;
-  // Only show characters the user has explicitly opened/added
-  // Use savedBFs as the source — these are chars the user has actually interacted with
   const allBfs=[...savedBFs];
   const relevant=allBfs.filter(bf=>{
     const h=(chatHistory[bf.id]||[]).length;
     const th=getTextHistory(bf.id).length;
     return h>0||th>0;
   });
-  if(!relevant.length){
+  const groups = getGroupChats();
+  if(!relevant.length && !groups.length){
     listEl.innerHTML='';
     const emptyDiv=document.createElement('div');
     emptyDiv.style.cssText='padding:2rem 1.5rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:0.8rem;';
     emptyDiv.innerHTML='<div style="font-size:2.5rem;opacity:0.35">💬</div><div style="font-weight:600;font-size:0.9rem;color:var(--text)">No contacts yet</div><div style="font-size:0.8rem;color:var(--text-muted);line-height:1.5">Chat with a character in the<br><strong>📖 Story</strong> tab to add them here.</div>';
     listEl.appendChild(emptyDiv);
-    // Clear the right panel too
     const area=document.getElementById('texts-chat-area');
     if(area) area.innerHTML='<div class="texts-empty"><div class="texts-empty-icon">💬</div><div style="font-size:0.9rem">No contacts yet</div><div style="font-size:0.78rem">Start a story to unlock texting</div></div>';
     return;
   }
   renderTextsContactList(relevant, '');
-  // Default to first unlocked char or restore last active
-  if(_textsActiveBfId && relevant.find(b=>b.id===_textsActiveBfId)){
+  // Restore last active — group or individual
+  if(_activeGroupId && groups.find(g=>g.id===_activeGroupId)){
+    openGroupChat(_activeGroupId);
+  } else if(_textsActiveBfId && relevant.find(b=>b.id===_textsActiveBfId)){
     openTextsChat(_textsActiveBfId);
+  } else if(groups.length){
+    openGroupChat(groups[0].id);
   } else {
     const first=relevant.find(b=>isTextsUnlocked(b.id));
     if(first) openTextsChat(first.id);
@@ -13633,7 +13660,10 @@ function openTextsChat(bfId){
   document.querySelectorAll('.texts-contact').forEach(el=>el.classList.remove('active'));
   document.getElementById('texts-contact-'+bfId)?.classList.add('active');
 
-  if(unlocked) renderTextsMsgs(bfId);
+  if(unlocked){
+    healTextHistory(bfId); // fix any corrupted messages before rendering
+    renderTextsMsgs(bfId);
+  }
 
   // Mobile
   document.getElementById('texts-sidebar')?.classList.remove('show');
@@ -13648,36 +13678,43 @@ function renderTextsMsgs(bfId){
     el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.82rem;font-style:italic">No messages yet. Say something! 💬</div>';
     return;
   }
-  const reactions = getTextsReactions(bfId);
-  el.innerHTML=history.map((m,i)=>{
-    const isUser=m.role==='user';
-    const timeStr=_textsFormatTime(m.ts);
-    const isLast=i===history.length-1;
-    const readTick=(!isUser&&isLast)?'':isUser&&isLast?'<span class="texts-read-tick">✓✓</span>':'';
-    // Emoji reactions for this message
-    const msgReactions = reactions[i]||{};
-    const reactHtml = Object.keys(msgReactions).length
-      ? `<div class="texts-reactions">${Object.entries(msgReactions).map(([emoji,who])=>
-          `<span class="texts-reaction${who==='user'?' mine':''}" onclick="textsToggleReaction(${bfId},${i},'${emoji}')" title="${who==='user'?'You reacted':'They reacted'}">${emoji}</span>`
-        ).join('')}</div>` : '';
-    const msgActions=`<div class="texts-msg-actions" style="display:none;gap:3px;margin-top:2px;${isUser?'justify-content:flex-end':''}">
-      <button onclick="textsShowReactionPicker(event,${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px" title="React">😊</button>
-      ${!isUser?`<button onclick="textsPinMsg(${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">📌</button>`:''}
-      <button onclick="textsDeleteMsg(${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">🗑</button>
-      <button onclick="textsDeleteFromHere(${bfId},${i})" style="background:none;border:1px solid #c94f4f;border-radius:4px;cursor:pointer;font-size:0.65rem;color:#c94f4f;padding:1px 5px">🗑 from here</button>
-    </div>`;
-    return `<div class="texts-msg-wrap ${isUser?'user':'them'}" data-tidx="${i}" style="position:relative"
-      onmouseenter="this.querySelector('.texts-msg-actions').style.display='flex'"
-      onmouseleave="this.querySelector('.texts-msg-actions').style.display='none'"
-      ontouchstart="this.querySelector('.texts-msg-actions').style.display='flex'">
-      <div class="texts-bubble ${isUser?'user':'them'}" ondblclick="textsShowReactionPicker(event,${bfId},${i})">${_textsFormat(m.content)}</div>
-      ${reactHtml}
-      <div class="texts-meta ${isUser?'user':'them'}">
-        <span>${timeStr}</span>${readTick}
-      </div>
-      ${msgActions}
-    </div>`;
-  }).join('');
+  let reactions = {};
+  try{ reactions = getTextsReactions(bfId); }catch(e){}
+  try{
+    el.innerHTML=history.map((m,i)=>{
+      const isUser=m.role==='user';
+      // Guard: ensure content is always a string
+      const content = typeof m.content === 'string' ? m.content : String(m.content||'');
+      const timeStr=_textsFormatTime(m.ts);
+      const isLast=i===history.length-1;
+      const readTick=(!isUser&&isLast)?'':isUser&&isLast?'<span class="texts-read-tick">✓✓</span>':'';
+      const msgReactions = reactions[i]||{};
+      const reactHtml = Object.keys(msgReactions).length
+        ? `<div class="texts-reactions">${Object.entries(msgReactions).map(([emoji,who])=>
+            `<span class="texts-reaction${who==='user'?' mine':''}" onclick="textsToggleReaction(${bfId},${i},'${emoji}')" title="${who==='user'?'You reacted':'They reacted'}">${emoji}</span>`
+          ).join('')}</div>` : '';
+      const msgActions=`<div class="texts-msg-actions" style="display:none;gap:3px;margin-top:2px;${isUser?'justify-content:flex-end':''}">
+        <button onclick="textsShowReactionPicker(event,${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px" title="React">😊</button>
+        ${!isUser?`<button onclick="textsPinMsg(${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">📌</button>`:''}
+        <button onclick="textsDeleteMsg(${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">🗑</button>
+        <button onclick="textsDeleteFromHere(${bfId},${i})" style="background:none;border:1px solid #c94f4f;border-radius:4px;cursor:pointer;font-size:0.65rem;color:#c94f4f;padding:1px 5px">🗑 from here</button>
+      </div>`;
+      return `<div class="texts-msg-wrap ${isUser?'user':'them'}" data-tidx="${i}" style="position:relative"
+        onmouseenter="this.querySelector('.texts-msg-actions').style.display='flex'"
+        onmouseleave="this.querySelector('.texts-msg-actions').style.display='none'"
+        ontouchstart="this.querySelector('.texts-msg-actions').style.display='flex'">
+        <div class="texts-bubble ${isUser?'user':'them'}" ondblclick="textsShowReactionPicker(event,${bfId},${i})">${_textsFormat(content)}</div>
+        ${reactHtml}
+        <div class="texts-meta ${isUser?'user':'them'}">
+          <span>${timeStr}</span>${readTick}
+        </div>
+        ${msgActions}
+      </div>`;
+    }).join('');
+  }catch(err){
+    console.error('renderTextsMsgs error:',err);
+    el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.82rem">Error loading messages. Try refreshing.</div>';
+  }
   el.scrollTop=el.scrollHeight;
 }
 
