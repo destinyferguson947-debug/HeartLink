@@ -13467,6 +13467,7 @@ function setPinnedText(bfId,msg){ localStorage.setItem('texts_pinned_'+bfId,JSON
 // ── RENDER FUNCTIONS ────────────────────────────────────────────
 
 let _textsActiveBfId = null;
+let _activeGroupId = null;
 
 function renderTextsPage(){
   const listEl=document.getElementById('texts-contact-list');
@@ -14002,8 +14003,6 @@ async function textsGenAutoMsg(bf, bfId){
 // ════════════════════════════════════════════════════════════
 // GROUP CHAT SYSTEM
 // ════════════════════════════════════════════════════════════
-
-let _activeGroupId = null;
 
 function getGroupChats(){
   try{ return JSON.parse(localStorage.getItem('group_chats')||'[]'); }catch(e){ return []; }
