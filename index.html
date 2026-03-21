@@ -5540,13 +5540,15 @@ function renderMessages(){
     const actions = isUser
       ? `<div class="msg-actions">
            <button class="msg-action-btn" onclick="editMessage(${idx})" title="Edit">✏️ Edit</button>
-           <button class="msg-action-btn delete" onclick="deleteMessage(${idx})" title="Delete">🗑 Delete</button>
+           <button class="msg-action-btn delete" onclick="deleteMessage(${idx})" title="Delete this message">🗑 Delete</button>
+           <button class="msg-action-btn delete" onclick="deleteFromHere(${idx})" title="Delete this and everything after">🗑 Delete from here</button>
          </div>`
       : `<div class="msg-actions">
            <button class="msg-action-btn alt" onclick="genAlt(${idx})" title="Generate alternate response">✨ Alt</button>
            <button class="msg-action-btn reroll" onclick="rerollMessage(${idx})" title="Replace with new response">🎲 Reroll</button>
            <button class="msg-action-btn" onclick="editMessage(${idx})" title="Edit">✏️ Edit</button>
-           <button class="msg-action-btn delete" onclick="deleteMessage(${idx})" title="Delete">🗑 Delete</button>
+           <button class="msg-action-btn delete" onclick="deleteMessage(${idx})" title="Delete this message">🗑 Delete</button>
+           <button class="msg-action-btn delete" onclick="deleteFromHere(${idx})" title="Delete this and everything after">🗑 Delete from here</button>
          </div>`;
 
     const msgRow = `<div class="msg ${isUser?'user':''}">
@@ -5648,7 +5650,29 @@ function deleteMessage(idx){
   renderMessages();
 }
 
-// ── ALT MESSAGE SYSTEM ─────────────────────────────────────────────────────
+function deleteFromHere(idx){
+  if(!currentBF) return;
+  const bfId = currentBF.id;
+  const history = chatHistory[bfId]||[];
+  const removeCount = history.length - idx;
+  chatHistory[bfId].splice(idx, removeCount);
+  saveHistory();
+  // Clean up alts for removed indices
+  if(msgAlts[bfId]){
+    const newAlts = {}, newAltIdx = {};
+    for(const key of Object.keys(msgAlts[bfId])){
+      const k = parseInt(key);
+      if(k >= idx) continue; // removed
+      newAlts[k] = msgAlts[bfId][k];
+      newAltIdx[k] = msgAltIdx[bfId]?.[k] ?? 0;
+    }
+    msgAlts[bfId] = newAlts;
+    msgAltIdx[bfId] = newAltIdx;
+    saveMsgAlts(bfId);
+  }
+  renderMessages();
+  showToast(`🗑 Deleted ${removeCount} message${removeCount===1?'':'s'}`);
+}
 async function genAlt(idx){
   if(!currentBF||(!apiKey&&!proxyMode)) return;
   const bfId = currentBF.id;
@@ -13550,15 +13574,43 @@ function renderTextsMsgs(bfId){
     const timeStr=_textsFormatTime(m.ts);
     const isLast=i===history.length-1;
     const readTick=(!isUser&&isLast)?'':isUser&&isLast?'<span class="texts-read-tick">✓✓</span>':'';
-    return `<div class="texts-msg-wrap ${isUser?'user':'them'}" data-tidx="${i}">
+    const msgActions=`<div class="texts-msg-actions" style="display:none;gap:3px;margin-top:2px;${isUser?'justify-content:flex-end':''}">
+      ${!isUser?`<button onclick="textsPinMsg(${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">📌</button>`:''}
+      <button onclick="textsDeleteMsg(${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">🗑</button>
+      <button onclick="textsDeleteFromHere(${bfId},${i})" style="background:none;border:1px solid #c94f4f;border-radius:4px;cursor:pointer;font-size:0.65rem;color:#c94f4f;padding:1px 5px">🗑 from here</button>
+    </div>`;
+    return `<div class="texts-msg-wrap ${isUser?'user':'them'}" data-tidx="${i}"
+      onmouseenter="this.querySelector('.texts-msg-actions').style.display='flex'"
+      onmouseleave="this.querySelector('.texts-msg-actions').style.display='none'"
+      ontouchstart="this.querySelector('.texts-msg-actions').style.display='flex'">
       <div class="texts-bubble ${isUser?'user':'them'}">${_textsFormat(m.content)}</div>
       <div class="texts-meta ${isUser?'user':'them'}">
         <span>${timeStr}</span>${readTick}
-        ${!isUser?`<button onclick="textsPinMsg(${bfId},${i})" title="Pin this message" style="background:none;border:none;cursor:pointer;font-size:0.68rem;color:var(--text-muted);padding:0 2px">📌</button>`:''}
       </div>
+      ${msgActions}
     </div>`;
   }).join('');
   el.scrollTop=el.scrollHeight;
+}
+
+function textsDeleteMsg(bfId, idx){
+  const history=getTextHistory(bfId);
+  history.splice(idx,1);
+  saveTextHistory(bfId,history);
+  renderTextsMsgs(bfId);
+  const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
+  renderTextsContactList(allBfs,'');
+}
+
+function textsDeleteFromHere(bfId, idx){
+  const history=getTextHistory(bfId);
+  const removeCount=history.length-idx;
+  history.splice(idx,removeCount);
+  saveTextHistory(bfId,history);
+  renderTextsMsgs(bfId);
+  const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
+  renderTextsContactList(allBfs,'');
+  showToast(`🗑 Deleted ${removeCount} message${removeCount===1?'':'s'}`);
 }
 
 function textsPinMsg(bfId, idx){
@@ -13661,32 +13713,35 @@ async function textsGenReply(bf, bfId, userMsg){
   // Recent story context (last 4 msgs) so character knows what happened in the story
   const recentStory=(chatHistory[bfId]||[]).slice(-4).map(m=>(m.role==='user'?'Them (story)':'You (story)')+': '+m.content.substring(0,100)).join('\n');
 
-  const sysPrompt=`You are ${bf.name}, ${age<0?'ageless':age+' years old'}. ${bf.personality||''}
+  // Cap personality to avoid token overflows — use core if available (shorter), else first 400 chars of personality
+  const personalitySnippet = (bf.core||bf.personality||'').replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,400);
 
-This is a TEXTING conversation — completely casual and separate from any ongoing story. You are texting this person on your phone like any real person would. The tone is:
-- Casual, natural, conversational — NOT roleplay framing
-- Short-to-medium messages (1-4 sentences usually, sometimes just a few words)
-- Use texting conventions: abbreviations ok, informal grammar ok, emoji occasionally if it fits your character
-- NO action descriptions like *does something* — just actual text messages
-- React to what they say naturally. Ask questions back. Reference shared context. Be yourself.
-- Your current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}
+  const sysPrompt=`You are ${bf.name}, ${age<0?'ageless':age+' years old'}. ${personalitySnippet}
+
+This is a TEXTING conversation — casual, separate from any ongoing story. You are texting on your phone.
+- Short messages (1-4 sentences). Casual tone. Emoji ok if it fits your character.
+- NO action descriptions (*does something*) — just the text itself.
+- React naturally. Ask questions back. Be yourself.
+- Current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}
 ${moodPrompt?'\n'+moodPrompt:''}
+DO NOT write what the user says, does, thinks, or feels. Write only your own message.
 
-ABSOLUTE RULE — DO NOT WRITE FOR THE USER:
-You write your messages only. You do NOT write what the user says, does, thinks, or feels. Every message you send is from your perspective only. Never write "you say", "you laugh", "you feel", "you reach out", or any sentence where "you" is doing or feeling something. Write yourself. Leave the user's side blank for them to fill.
-
-RECENT TEXT EXCHANGE:
+RECENT TEXTS:
 ${recentTexts}
 
-RECENT STORY CONTEXT (things that happened between you):
+RECENT STORY CONTEXT:
 ${recentStory}
 
-Reply ONLY with your text message content. No quotes, no stage directions, just the message itself.`;
+Reply ONLY with your text message. No quotes, no stage directions.`;
 
   try{
     const reply=await callAnyAPI(sysPrompt,[{role:'user',content:userMsg}],300,1.0);
+    if(!reply) throw new Error('Empty reply from API');
     return reply.trim().replace(/^["']|["']$/g,'');
-  }catch(e){ return null; }
+  }catch(e){
+    console.error('textsGenReply failed:', e.message||e);
+    return null;
+  }
 }
 
 // ── AUTO-MESSAGE (now lives in texting) ─────────────────────────
