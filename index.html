@@ -1287,8 +1287,13 @@
   <div class="texts-page">
     <div class="texts-sidebar" id="texts-sidebar">
       <div class="texts-sidebar-header">
-        <div class="texts-sidebar-title">💬 Messages</div>
-        <div class="texts-sidebar-sub">Your conversations</div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div class="texts-sidebar-title">💬 Messages</div>
+            <div class="texts-sidebar-sub">Your conversations</div>
+          </div>
+          <button onclick="openGroupChatSetup()" style="background:var(--rose);color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="New group chat">＋</button>
+        </div>
       </div>
       <div class="texts-search"><input id="texts-search-input" placeholder="Search..." oninput="filterTextsContacts(this.value)" /></div>
       <div class="texts-contact-list" id="texts-contact-list"></div>
@@ -1299,6 +1304,20 @@
         <div style="font-size:0.9rem">Select a contact to start texting</div>
         <div style="font-size:0.78rem">Characters unlock texting when you reach the close stage or start dating</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- GROUP CHAT SETUP MODAL -->
+<div id="gc-modal" style="display:none;position:fixed;inset:0;background:rgba(42,26,31,0.75);z-index:600;backdrop-filter:blur(6px);align-items:center;justify-content:center">
+  <div style="background:var(--card);border-radius:1.2rem;padding:1.5rem;max-width:440px;width:92%;box-shadow:0 8px 40px rgba(0,0,0,0.3);max-height:85vh;overflow-y:auto">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--rose-dark);font-weight:600;margin-bottom:0.3rem">👥 New Group Chat</div>
+    <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem">Add characters who have texting unlocked. They'll all be in the same conversation.</div>
+    <input id="gc-name-input" placeholder="Group name (optional)..." style="width:100%;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:0.6rem;font-family:inherit;font-size:0.85rem;background:var(--warm);color:var(--text);outline:none;margin-bottom:0.8rem;box-sizing:border-box">
+    <div id="gc-char-list" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem"></div>
+    <div style="display:flex;gap:0.5rem">
+      <button onclick="createGroupChat()" style="flex:1;background:var(--rose);color:#fff;border:none;border-radius:0.7rem;padding:0.65rem;font-size:0.88rem;cursor:pointer;font-family:inherit">Create Group 💬</button>
+      <button onclick="document.getElementById('gc-modal').style.display='none'" style="background:none;border:1px solid var(--border);border-radius:0.7rem;padding:0.65rem 1rem;font-size:0.88rem;cursor:pointer;color:var(--text-muted);font-family:inherit">Cancel</button>
     </div>
   </div>
 </div>
@@ -13481,11 +13500,52 @@ function renderTextsPage(){
   }
 }
 
+function getRelLabel(status, stageIdx, health){
+  if(status==='dating') return 'Dating 💗';
+  if(status==='fiance') return 'Engaged 💍';
+  if(status==='married') return 'Married 💒';
+  if(status==='broken_up') return 'Broken up';
+  if(status==='divorced') return 'Divorced';
+  const labels=['Stranger','Acquaintance','Friends','Close','Romantic interest','Deeply bonded'];
+  return labels[stageIdx]||'';
+}
+
 function renderTextsContactList(bfs, query){
   const listEl=document.getElementById('texts-contact-list');
   if(!listEl) return;
   const filtered=query ? bfs.filter(b=>b.name.toLowerCase().includes(query.toLowerCase())) : bfs;
-  listEl.innerHTML=filtered.map(bf=>{
+
+  // Group chats section
+  const groups = getGroupChats();
+  const groupHtml = groups.filter(g=>!query||g.name.toLowerCase().includes(query.toLowerCase())).map(g=>{
+    const lastMsg = getGroupHistory(g.id).slice(-1)[0];
+    const preview = lastMsg ? lastMsg.content.substring(0,40)+(lastMsg.content.length>40?'...':'') : 'Start chatting...';
+    const timeStr = lastMsg ? _textsTimeAgo(lastMsg.ts) : '';
+    const unread = getGroupUnread(g.id);
+    const active = g.id===_activeGroupId?' active':'';
+    // Small avatar stack from first 3 members
+    const avatarStack = g.bfIds.slice(0,3).map(id=>{
+      const b=savedBFs.find(x=>x.id===id)||BF_DATA.find(x=>x.id===id);
+      if(!b) return '';
+      return b.image&&!b.image.startsWith('PLACEHOLDER')
+        ? `<img src="${b.image}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;margin-left:-4px;border:2px solid var(--card);flex-shrink:0">`
+        : `<span style="font-size:0.85rem;margin-left:-4px">${b.emoji||'🧑'}</span>`;
+    }).join('');
+    return `<div class="texts-contact${active}" onclick="openGroupChat('${g.id}')" id="gc-contact-${g.id}">
+      <div class="texts-contact-avatar" style="background:var(--warm);display:flex;align-items:center;padding-left:8px">${avatarStack}</div>
+      <div class="texts-contact-info">
+        <div class="texts-contact-name">👥 ${g.name}</div>
+        <div class="texts-contact-preview">${_textsFormat(preview).replace(/<br>/g,' ')}</div>
+        <div class="texts-status-line">${g.bfIds.length} members</div>
+      </div>
+      <div class="texts-contact-meta">
+        ${timeStr?`<div class="texts-contact-time">${timeStr}</div>`:''}
+        ${unread>0?`<div class="texts-unread-badge">${unread>9?'9+':unread}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const contactsHtml = filtered.map(bf=>{
     const unlocked=isTextsUnlocked(bf.id);
     const history=getTextHistory(bf.id);
     const last=history.slice(-1)[0];
@@ -13511,6 +13571,8 @@ function renderTextsContactList(bfs, query){
       </div>
     </div>`;
   }).join('');
+
+  listEl.innerHTML = groupHtml + contactsHtml;
 }
 
 function filterTextsContacts(query){
@@ -13520,6 +13582,7 @@ function filterTextsContacts(query){
 
 function openTextsChat(bfId){
   _textsActiveBfId=bfId;
+  _activeGroupId=null;
   clearTextsUnread(bfId);
   const areaEl=document.getElementById('texts-chat-area');
   const emptyEl=document.getElementById('texts-empty-state');
@@ -13935,6 +13998,297 @@ async function textsGenAutoMsg(bf, bfId){
 }
 
 // ── STATUS REFRESH — rotate statuses periodically ───────────────
+
+// ════════════════════════════════════════════════════════════
+// GROUP CHAT SYSTEM
+// ════════════════════════════════════════════════════════════
+
+let _activeGroupId = null;
+
+function getGroupChats(){
+  try{ return JSON.parse(localStorage.getItem('group_chats')||'[]'); }catch(e){ return []; }
+}
+function saveGroupChats(arr){ localStorage.setItem('group_chats', JSON.stringify(arr)); }
+function getGroupHistory(groupId){
+  try{ return JSON.parse(localStorage.getItem('gc_history_'+groupId)||'[]'); }catch(e){ return []; }
+}
+function saveGroupHistory(groupId, arr){ localStorage.setItem('gc_history_'+groupId, JSON.stringify(arr)); }
+function addGroupMessage(groupId, role, content, bfId=null){
+  const arr = getGroupHistory(groupId);
+  arr.push({role, content, bfId, ts:Date.now()});
+  saveGroupHistory(groupId, arr);
+  // Unread badge
+  const isViewing = _activeGroupId===groupId && document.getElementById('page-texts')?.classList.contains('active');
+  if(role==='assistant' && !isViewing){
+    const n = parseInt(localStorage.getItem('gc_unread_'+groupId)||'0')+1;
+    localStorage.setItem('gc_unread_'+groupId, String(n));
+  }
+}
+function clearGroupUnread(groupId){ localStorage.removeItem('gc_unread_'+groupId); }
+function getGroupUnread(groupId){ return parseInt(localStorage.getItem('gc_unread_'+groupId)||'0'); }
+
+function openGroupChatSetup(){
+  const modal = document.getElementById('gc-modal');
+  if(!modal) return;
+  const list = document.getElementById('gc-char-list');
+  const eligible = savedBFs.filter(b=>isTextsUnlocked(b.id));
+  if(!eligible.length){
+    showToast('Unlock texting with at least 2 characters first!');
+    return;
+  }
+  list.innerHTML = eligible.map(bf=>{
+    const img = bf.image&&!bf.image.startsWith('PLACEHOLDER')
+      ? `<img src="${bf.image}" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`
+      : `<span style="font-size:1.4rem">${bf.emoji||'🧑'}</span>`;
+    return `<label style="display:flex;align-items:center;gap:0.7rem;padding:0.5rem 0.3rem;cursor:pointer;border-radius:0.5rem;transition:background 0.15s" onmouseenter="this.style.background='var(--warm)'" onmouseleave="this.style.background=''">
+      <input type="checkbox" value="${bf.id}" style="width:16px;height:16px;accent-color:var(--rose)">
+      ${img}
+      <span style="font-size:0.88rem;font-weight:500;color:var(--text)">${bf.name}</span>
+      <span style="font-size:0.72rem;color:var(--text-muted);margin-left:auto">${getRelLabel(getRelHealth(bf.id).status,getStage(bf),getRelHealth(bf.id).health).replace(/[^\w\s·]/gu,'').trim()}</span>
+    </label>`;
+  }).join('');
+  modal.style.display='flex';
+}
+
+function createGroupChat(){
+  const modal = document.getElementById('gc-modal');
+  const nameInput = document.getElementById('gc-name-input');
+  const checked = [...document.querySelectorAll('#gc-char-list input:checked')];
+  if(checked.length < 2){ showToast('Select at least 2 characters'); return; }
+  const bfIds = checked.map(c=>parseInt(c.value));
+  const names = bfIds.map(id=>{
+    const b=savedBFs.find(x=>x.id===id)||BF_DATA.find(x=>x.id===id);
+    return b?b.name.split(' ')[0]:'?';
+  });
+  const groupName = nameInput?.value?.trim() || names.join(', ');
+  const groupId = 'gc_'+Date.now();
+  const groups = getGroupChats();
+  groups.push({id:groupId, name:groupName, bfIds, created:Date.now()});
+  saveGroupChats(groups);
+  modal.style.display='none';
+  if(nameInput) nameInput.value='';
+  renderTextsPage();
+  openGroupChat(groupId);
+  // After a short delay, have each character react to being added
+  setTimeout(()=>groupChatIntroReactions(groupId), 1000);
+  showToast('Group chat created! 💬');
+}
+
+async function groupChatIntroReactions(groupId){
+  if(!apiKey&&!proxyMode) return;
+  const groups = getGroupChats();
+  const group = groups.find(g=>g.id===groupId);
+  if(!group) return;
+  const bfIds = group.bfIds;
+  const allNames = bfIds.map(id=>{
+    const b=savedBFs.find(x=>x.id===id)||BF_DATA.find(x=>x.id===id);
+    return b?b.name.split(' ')[0]:'?';
+  });
+  // Each character reacts one by one with a stagger
+  for(let i=0; i<bfIds.length; i++){
+    const bfId = bfIds[i];
+    const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+    if(!bf) continue;
+    await new Promise(r=>setTimeout(r, 800+Math.random()*600));
+    const otherNames = allNames.filter((_,j)=>j!==i);
+    const rd = getRelHealth(bfId);
+    const isRomantic = ['dating','fiance','married'].includes(rd.status);
+    const snippet=(bf.core||bf.personality||'').replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,300);
+    const prompt = `You are ${bf.name}. ${snippet}
+You just got added to a group chat with: ${otherNames.join(', ')}.
+${isRomantic ? `You are in a romantic relationship with the person who created this group. Finding out they're in a group chat with ${otherNames.join(' and ')} is... interesting.` : `You know the person who created this group.`}
+React in 1-2 short text messages in your specific voice. ${isRomantic ? 'Show some jealousy, curiosity, or wariness — real and in-character, not dramatic.' : 'React naturally — curious, suspicious, or cautiously social.'}
+Separate multiple messages with ---. Just the text(s).`;
+    try{
+      const reply = await callAnyAPI(snippet, [{role:'user',content:prompt}], 300, 1.1);
+      if(reply){
+        const parts = reply.trim().replace(/^["']|["']$/g,'').split(/\n---\n/).map(p=>p.trim()).filter(Boolean);
+        for(const part of parts){
+          addGroupMessage(groupId,'assistant',part,bfId);
+          if(_activeGroupId===groupId) renderGroupMsgs(groupId);
+          await new Promise(r=>setTimeout(r,400+Math.random()*400));
+        }
+      }
+    }catch(e){}
+  }
+  const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
+  renderTextsContactList(allBfs,'');
+}
+
+function openGroupChat(groupId){
+  _textsActiveBfId = null;
+  _activeGroupId = groupId;
+  clearGroupUnread(groupId);
+  const groups = getGroupChats();
+  const group = groups.find(g=>g.id===groupId);
+  if(!group) return;
+  const areaEl = document.getElementById('texts-chat-area');
+  const emptyEl = document.getElementById('texts-empty-state');
+  if(emptyEl) emptyEl.style.display='none';
+  if(!areaEl) return;
+  const avatarRow = group.bfIds.slice(0,4).map(id=>{
+    const b=savedBFs.find(x=>x.id===id)||BF_DATA.find(x=>x.id===id);
+    if(!b) return '';
+    return b.image&&!b.image.startsWith('PLACEHOLDER')
+      ? `<img src="${b.image}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;margin-left:-6px;border:2px solid var(--card)">`
+      : `<span style="font-size:1rem;margin-left:-6px">${b.emoji||'🧑'}</span>`;
+  }).join('');
+  const memberNames = group.bfIds.map(id=>{
+    const b=savedBFs.find(x=>x.id===id)||BF_DATA.find(x=>x.id===id);
+    return b?b.name.split(' ')[0]:'?';
+  }).join(', ');
+  areaEl.innerHTML=`
+    <div class="texts-chat-header">
+      <div style="display:flex;align-items:center;margin-left:6px">${avatarRow}</div>
+      <div class="texts-chat-info" style="margin-left:10px">
+        <div class="texts-chat-name">${group.name}</div>
+        <div class="texts-chat-status">${memberNames}</div>
+      </div>
+      <button onclick="deleteGroupChat('${groupId}')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:0.75rem;margin-left:auto;padding:0.3rem" title="Delete group">🗑</button>
+    </div>
+    <div class="texts-messages" id="gc-msgs-${groupId}"></div>
+    <div class="texts-input-area">
+      <textarea class="texts-input" id="gc-input-${groupId}" placeholder="Message the group..." rows="1"
+        onkeydown="gcHandleKey(event,'${groupId}')"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+      <button class="texts-send-btn" onclick="gcSend('${groupId}')" id="gc-send-${groupId}">➤</button>
+    </div>`;
+  document.querySelectorAll('.texts-contact').forEach(el=>el.classList.remove('active'));
+  document.getElementById('gc-contact-'+groupId)?.classList.add('active');
+  renderGroupMsgs(groupId);
+  document.getElementById('texts-sidebar')?.classList.remove('show');
+  document.getElementById('texts-chat-area')?.classList.add('show');
+}
+
+function renderGroupMsgs(groupId){
+  const el = document.getElementById('gc-msgs-'+groupId);
+  if(!el) return;
+  const history = getGroupHistory(groupId);
+  if(!history.length){
+    el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.82rem;font-style:italic">Group chat created. Say something! 💬</div>';
+    return;
+  }
+  const groups = getGroupChats();
+  const group = groups.find(g=>g.id===groupId);
+  el.innerHTML = history.map((m,i)=>{
+    const isUser = m.role==='user';
+    const timeStr = _textsFormatTime(m.ts);
+    const bf = m.bfId ? (savedBFs.find(b=>b.id===m.bfId)||BF_DATA.find(b=>b.id===m.bfId)) : null;
+    const senderName = bf ? bf.name.split(' ')[0] : '';
+    const avatar = bf
+      ? (bf.image&&!bf.image.startsWith('PLACEHOLDER')
+          ? `<img src="${bf.image}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+          : `<span style="font-size:1rem;flex-shrink:0">${bf.emoji||'🧑'}</span>`)
+      : '';
+    if(isUser){
+      return `<div class="texts-msg-wrap user" data-tidx="${i}">
+        <div class="texts-bubble user">${_textsFormat(m.content)}</div>
+        <div class="texts-meta user"><span>${timeStr}</span><span class="texts-read-tick">✓✓</span></div>
+      </div>`;
+    }
+    return `<div style="display:flex;align-items:flex-end;gap:6px;align-self:flex-start;max-width:75%">
+      ${avatar}
+      <div>
+        ${senderName?`<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:2px;font-weight:600">${senderName}</div>`:''}
+        <div class="texts-bubble them">${_textsFormat(m.content)}</div>
+        <div class="texts-meta them"><span>${timeStr}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+function gcHandleKey(e, groupId){
+  if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); gcSend(groupId); }
+}
+
+async function gcSend(groupId){
+  if(!apiKey&&!proxyMode) return;
+  const inputEl = document.getElementById('gc-input-'+groupId);
+  const sendBtn = document.getElementById('gc-send-'+groupId);
+  if(!inputEl||!sendBtn) return;
+  const text = inputEl.value.trim();
+  if(!text) return;
+  inputEl.value=''; inputEl.style.height='auto';
+  const groups = getGroupChats();
+  const group = groups.find(g=>g.id===groupId);
+  if(!group) return;
+  addGroupMessage(groupId,'user',text);
+  renderGroupMsgs(groupId);
+  sendBtn.disabled=true;
+  // Each character responds in turn with staggered typing
+  const respondingIds = [...group.bfIds].sort(()=>Math.random()-0.5);
+  for(const bfId of respondingIds){
+    const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+    if(!bf) continue;
+    // Skip ~30% of characters per message for realism (not everyone replies every time)
+    if(Math.random()<0.3 && respondingIds.length>2) continue;
+    const msgsEl = document.getElementById('gc-msgs-'+groupId);
+    let typingEl = null;
+    if(msgsEl){
+      typingEl=document.createElement('div');
+      typingEl.style.cssText='display:flex;align-items:center;gap:6px;align-self:flex-start';
+      const snippet=(bf.core||bf.personality||'').replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,150);
+      typingEl.innerHTML=`<span style="font-size:0.72rem;color:var(--text-muted)">${bf.name.split(' ')[0]}</span><div class="texts-typing-bubble"><div class="texts-typing-dot"></div><div class="texts-typing-dot"></div><div class="texts-typing-dot"></div></div>`;
+      msgsEl.appendChild(typingEl);
+      msgsEl.scrollTop=msgsEl.scrollHeight;
+    }
+    const recentHistory = getGroupHistory(groupId).slice(-15)
+      .map(m=>(m.role==='user'?'User':(m.bfId===bfId?'You':getGroupHistory(groupId).find(x=>x.bfId===m.bfId)?.bfId?'Someone':'?'))+': '+m.content).join('\n');
+    const otherNames = group.bfIds.filter(id=>id!==bfId).map(id=>{
+      const b=savedBFs.find(x=>x.id===id)||BF_DATA.find(x=>x.id===id);
+      return b?b.name.split(' ')[0]:'?';
+    }).join(', ');
+    const snippet=(bf.core||bf.personality||'').replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,300);
+    const rd = getRelHealth(bfId);
+    const isRomantic=['dating','fiance','married'].includes(rd.status);
+    const sysPrompt=`You are ${bf.name}. ${snippet}
+You are in a group chat with: ${otherNames}, and the user.
+${isRomantic?`You are romantically involved with the user. Being in a group chat with ${otherNames} creates tension you may or may not hide.`:''}
+Mood: ${MOOD_DATA[getMood(bfId).mood]?.label||'baseline'}
+React to messages in your character's voice. Short texts, 1-3 sentences max. 
+Sometimes address the other characters directly, not just the user.
+Do not write what the user says or does.
+
+RECENT GROUP CHAT:
+${recentHistory}
+
+Reply as yourself in this group chat. Just the text.`;
+    try{
+      await new Promise(r=>setTimeout(r, 600+Math.random()*900));
+      const reply = await callAnyAPI(sysPrompt,[{role:'user',content:text}],400,1.0);
+      if(typingEl) typingEl.remove();
+      if(reply){
+        const clean=reply.trim().replace(/^["']|["']$/g,'');
+        addGroupMessage(groupId,'assistant',clean,bfId);
+        renderGroupMsgs(groupId);
+        // Check jealousy/relationship consequences
+        if(isRomantic && group.bfIds.length>1){
+          const jealousy = clean.toLowerCase();
+          const triggersJealousy = ['why is','who is','what is this','what\'s this','why are they','am i a joke','serious right now'].some(s=>jealousy.includes(s));
+          if(triggersJealousy) forceMood(bfId,'jealous');
+        }
+      }
+    }catch(e){
+      if(typingEl) typingEl.remove();
+    }
+  }
+  sendBtn.disabled=false;
+  const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
+  renderTextsContactList(allBfs,'');
+}
+
+function deleteGroupChat(groupId){
+  if(!confirm('Delete this group chat?')) return;
+  const groups = getGroupChats().filter(g=>g.id!==groupId);
+  saveGroupChats(groups);
+  localStorage.removeItem('gc_history_'+groupId);
+  localStorage.removeItem('gc_unread_'+groupId);
+  _activeGroupId=null;
+  renderTextsPage();
+  document.getElementById('texts-chat-area').innerHTML=`<div class="texts-empty"><div class="texts-empty-icon">💬</div><div>Group deleted</div></div>`;
+  showToast('Group chat deleted');
+}
 function refreshAllTextsStatuses(){
   // Force a new status roll for all characters every ~3 hours
   const allBfs=[...BF_DATA,...savedBFs.filter(b=>b.isCustom)];
