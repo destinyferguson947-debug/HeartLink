@@ -7880,8 +7880,13 @@ function generateJealousMessage(bf, isMarriedTrigger=false){
 // ---- AUTO-MESSAGE SYSTEM ----
 let autoMsgTimers = {};
 
-function getAutoMsgEnabled(){
-  return localStorage.getItem('auto_msg_enabled') !== 'false'; // default ON
+function getAutoMsgEnabled(bfId){
+  // Per-character key takes priority; fall back to global key; default ON
+  if(bfId !== undefined){
+    const perChar = localStorage.getItem('auto_msg_enabled_'+bfId);
+    if(perChar !== null) return perChar !== 'false';
+  }
+  return localStorage.getItem('auto_msg_enabled') !== 'false';
 }
 
 function toggleAutoMsg(){
@@ -13546,8 +13551,10 @@ async function textsSend(bfId){
     addTextMessage(bfId,'assistant',reply);
     startLORWatch(bfId);
     renderTextsMsgs(bfId);
-    // Update contact list preview
-    renderTextsPage();
+    // Update ONLY the contact list preview — do NOT call renderTextsPage()
+    // which rebuilds the entire chat area and wipes the messages
+    const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
+    renderTextsContactList(allBfs,'');
   }
   sendBtn.disabled=false;
 }
