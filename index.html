@@ -724,6 +724,17 @@
   /* Messages */
   .texts-messages { flex:1; overflow-y:auto; padding:1rem 1.2rem; display:flex; flex-direction:column; gap:0.5rem; background:var(--cream); }
   body.dark .texts-messages { background:#1a1015; }
+  /* Emoji reaction system */
+  .texts-reactions { display:flex; flex-wrap:wrap; gap:3px; margin-top:2px; }
+  .texts-reaction { background:var(--warm); border:1px solid var(--border); border-radius:1rem; padding:1px 6px; font-size:0.78rem; cursor:pointer; display:inline-flex; align-items:center; gap:2px; transition:all 0.15s; user-select:none; }
+  .texts-reaction:hover { border-color:var(--rose-light); background:rgba(201,102,122,0.08); }
+  .texts-reaction.mine { background:rgba(201,102,122,0.15); border-color:var(--rose-light); }
+  body.dark .texts-reaction { background:#2e1a22; border-color:#3a2028; }
+  /* Reaction picker popup */
+  .reaction-picker { position:absolute; background:var(--card); border:1px solid var(--border); border-radius:2rem; padding:4px 8px; display:flex; gap:6px; box-shadow:0 4px 20px rgba(0,0,0,0.15); z-index:300; font-size:1.2rem; cursor:pointer; white-space:nowrap; }
+  .reaction-picker span { cursor:pointer; transition:transform 0.1s; padding:2px; border-radius:50%; }
+  .reaction-picker span:hover { transform:scale(1.3); }
+  body.dark .reaction-picker { background:#221318; border-color:#3a2028; }
   .texts-msg-wrap { display:flex; flex-direction:column; max-width:68%; }
   .texts-msg-wrap.user { align-self:flex-end; align-items:flex-end; }
   .texts-msg-wrap.them { align-self:flex-start; align-items:flex-start; }
@@ -13356,8 +13367,12 @@ function addTextMessage(bfId,role,content){
   const arr=getTextHistory(bfId);
   arr.push({role,content,ts:Date.now(),read:role==='user'});
   saveTextHistory(bfId,arr);
-  // Mark unread for them messages
-  if(role==='assistant') setTextsUnread(bfId,(getTextsUnread(bfId)||0)+1);
+  // Only mark unread if user is NOT currently looking at this chat
+  if(role==='assistant'){
+    const isViewing = _textsActiveBfId===bfId &&
+      document.getElementById('page-texts')?.classList.contains('active');
+    if(!isViewing) setTextsUnread(bfId,(getTextsUnread(bfId)||0)+1);
+  }
 }
 function getTextsUnread(bfId){ return parseInt(localStorage.getItem('texts_unread_'+bfId)||'0'); }
 function setTextsUnread(bfId,n){ localStorage.setItem('texts_unread_'+bfId,n.toString()); }
@@ -13569,21 +13584,30 @@ function renderTextsMsgs(bfId){
     el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.82rem;font-style:italic">No messages yet. Say something! 💬</div>';
     return;
   }
+  const reactions = getTextsReactions(bfId);
   el.innerHTML=history.map((m,i)=>{
     const isUser=m.role==='user';
     const timeStr=_textsFormatTime(m.ts);
     const isLast=i===history.length-1;
     const readTick=(!isUser&&isLast)?'':isUser&&isLast?'<span class="texts-read-tick">✓✓</span>':'';
+    // Emoji reactions for this message
+    const msgReactions = reactions[i]||{};
+    const reactHtml = Object.keys(msgReactions).length
+      ? `<div class="texts-reactions">${Object.entries(msgReactions).map(([emoji,who])=>
+          `<span class="texts-reaction${who==='user'?' mine':''}" onclick="textsToggleReaction(${bfId},${i},'${emoji}')" title="${who==='user'?'You reacted':'They reacted'}">${emoji}</span>`
+        ).join('')}</div>` : '';
     const msgActions=`<div class="texts-msg-actions" style="display:none;gap:3px;margin-top:2px;${isUser?'justify-content:flex-end':''}">
+      <button onclick="textsShowReactionPicker(event,${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px" title="React">😊</button>
       ${!isUser?`<button onclick="textsPinMsg(${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">📌</button>`:''}
       <button onclick="textsDeleteMsg(${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">🗑</button>
       <button onclick="textsDeleteFromHere(${bfId},${i})" style="background:none;border:1px solid #c94f4f;border-radius:4px;cursor:pointer;font-size:0.65rem;color:#c94f4f;padding:1px 5px">🗑 from here</button>
     </div>`;
-    return `<div class="texts-msg-wrap ${isUser?'user':'them'}" data-tidx="${i}"
+    return `<div class="texts-msg-wrap ${isUser?'user':'them'}" data-tidx="${i}" style="position:relative"
       onmouseenter="this.querySelector('.texts-msg-actions').style.display='flex'"
       onmouseleave="this.querySelector('.texts-msg-actions').style.display='none'"
       ontouchstart="this.querySelector('.texts-msg-actions').style.display='flex'">
-      <div class="texts-bubble ${isUser?'user':'them'}">${_textsFormat(m.content)}</div>
+      <div class="texts-bubble ${isUser?'user':'them'}" ondblclick="textsShowReactionPicker(event,${bfId},${i})">${_textsFormat(m.content)}</div>
+      ${reactHtml}
       <div class="texts-meta ${isUser?'user':'them'}">
         <span>${timeStr}</span>${readTick}
       </div>
@@ -13592,6 +13616,65 @@ function renderTextsMsgs(bfId){
   }).join('');
   el.scrollTop=el.scrollHeight;
 }
+
+// ── EMOJI REACTION SYSTEM ────────────────────────────────────────────────────
+const REACTION_EMOJIS = ['❤️','😂','😮','😢','😡','👍','🔥','💀'];
+
+function getTextsReactions(bfId){
+  try{ return JSON.parse(localStorage.getItem('texts_reactions_'+bfId)||'{}'); }catch(e){ return {}; }
+}
+function saveTextsReactions(bfId,obj){ localStorage.setItem('texts_reactions_'+bfId, JSON.stringify(obj)); }
+
+function textsShowReactionPicker(e, bfId, idx){
+  e.stopPropagation();
+  // Remove any existing picker
+  document.querySelectorAll('.reaction-picker').forEach(p=>p.remove());
+  const picker = document.createElement('div');
+  picker.className = 'reaction-picker';
+  picker.innerHTML = REACTION_EMOJIS.map(em=>`<span onclick="textsToggleReaction(${bfId},${idx},'${em}');this.closest('.reaction-picker').remove()">${em}</span>`).join('');
+  // Position near the click
+  const wrap = e.currentTarget.closest('.texts-msg-wrap')||e.currentTarget.closest('.texts-bubble')?.parentElement;
+  if(wrap){
+    wrap.style.position='relative';
+    wrap.appendChild(picker);
+    picker.style.bottom = '100%';
+    picker.style.left = '0';
+    picker.style.position = 'absolute';
+  }
+  // Close on outside click
+  setTimeout(()=>document.addEventListener('click',function h(){ picker.remove(); document.removeEventListener('click',h); }),50);
+}
+
+async function textsToggleReaction(bfId, idx, emoji){
+  const reactions = getTextsReactions(bfId);
+  if(!reactions[idx]) reactions[idx]={};
+  if(reactions[idx][emoji]==='user'){
+    delete reactions[idx][emoji];
+  } else {
+    reactions[idx][emoji]='user';
+  }
+  saveTextsReactions(bfId, reactions);
+  renderTextsMsgs(bfId);
+  // Tell the character about the reaction after a short delay
+  const history = getTextHistory(bfId);
+  const msg = history[idx];
+  if(msg && msg.role==='assistant' && emoji && !_textsReactionPending){
+    _textsReactionPending = true;
+    setTimeout(async()=>{
+      _textsReactionPending = false;
+      const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+      if(!bf) return;
+      const reaction = await textsGenReply(bf,bfId,`[EMOJI REACTION: The user reacted ${emoji} to your message: "${msg.content.substring(0,80)}". React naturally to this in 1-2 sentences. If it's ❤️ be warm/pleased, if 😂 be amused, if 😡 be surprised/defensive, if 👍 casual acknowledgement. Be brief and real.]`);
+      if(reaction){
+        addTextMessage(bfId,'assistant',reaction);
+        renderTextsMsgs(bfId);
+        const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
+        renderTextsContactList(allBfs,'');
+      }
+    }, 1500+Math.random()*2000);
+  }
+}
+let _textsReactionPending = false;
 
 function textsPinMsg(bfId, idx){
   const history=getTextHistory(bfId);
@@ -13669,7 +13752,7 @@ async function textsSend(bfId){
   cancelLORWatch(bfId);
   renderTextsMsgs(bfId);
   sendBtn.disabled=true;
-  // Show typing indicator
+  // Show typing indicator — stays visible until reply arrives (not removed early)
   const msgsEl=document.getElementById('texts-msgs-'+bfId);
   if(msgsEl){
     const td=document.createElement('div');
@@ -13679,19 +13762,41 @@ async function textsSend(bfId){
     msgsEl.appendChild(td);
     msgsEl.scrollTop=msgsEl.scrollHeight;
   }
-  // Small delay for realism
-  await new Promise(r=>setTimeout(r, 800+Math.random()*1200));
-  document.getElementById('texts-typing-'+bfId)?.remove();
-  // Generate reply
+  // Generate reply — typing indicator stays the whole time
   const reply=await textsGenReply(bf, bfId, text);
+  // NOW remove typing indicator (right before showing reply)
+  document.getElementById('texts-typing-'+bfId)?.remove();
   if(reply){
-    addTextMessage(bfId,'assistant',reply);
-    startLORWatch(bfId);
-    renderTextsMsgs(bfId);
-    // Update ONLY the contact list preview — do NOT call renderTextsPage()
-    // which rebuilds the entire chat area and wipes the messages
-    const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
-    renderTextsContactList(allBfs,'');
+    if(reply && typeof reply === 'object' && reply.multipart){
+      // Stagger multi-part messages with typing bubbles between them
+      for(let pi=0; pi<reply.multipart.length; pi++){
+        const part = reply.multipart[pi];
+        addTextMessage(bfId,'assistant',part);
+        renderTextsMsgs(bfId);
+        const allBfs2=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
+        renderTextsContactList(allBfs2,'');
+        if(pi < reply.multipart.length-1){
+          // Show typing bubble between messages
+          const msgsEl2=document.getElementById('texts-msgs-'+bfId);
+          if(msgsEl2){
+            const td2=document.createElement('div');
+            td2.className='texts-typing-bubble';
+            msgsEl2.appendChild(td2);
+            td2.innerHTML='<div class="texts-typing-dot"></div><div class="texts-typing-dot"></div><div class="texts-typing-dot"></div>';
+            msgsEl2.scrollTop=msgsEl2.scrollHeight;
+            await new Promise(r=>setTimeout(r,600+Math.random()*800));
+            td2.remove();
+          }
+        }
+      }
+      startLORWatch(bfId);
+    } else {
+      addTextMessage(bfId,'assistant',reply);
+      startLORWatch(bfId);
+      renderTextsMsgs(bfId);
+      const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
+      renderTextsContactList(allBfs,'');
+    }
   }
   sendBtn.disabled=false;
 }
@@ -13704,20 +13809,38 @@ async function textsGenReply(bf, bfId, userMsg){
   const age=getCharacterAge(bf);
   const textHistory=getTextHistory(bfId);
   const recentTexts=textHistory.slice(-20).map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
-  // Recent story context (last 4 msgs) so character knows what happened in the story
   const recentStory=(chatHistory[bfId]||[]).slice(-4).map(m=>(m.role==='user'?'Them (story)':'You (story)')+': '+m.content.substring(0,100)).join('\n');
 
-  // CRITICAL: cap personality to avoid token overflow — chars 36-45 have 3500+ char personalities
+  // Cap personality to avoid token overflow
   const personalitySnippet=(bf.core||bf.personality||'').replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,400);
+
+  // Per-character texting style based on personality type
+  const _emojiType = CHAR_EMOJI_TYPE[bfId]||'warm';
+  const _textingStyles = {
+    warm:     'You text warmly and openly. You use punctuation loosely. Sometimes you send one short message then immediately follow up with another thought. You use emoji naturally.',
+    broody:   'You text sparingly. Short. Sometimes just one word or a fragment. You leave things unsaid. Long pauses feel natural to you. Lowercase, minimal punctuation.',
+    intel:    'You text in complete thoughts but not formal. You sometimes start a sentence and redirect it. Precise word choice even in casual messages.',
+    guard:    'Terse. Direct. You say exactly what needs to be said and nothing more. You rarely use emoji. Occasionally you type something and then apparently think better of it.',
+    romantic: 'You text with warmth and a little too much attention. You notice small things. You sometimes send a message then add a follow-up that reveals more than you meant to.',
+    chaos:    'You text in bursts. Multiple messages in a row. You correct yourself mid-thought. You use caps for emphasis. You react big. You say things and immediately walk them back.',
+  };
+  const _style = _textingStyles[_emojiType]||_textingStyles.warm;
 
   const sysPrompt=`You are ${bf.name}, ${age<0?'ageless':age+' years old'}. ${personalitySnippet}
 
-This is a TEXTING conversation — casual, on your phone. Keep it real and short.
-- 1-4 sentences max. Casual tone. Emoji ok if it fits your character.
-- NO action descriptions — just the text itself.
-- Current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}
+TEXTING STYLE: ${_style}
+Current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}
 ${moodPrompt?'\n'+moodPrompt:''}
-Do NOT write what the user says, does, thinks or feels. Only write your own message.
+
+REALISTIC TEXTING RULES — these make you feel like a real person:
+1. VARY your message length. Sometimes one word. Sometimes a few sentences. Never consistently medium.
+2. BREAK thoughts into multiple short messages instead of one long one when you're emotional or excited.
+3. HESITATE sometimes — start a thought and trail off: "I was going to say—never mind." or "wait. no. that came out wrong"
+4. IMPERFECT grammar is fine. Lowercase. No period sometimes. Typos occasionally.
+5. If a message sounds too clean or polished, you've failed. Real texts are messy.
+6. React to TONE, not just content. If they say "ok" with no context — that lands differently. Say so.
+7. Occasionally simulate deleting a message: "I just deleted something. You weren't supposed to see that."
+8. Do NOT write what the user says, does, thinks, or feels. Only your own message.
 
 RECENT TEXTS:
 ${recentTexts}
@@ -13725,12 +13848,20 @@ ${recentTexts}
 STORY CONTEXT:
 ${recentStory}
 
-Reply ONLY with your text message. No quotes, no stage directions.`;
+Reply with your text message(s). If sending multiple messages, separate them with a line that is just: ---
+No quotes, no stage directions. Just what you'd type.`;
 
   try{
     const reply=await callAnyAPI(sysPrompt,[{role:'user',content:userMsg}],1200,1.0);
     if(!reply) throw new Error('Empty reply');
-    return reply.trim().replace(/^["']|["']$/g,'');
+    // Handle multi-message responses separated by ---
+    const raw = reply.trim().replace(/^["']|["']$/g,'');
+    const parts = raw.split(/\n---\n/).map(p=>p.trim()).filter(Boolean);
+    if(parts.length > 1){
+      // Save and display each part with a short stagger
+      return {multipart: parts};
+    }
+    return raw;
   }catch(e){
     console.error('textsGenReply failed:',e.message||e);
     return null;
