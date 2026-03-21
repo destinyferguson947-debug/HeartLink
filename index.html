@@ -8213,7 +8213,7 @@ NO action descriptions (*does something*). Just the text message itself. No quot
   const msgs = history.slice(-10).map(m=>({role:m.role==='user'?'user':'model', content:m.content}));
   msgs.push({role:'user', content:instruction});
   try{
-    const reply = await callAnyAPI(sysPrompt, msgs, 300, 1.05);
+    const reply = await callAnyAPI(sysPrompt, msgs, 500, 1.05);
     if(reply){
       const clean = reply.trim().replace(/^["'*]|["'*]$/g,'').trim();
       if(_useTexts){
@@ -13728,7 +13728,7 @@ ${recentStory}
 Reply ONLY with your text message. No quotes, no stage directions.`;
 
   try{
-    const reply=await callAnyAPI(sysPrompt,[{role:'user',content:userMsg}],300,1.0);
+    const reply=await callAnyAPI(sysPrompt,[{role:'user',content:userMsg}],600,1.0);
     if(!reply) throw new Error('Empty reply');
     return reply.trim().replace(/^["']|["']$/g,'');
   }catch(e){
@@ -13798,7 +13798,7 @@ async function textsGenAutoMsg(bf, bfId){
   const prompt=prompts[Math.floor(Math.random()*prompts.length)];
   const sysPrompt=`You are ${bf.name}. ${bf.personality||''} You are sending a casual text message unprompted. Current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}. ${prompt} Keep it to 1-3 sentences max. No action descriptions. Just the text itself. Recent chat context:\n${recentTexts}`;
   try{
-    const r=await callAnyAPI(sysPrompt,[{role:'user',content:prompt}],150,1.1);
+    const r=await callAnyAPI(sysPrompt,[{role:'user',content:prompt}],300,1.1);
     return r.trim().replace(/^["']|["']$/g,'');
   }catch(e){ return null; }
 }
