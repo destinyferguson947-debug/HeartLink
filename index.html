@@ -5541,14 +5541,14 @@ function renderMessages(){
       ? `<div class="msg-actions">
            <button class="msg-action-btn" onclick="editMessage(${idx})" title="Edit">✏️ Edit</button>
            <button class="msg-action-btn delete" onclick="deleteMessage(${idx})" title="Delete this message">🗑 Delete</button>
-           <button class="msg-action-btn delete" onclick="deleteFromHere(${idx})" title="Delete this and everything after">🗑 Delete from here</button>
+           <button class="msg-action-btn delete" onclick="deleteFromHere(${idx})" title="Delete this and everything after">🗑 From here</button>
          </div>`
       : `<div class="msg-actions">
            <button class="msg-action-btn alt" onclick="genAlt(${idx})" title="Generate alternate response">✨ Alt</button>
            <button class="msg-action-btn reroll" onclick="rerollMessage(${idx})" title="Replace with new response">🎲 Reroll</button>
            <button class="msg-action-btn" onclick="editMessage(${idx})" title="Edit">✏️ Edit</button>
            <button class="msg-action-btn delete" onclick="deleteMessage(${idx})" title="Delete this message">🗑 Delete</button>
-           <button class="msg-action-btn delete" onclick="deleteFromHere(${idx})" title="Delete this and everything after">🗑 Delete from here</button>
+           <button class="msg-action-btn delete" onclick="deleteFromHere(${idx})" title="Delete this and everything after">🗑 From here</button>
          </div>`;
 
     const msgRow = `<div class="msg ${isUser?'user':''}">
@@ -5652,27 +5652,27 @@ function deleteMessage(idx){
 
 function deleteFromHere(idx){
   if(!currentBF) return;
-  const bfId = currentBF.id;
-  const history = chatHistory[bfId]||[];
-  const removeCount = history.length - idx;
-  chatHistory[bfId].splice(idx, removeCount);
+  const bfId=currentBF.id;
+  const history=chatHistory[bfId]||[];
+  const removeCount=history.length-idx;
+  chatHistory[bfId].splice(idx,removeCount);
   saveHistory();
-  // Clean up alts for removed indices
   if(msgAlts[bfId]){
-    const newAlts = {}, newAltIdx = {};
+    const newAlts={},newAltIdx={};
     for(const key of Object.keys(msgAlts[bfId])){
-      const k = parseInt(key);
-      if(k >= idx) continue; // removed
-      newAlts[k] = msgAlts[bfId][k];
-      newAltIdx[k] = msgAltIdx[bfId]?.[k] ?? 0;
+      const k=parseInt(key);
+      if(k>=idx) continue;
+      newAlts[k]=msgAlts[bfId][k];
+      newAltIdx[k]=msgAltIdx[bfId]?.[k]??0;
     }
-    msgAlts[bfId] = newAlts;
-    msgAltIdx[bfId] = newAltIdx;
+    msgAlts[bfId]=newAlts; msgAltIdx[bfId]=newAltIdx;
     saveMsgAlts(bfId);
   }
   renderMessages();
   showToast(`🗑 Deleted ${removeCount} message${removeCount===1?'':'s'}`);
 }
+
+// ── ALT MESSAGE SYSTEM ─────────────────────────────────────────────────────
 async function genAlt(idx){
   if(!currentBF||(!apiKey&&!proxyMode)) return;
   const bfId = currentBF.id;
@@ -13593,6 +13593,21 @@ function renderTextsMsgs(bfId){
   el.scrollTop=el.scrollHeight;
 }
 
+function textsPinMsg(bfId, idx){
+  const history=getTextHistory(bfId);
+  const msg=history[idx];
+  if(!msg) return;
+  setPinnedText(bfId,msg);
+  openTextsChat(bfId); // re-render to show pinned
+  showToast('📌 Message pinned!');
+}
+
+function textsUnpin(bfId){
+  localStorage.removeItem('texts_pinned_'+bfId);
+  openTextsChat(bfId);
+  showToast('📌 Message unpinned');
+}
+
 function textsDeleteMsg(bfId, idx){
   const history=getTextHistory(bfId);
   history.splice(idx,1);
@@ -13611,27 +13626,6 @@ function textsDeleteFromHere(bfId, idx){
   const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
   renderTextsContactList(allBfs,'');
   showToast(`🗑 Deleted ${removeCount} message${removeCount===1?'':'s'}`);
-}
-
-function textsPinMsg(bfId, idx){
-  const history=getTextHistory(bfId);
-  const msg=history[idx];
-  if(!msg) return;
-  setPinnedText(bfId,msg);
-  openTextsChat(bfId); // re-render to show pinned
-  showToast('📌 Message pinned!');
-}
-
-function textsUnpin(bfId){
-  localStorage.removeItem('texts_pinned_'+bfId);
-  openTextsChat(bfId);
-  showToast('📌 Message unpinned');
-}
-
-function textsUnpin(bfId){
-  localStorage.removeItem('texts_pinned_'+bfId);
-  openTextsChat(bfId);
-  showToast('📌 Message unpinned');
 }
 
 function _textsFormat(text){
@@ -13713,33 +13707,32 @@ async function textsGenReply(bf, bfId, userMsg){
   // Recent story context (last 4 msgs) so character knows what happened in the story
   const recentStory=(chatHistory[bfId]||[]).slice(-4).map(m=>(m.role==='user'?'Them (story)':'You (story)')+': '+m.content.substring(0,100)).join('\n');
 
-  // Cap personality to avoid token overflows — use core if available (shorter), else first 400 chars of personality
-  const personalitySnippet = (bf.core||bf.personality||'').replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,400);
+  // CRITICAL: cap personality to avoid token overflow — chars 36-45 have 3500+ char personalities
+  const personalitySnippet=(bf.core||bf.personality||'').replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,400);
 
   const sysPrompt=`You are ${bf.name}, ${age<0?'ageless':age+' years old'}. ${personalitySnippet}
 
-This is a TEXTING conversation — casual, separate from any ongoing story. You are texting on your phone.
-- Short messages (1-4 sentences). Casual tone. Emoji ok if it fits your character.
-- NO action descriptions (*does something*) — just the text itself.
-- React naturally. Ask questions back. Be yourself.
+This is a TEXTING conversation — casual, on your phone. Keep it real and short.
+- 1-4 sentences max. Casual tone. Emoji ok if it fits your character.
+- NO action descriptions — just the text itself.
 - Current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}
 ${moodPrompt?'\n'+moodPrompt:''}
-DO NOT write what the user says, does, thinks, or feels. Write only your own message.
+Do NOT write what the user says, does, thinks or feels. Only write your own message.
 
 RECENT TEXTS:
 ${recentTexts}
 
-RECENT STORY CONTEXT:
+STORY CONTEXT:
 ${recentStory}
 
 Reply ONLY with your text message. No quotes, no stage directions.`;
 
   try{
     const reply=await callAnyAPI(sysPrompt,[{role:'user',content:userMsg}],300,1.0);
-    if(!reply) throw new Error('Empty reply from API');
+    if(!reply) throw new Error('Empty reply');
     return reply.trim().replace(/^["']|["']$/g,'');
   }catch(e){
-    console.error('textsGenReply failed:', e.message||e);
+    console.error('textsGenReply failed:',e.message||e);
     return null;
   }
 }
