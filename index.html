@@ -8067,7 +8067,7 @@ function scheduleAutoMsg(bfId){
     else if(_moodNow === 'cold') moodInstruction = `You are feeling cold and closed today. The message is clipped, maybe a single line. You're not going to perform warmth you don't feel.`;
     else if(_moodNow === 'protective') moodInstruction = `You're in a protective mood — the absence made you check in because that's what you do right now.`;
     else if(_moodNow === 'restless') moodInstruction = `You're restless. The inactivity is making it worse. The message has an edge of someone who needs something to happen.`;
-    const instruction = `(The user has been away for about an hour. Pick up the scene creatively — do a small time-skip or show what you've been doing. Don't ask where they went. Just continue naturally in a way that invites them back into the moment. Your relationship stage is: ${stageCtx}.${moodInstruction ? ' CURRENT MOOD: ' + moodInstruction : ''} Make it feel real and lived-in.)`;
+    const instruction = `(TIME HAS PASSED. The user has been away for a while. You MUST move the scene forward — do NOT continue from where you left off, do NOT repeat the same location or physical setup, do NOT rehash what was just said. Instead: do a genuine time-skip. Show what you are doing now, somewhere else or later. One short moment that shows life continuing without them. Then invite them back naturally. Your relationship stage is: ${stageCtx}.${moodInstruction ? ' CURRENT MOOD: ' + moodInstruction : ''} This must feel like a new moment, not a continuation of the last one.)`;
     const firstName = bf.name.split(' ')[0];
     if(bfId === currentBF?.id) showTyping();
     await generateAndSaveAutoMsg(bf, instruction);
@@ -8231,8 +8231,6 @@ async function callGeminiForBF(bf, instruction){
 
 async function generateAndSaveAutoMsg(bf, instruction, routeToTexts){
   if(!apiKey && !proxyMode) return;
-  // If character is texting-unlocked and routeToTexts is not explicitly false,
-  // send auto-messages to the Texts tab so they feel like phone notifications
   const _useTexts = routeToTexts !== false && isTextsUnlocked(bf.id);
   const sysPrompt = _useTexts
     ? `You are ${bf.name}. ${(bf.personality||'').substring(0,400)}
@@ -8240,7 +8238,10 @@ You are sending a text message on your phone. Keep it short (1-3 sentences), nat
 NO action descriptions (*does something*). Just the text message itself. No quotes around it.`
     : generateSystemPrompt(bf);
   const history = _useTexts ? getTextHistory(bf.id) : (chatHistory[bf.id]||[]);
-  const msgs = history.slice(-10).map(m=>({role:m.role==='user'?'user':'model', content:m.content}));
+  // For story auto-messages: only use last 4 messages to avoid the AI re-running
+  // the same scene. For texts: use last 10 for context.
+  const histSlice = _useTexts ? history.slice(-10) : history.slice(-4);
+  const msgs = histSlice.map(m=>({role:m.role==='user'?'user':'model', content:m.content}));
   msgs.push({role:'user', content:instruction});
   try{
     const reply = await callAnyAPI(sysPrompt, msgs, 1200, 1.05);
