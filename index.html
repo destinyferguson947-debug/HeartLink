@@ -13389,15 +13389,18 @@ function healTextHistory(bfId){
   let changed = false;
   const healed = arr.filter(m=>{
     if(typeof m.content !== 'string'){
-      // Try to recover a string
       if(m.content && typeof m.content === 'object' && m.content.multipart){
-        // multipart object accidentally stored — split into first part only
         m.content = Array.isArray(m.content.multipart) ? m.content.multipart[0]||'' : '';
       } else {
         m.content = String(m.content||'');
       }
       changed = true;
     }
+    // Strip "Draft N:" / "Message N:" labels from existing messages
+    const cleaned = m.content
+      .replace(/^(Draft\s*\d+[:\*\s]+|Message\s*\d+[:\s]+|Option\s*\d+[:\s]+)/i,'')
+      .trim();
+    if(cleaned !== m.content){ m.content = cleaned; changed = true; }
     // Drop empty messages
     if(!m.content.trim()){ changed=true; return false; }
     return true;
@@ -13949,17 +13952,19 @@ ${recentTexts}
 STORY CONTEXT:
 ${recentStory}
 
-Reply with your text message(s). If sending multiple messages, separate them with a line that is just: ---
-No quotes, no stage directions. Just what you'd type.`;
+Write your reply as you would actually text — short, natural, in your voice. If you have multiple thoughts, just write them on separate lines (one thought per line). No labels, no "Draft:", no formatting markers. Just the raw text(s).`;
 
   try{
     const reply=await callAnyAPI(sysPrompt,[{role:'user',content:userMsg}],1200,1.0);
     if(!reply) throw new Error('Empty reply');
-    // Handle multi-message responses separated by ---
-    const raw = reply.trim().replace(/^["']|["']$/g,'');
-    const parts = raw.split(/\n---\n/).map(p=>p.trim()).filter(Boolean);
+    // Strip any "Draft N:" or similar labels the model might add
+    const raw = reply.trim()
+      .replace(/^["']|["']$/g,'')
+      .replace(/^(Draft\s*\d+[:\*\s]+|Message\s*\d+[:\s]+|Option\s*\d+[:\s]+)/gim,'')
+      .trim();
+    // Split into multiple messages on blank lines — each paragraph = one text bubble
+    const parts = raw.split(/\n\n+/).map(p=>p.trim()).filter(Boolean);
     if(parts.length > 1){
-      // Save and display each part with a short stagger
       return {multipart: parts};
     }
     return raw;
