@@ -13965,7 +13965,11 @@ Write your reply as you would actually text — short, natural, in your voice. I
       .trim();
     // Split into multiple messages on blank lines — each paragraph = one text bubble
     const parts = raw.split(/\n\n+/).map(p=>p.trim()).filter(Boolean);
-    if(parts.length > 1){
+    // Only treat as multi-message if there are 2-3 parts AND each part is
+    // a real standalone thought (at least 15 chars) — prevents sentence fragments
+    // from becoming separate bubbles
+    const substantialParts = parts.filter(p => p.length >= 15);
+    if(parts.length > 1 && substantialParts.length === parts.length && parts.length <= 3){
       return {multipart: parts};
     }
     return raw;
