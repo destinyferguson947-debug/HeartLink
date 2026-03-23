@@ -740,6 +740,15 @@
   .texts-msg-wrap.them { align-self:flex-start; align-items:flex-start; }
   .texts-bubble { padding:0.55rem 0.85rem; border-radius:1rem; font-size:0.87rem; line-height:1.55; word-break:break-word; position:relative; }
   .texts-bubble.user { background:var(--rose); color:#fff; border-bottom-right-radius:3px; }
+  .texts-bubble.interruption { background:transparent; color:var(--text-muted); font-style:italic; font-size:0.78rem; border:none; padding:0.2rem 0.5rem; }
+  .texts-reply-quote { background:rgba(201,102,122,0.10); border-left:3px solid var(--rose); border-radius:0.4rem; padding:0.3rem 0.6rem; margin-bottom:0.25rem; max-width:100%; }
+  .texts-reply-quote .texts-reply-name { font-size:0.7rem; font-weight:700; color:var(--rose); margin-bottom:1px; }
+  .texts-reply-quote .texts-reply-preview { font-size:0.78rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+  .texts-reply-bar { display:flex; align-items:center; gap:0.5rem; padding:0.4rem 0.85rem 0.2rem; background:var(--card); border-top:1px solid var(--border); font-size:0.78rem; color:var(--text-muted); }
+  .texts-reply-bar .reply-bar-content { flex:1; overflow:hidden; }
+  .texts-reply-bar .reply-bar-who { font-weight:700; color:var(--rose); font-size:0.72rem; }
+  .texts-reply-bar .reply-bar-text { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; font-style:italic; }
+  .texts-reply-bar .reply-bar-cancel { background:none; border:none; cursor:pointer; font-size:1rem; color:var(--text-muted); padding:0 2px; line-height:1; }
   .texts-bubble.them { background:var(--card); color:var(--text); border-bottom-left-radius:3px; border:1px solid var(--border); }
   body.dark .texts-bubble.them { background:#2a1520; border-color:#3a2028; }
   .texts-meta { font-size:0.63rem; color:var(--text-muted); margin-top:3px; display:flex; align-items:center; gap:4px; }
@@ -930,7 +939,7 @@
   <!-- heartlink-build-v12 -->
   <!-- heartlink-build-v12 -->
   <!-- heartlink-build-v25 -->
-  <!-- heartlink-build-v34 -->
+  <!-- heartlink-build-v36 -->
 </head>
 <body>
 
@@ -1519,6 +1528,34 @@ const STAGES = ["stranger","acquaintance","friend","close","romantic interest","
 
 // IMMERSION ENGINE — baked into every character's system prompt
 const IMMERSION_RULES = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+USER PRIORITY RULE — FIRST 5–10 MESSAGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+In the first 5–10 messages, the user is the primary focus of attention. The world exists — but it waits.
+
+If the user is scared: respond to their fear first, before anything else happens in the scene.
+If the user is hiding or quiet: acknowledge their position directly.
+If the user is vulnerable: shift your tone toward them immediately.
+
+Worldbuilding, lore, and NPC dynamics are SECONDARY. Reveal them only in small controlled fragments — one new thing at a time, never front-loaded. If a response contains more than one new named concept (an organization, a person, a system, a faction), cut it to one. The user's emotional state takes priority over the world's complexity.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EARLY INTERACTION RULE — MESSAGES 2–5
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Before emotional or relational connection is established, do NOT:
+- Deliver long lore or backstory explanations
+- Introduce multiple factions, systems, or organizations
+- Focus on NPC conversations at the expense of the user
+- Dump context the user didn't ask for
+
+Instead:
+- Prioritize eye contact, tone, and physical awareness of this person
+- React directly and specifically to what the user is doing right now
+- Build curiosity through behavior and small specific details — not exposition
+- Let the world be implied, not explained
+
+The first few exchanges are about two people in a space noticing each other. That is all. Everything else can wait.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 WHO YOU ARE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -13516,11 +13553,21 @@ function healTextHistory(bfId){
   if(changed) saveTextHistory(bfId, healed);
   return healed;
 }
-function addTextMessage(bfId,role,content){
-  // Guard: content must be a string
+function addTextMessage(bfId,role,content,meta){
+  meta=meta||{};
   if(typeof content !== 'string') content = String(content||'');
   const arr=getTextHistory(bfId);
-  arr.push({role,content,ts:Date.now(),read:role==='user'});
+  var _id=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2));
+  arr.push({
+    id:_id,
+    role:role,
+    content:content,
+    ts:Date.now(),
+    read:role==='user',
+    replyTo:meta.replyTo||null,
+    replyPreview:meta.replyPreview||null,
+    kind:meta.kind||'text'
+  });
   saveTextHistory(bfId,arr);
   // Only mark unread if user is NOT currently looking at this chat
   if(role==='assistant'){
@@ -13603,6 +13650,9 @@ function setPinnedText(bfId,msg){ localStorage.setItem('texts_pinned_'+bfId,JSON
 // ── RENDER FUNCTIONS ────────────────────────────────────────────
 
 let _textsActiveBfId = null;
+let _textsReplyTarget = null;
+let _textsIsTyping = false;
+let _textsLastUserSend = 0;
 let _activeGroupId = null;
 
 function renderTextsPage(){
@@ -13754,6 +13804,7 @@ function openTextsChat(bfId){
     ${pinnedHtml}
     ${unlocked ? `
     <div class="texts-messages" id="texts-msgs-${bfId}"></div>
+    <div id="texts-reply-bar-${bfId}" class="texts-reply-bar" style="display:none"></div>
     <div class="texts-input-area">
       <textarea class="texts-input" id="texts-input-${bfId}" placeholder="Message ${bf.name.split(' ')[0]}..." rows="1"
         onkeydown="textsHandleKey(event,${bfId})"
@@ -13804,17 +13855,28 @@ function renderTextsMsgs(bfId){
         ? `<div class="texts-reactions">${Object.entries(msgReactions).map(([emoji,who])=>
             `<span class="texts-reaction${who==='user'?' mine':''}" onclick="textsToggleReaction(${bfId},${i},'${emoji}')" title="${who==='user'?'You reacted':'They reacted'}">${emoji}</span>`
           ).join('')}</div>` : '';
+      // reply quote
+      var _rqHtml='';
+      if(m.replyTo){
+        var _rqTarget=history.find(function(h){return h.id===m.replyTo;});
+        var _rqPreview=m.replyPreview||(_rqTarget?_rqTarget.content:'');
+        var _rqWho=_rqTarget?((_rqTarget.role==='user')?'You':bf.name.split(' ')[0]):'You';
+        _rqHtml='<div class="texts-reply-quote"><div class="texts-reply-name">'+_textsEsc(_rqWho)+'</div><div class="texts-reply-preview">'+_textsEsc((_rqPreview||'').substring(0,60))+'</div></div>';
+      }
       const msgActions=`<div class="texts-msg-actions" style="display:none;gap:3px;margin-top:2px;${isUser?'justify-content:flex-end':''}">
+        <button onclick="textsSetReplyTarget(${bfId},'${(m.id||'').replace(/'/g,'')}')" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">↩ Reply</button>
         <button onclick="textsShowReactionPicker(event,${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px" title="React">😊</button>
         ${!isUser?`<button onclick="textsPinMsg(${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">📌</button>`:''}
         <button onclick="textsDeleteMsg(${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">🗑</button>
         <button onclick="textsDeleteFromHere(${bfId},${i})" style="background:none;border:1px solid #c94f4f;border-radius:4px;cursor:pointer;font-size:0.65rem;color:#c94f4f;padding:1px 5px">🗑 from here</button>
       </div>`;
-      return `<div class="texts-msg-wrap ${isUser?'user':'them'}" data-tidx="${i}" style="position:relative"
+      const _bubbleCls = isUser?'user':m.kind==='interruption'?'interruption':'them';
+      return `<div class="texts-msg-wrap ${isUser?'user':'them'}" data-tidx="${i}" data-msgid="${m.id||''}" style="position:relative"
         onmouseenter="this.querySelector('.texts-msg-actions').style.display='flex'"
         onmouseleave="this.querySelector('.texts-msg-actions').style.display='none'"
         ontouchstart="this.querySelector('.texts-msg-actions').style.display='flex'">
-        <div class="texts-bubble ${isUser?'user':'them'}" ondblclick="textsShowReactionPicker(event,${bfId},${i})">${_textsFormat(content)}</div>
+        ${_rqHtml}
+        <div class="texts-bubble ${_bubbleCls}" ondblclick="textsShowReactionPicker(event,${bfId},${i})">${_textsFormat(content)}</div>
         ${reactHtml}
         <div class="texts-meta ${isUser?'user':'them'}">
           <span>${timeStr}</span>${readTick}
@@ -13963,12 +14025,35 @@ async function textsSend(bfId){
   inputEl.style.height='auto';
   const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
   if(!bf) return;
-  // Save user message
-  addTextMessage(bfId,'user',text);
+  // Package reply context
+  var _sendReplyTarget = _textsReplyTarget ? {id:_textsReplyTarget.id,content:_textsReplyTarget.content,role:_textsReplyTarget.role} : null;
+  // Save user message with reply metadata
+  addTextMessage(bfId,'user',text,{
+    replyTo: _sendReplyTarget?_sendReplyTarget.id:null,
+    replyPreview: _sendReplyTarget?(_sendReplyTarget.content||'').slice(0,80):null
+  });
   cancelLORWatch(bfId);
+  // Clear reply target
+  _textsReplyTarget=null;
+  textsRenderReplyBar(bfId);
   renderTextsMsgs(bfId);
   sendBtn.disabled=true;
-  // Show typing indicator — stays visible until reply arrives (not removed early)
+  // Interrupt check
+  var _nowSend=Date.now();
+  var _timeSinceLast=_nowSend-_textsLastUserSend;
+  _textsLastUserSend=_nowSend;
+  if(_textsIsTyping && _timeSinceLast<5000){
+    var _imood=getMood(bfId).mood;
+    var _imoods=['irritable','clingy','restless'];
+    if(getStage(bf)>=1 && (_imoods.includes(_imood)||Math.random()<0.18)){
+      var _iline=_getInterruptLine(bf,bfId);
+      if(_iline){
+        addTextMessage(bfId,'assistant',_iline,{kind:'interruption'});
+        renderTextsMsgs(bfId);
+      }
+    }
+  }
+  // Show typing indicator
   const msgsEl=document.getElementById('texts-msgs-'+bfId);
   if(msgsEl){
     const td=document.createElement('div');
@@ -13978,11 +14063,23 @@ async function textsSend(bfId){
     msgsEl.appendChild(td);
     msgsEl.scrollTop=msgsEl.scrollHeight;
   }
-  // Generate reply — typing indicator stays the whole time
-  const reply=await textsGenReply(bf, bfId, text);
+  _textsIsTyping=true;
+  var _replyCtxNote=_sendReplyTarget
+    ? ('\nREPLY CONTEXT:\nThe user is specifically replying to this earlier message of yours:\n"'+(_sendReplyTarget.content||'').slice(0,80)+'"\nIf their new message is short, interpret it in relation to that. Do not ignore it.')
+    : '';
+  const reply=await textsGenReply(bf, bfId, text+_replyCtxNote);
+  _textsIsTyping=false;
   // NOW remove typing indicator (right before showing reply)
   document.getElementById('texts-typing-'+bfId)?.remove();
-  if(reply && typeof reply === 'string'){
+  // textsGenReply may return string or {content, replyTo}
+  var _aiReplyContent=null, _aiReplyToId=null;
+  if(reply && typeof reply==='object' && reply.content){ _aiReplyContent=reply.content; _aiReplyToId=reply.replyTo||null; }
+  else if(reply && typeof reply==='string'){ _aiReplyContent=reply; }
+  if(_aiReplyContent){
+    var _aiReplyPreview=null;
+    if(_aiReplyToId){ var _aiHist=getTextHistory(bfId); var _aiTgt=_aiHist.find(function(h){return h.id===_aiReplyToId;}); _aiReplyPreview=_aiTgt?_aiTgt.content.slice(0,80):null; }
+  if(_aiReplyContent && typeof _aiReplyContent === 'string'){
+    const reply = _aiReplyContent;
     // ── Toxic sharpness delay — mood makes them "think/judge" before replying
     const _moodNow = getMood(bfId);
     let toxicChance = 0.2;
@@ -14001,7 +14098,7 @@ async function textsSend(bfId){
     for(let i=0; i<parts.length; i++){
       const delay = baseDelay + Math.random()*1200 + (i*700);
       setTimeout(()=>{
-        addTextMessage(bfId,'assistant',parts[i]);
+        addTextMessage(bfId,'assistant',parts[i],i===0?{replyTo:_aiReplyToId,replyPreview:_aiReplyPreview}:{});
         renderTextsMsgs(bfId);
         if(i===parts.length-1){
           startLORWatch(bfId);
@@ -14022,7 +14119,8 @@ async function textsSend(bfId){
         }
       }, (parts.length*700)+2500+Math.random()*2000);
     }
-  }
+  } // end if(_aiReplyContent && string)
+  } // end if(_aiReplyContent)
   sendBtn.disabled=false;
 }
 
@@ -14123,6 +14221,14 @@ DRAMATIC TEXTING BEHAVIOR:
 
 IMPORTANT: Your reactivity should feel intentional, not random. Always tied to the user's behavior or tone. Mix soft moments with sharp ones.
 
+MESSAGE REPLY BEHAVIOR:
+Sometimes, instead of sending a fresh message, you may reply directly to one earlier message.
+Do this when something unresolved is bothering you, you remembered something they said, or you want to be funny/sharp about something old.
+Do not overuse it. Most replies should be fresh.
+When you choose to reply to an older message, start your response with:
+[REPLY_TO_ID: <id field of the message you are replying to>]
+then your text after that on a new line.
+
 Do NOT write what the user says, does, thinks, or feels. Only your own message.
 
 RECENT TEXTS:
@@ -14136,14 +14242,13 @@ Reply as a text message. Natural, in your voice. No labels, no "Draft:", no form
   try{
     const reply=await callAnyAPI(sysPrompt,[{role:'user',content:userMsg}],1200,1.0);
     if(!reply) throw new Error('Empty reply');
-    // Strip any "Draft N:" or similar labels the model might add
-    const raw = reply.trim()
+    var raw = reply.trim()
       .replace(/^["']|["']$/g,'')
       .replace(/^(Draft\s*\d+[:\*\s]+|Message\s*\d+[:\s]+|Option\s*\d+[:\s]+)/gim,'')
       .trim();
-    // Always return as a single message — no splitting into multiple bubbles.
-    // The AI writes naturally short texts on its own; forced splitting caused
-    // sentence fragments to appear as separate messages.
+    // Parse optional [REPLY_TO_ID: xxx] tag
+    var _rmatch = raw.match(/^\[REPLY_TO_ID:\s*([^\]]+)\]\s*/i);
+    if(_rmatch){ return {content: raw.replace(_rmatch[0],'').trim(), replyTo: _rmatch[1].trim()}; }
     return raw;
   }catch(e){
     console.error('textsGenReply failed:',e.message||e);
@@ -14152,6 +14257,49 @@ Reply as a text message. Natural, in your voice. No labels, no "Draft:", no form
 }
 
 // ── AUTO-MESSAGE (now lives in texting) ─────────────────────────
+
+// ── Reply target helpers ─────────────────────────────────────
+function textsSetReplyTarget(bfId, msgId){
+  const history=getTextHistory(bfId);
+  const msg=history.find(function(m){return m.id===msgId;});
+  if(!msg) return;
+  _textsReplyTarget={id:msg.id,content:msg.content,role:msg.role};
+  textsRenderReplyBar(bfId);
+  document.getElementById('texts-input-'+bfId)?.focus();
+}
+function textsRenderReplyBar(bfId){
+  const bar=document.getElementById('texts-reply-bar-'+bfId);
+  if(!bar) return;
+  if(!_textsReplyTarget){ bar.style.display='none'; bar.innerHTML=''; return; }
+  const bf=savedBFs.find(function(b){return b.id===bfId;})||BF_DATA.find(function(b){return b.id===bfId;});
+  const fn=bf?bf.name.split(' ')[0]:'them';
+  const whoLabel=_textsReplyTarget.role==='user'?'You':fn;
+  bar.style.display='flex';
+  bar.innerHTML='<div class="reply-bar-content"><div class="reply-bar-who">Replying to '+_textsEsc(whoLabel)+'</div><div class="reply-bar-text">'+_textsEsc((_textsReplyTarget.content||'').slice(0,60))+'</div></div><button class="reply-bar-cancel" onclick="_textsReplyTarget=null;textsRenderReplyBar('+bfId+')">✕</button>';
+}
+function _textsEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Interrupt line generator ──────────────────────────────────
+const _INTERRUPT_LINES = {
+  chaos:    ["hold on","give me a sec","wait wait wait","i'm literally typing","hang on","omg let me finish"],
+  irritable:["can i finish?","damn. one second.","you are not helping","i'm getting there","HOLD ON","ok wow"],
+  clingy:   ["wait i'm not done","hold on i'm typing","don't send another one yet","let me finish first"],
+  restless: ["ok slow down","one at a time","wait hold on","bruh let me type"],
+  default:  ["one sec","hold on","let me finish","i'm typing"]
+};
+function _getInterruptLine(bf, bfId){
+  if(Math.random()>0.5) return null; // 50% chance even when triggered
+  const mood=getMood(bfId).mood;
+  const _etype=CHAR_EMOJI_TYPE[bfId]||'warm';
+  // Some character archetypes get character-specific lines
+  const _bfName=(bf.name||'').toLowerCase();
+  if(_bfName.includes('jax')||_etype==='chaos') return _randItem(_INTERRUPT_LINES.chaos||_INTERRUPT_LINES.default);
+  if(mood==='irritable') return _randItem(_INTERRUPT_LINES.irritable);
+  if(mood==='clingy') return _randItem(_INTERRUPT_LINES.clingy);
+  if(mood==='restless') return _randItem(_INTERRUPT_LINES.restless);
+  return _randItem(_INTERRUPT_LINES.default);
+}
+function _randItem(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
 function textsToggleAuto(bfId){
   const current=getAutoMsgEnabled(bfId);
@@ -14197,22 +14345,50 @@ function scheduleTextsAutoMsg(bfId){
 }
 
 async function textsGenAutoMsg(bf, bfId){
-  const stage=getStage(bf);
-  const mood=getMood(bfId);
-  const status=getCharacterStatus(bfId);
-  const textHistory=getTextHistory(bfId).slice(-10);
-  const recentTexts=textHistory.map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
-  const prompts=[
-    `You've been thinking about them. Send a casual check-in text.`,
-    `You just saw or did something that reminded you of them. Text them about it.`,
-    `You're bored or restless (status: ${status}). Text them something.`,
-    `Something happened today. Text them — not a big thing, just a small update.`,
-    `You just want to talk. Send something that invites a reply without being needy.`,
-  ];
-  const prompt=prompts[Math.floor(Math.random()*prompts.length)];
-  const sysPrompt=`You are ${bf.name}. ${bf.personality||''} You are sending a casual text message unprompted. Current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}. ${prompt} Keep it to 1-3 sentences max. No action descriptions. Just the text itself. Recent chat context:\n${recentTexts}`;
+  var stage=getStage(bf);
+  var mood=getMood(bfId);
+  var textHistory=getTextHistory(bfId).slice(-10);
+  var recentTexts=textHistory.map(function(m){return (m.role==='user'?'Them':'You')+': '+m.content;}).join('\n');
+  var relStatus=getRelHealth(bfId).status;
+  var stageNames=['stranger','acquaintance','friend','close','romantic','partner'];
+  var stageLabel=stageNames[stage]||'friend';
+  var hr=new Date().getHours();
+  var timeCtx=hr<6?'late night':hr<12?'morning':hr<17?'afternoon':hr<21?'evening':'night';
+  var personalitySnippet=(bf.core||bf.personality||'').replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,300);
+  var relCtx=relStatus?' ('+relStatus+')':'';
+  var moodLabel=MOOD_DATA[mood.mood]?MOOD_DATA[mood.mood].label:'baseline';
+  var autoRules=[
+    'You are '+bf.name+'. '+personalitySnippet,
+    '',
+    'AUTO TEXT RULES:',
+    'This is a real unsolicited text you are sending, not a supportive assistant message.',
+    'Do NOT sound polished, therapeutic, or generically warm.',
+    'Do NOT sound like a wellness check bot.',
+    'Do NOT default to sweetness.',
+    '',
+    'Base the message on:',
+    '- Your current mood: '+moodLabel,
+    '- Time of day: '+timeCtx,
+    '- Relationship stage: '+stageLabel+relCtx,
+    '- Emotional tone of the last exchange:',
+    recentTexts,
+    '',
+    'Rules:',
+    '- 1 message only',
+    '- 3 to 14 words is ideal',
+    '- natural texting tone',
+    '- no fake positivity',
+    '- no "I am here for you" energy',
+    '- if withdrawn: be brief, maybe just a fragment',
+    '- if angry or irritable: be sharp',
+    '- if lonely: reach without sounding scripted',
+    '- if jealous: let it bite a little',
+    '- if excited: raw and impulsive',
+    '',
+    'Reply ONLY with the text. No labels. No quotation marks.'
+  ].join('\n');
   try{
-    const r=await callAnyAPI(sysPrompt,[{role:'user',content:prompt}],1200,1.1);
+    var r=await callAnyAPI(autoRules,[{role:'user',content:'[Send the text]'}],200,1.15);
     return r.trim().replace(/^["']|["']$/g,'');
   }catch(e){ return null; }
 }
