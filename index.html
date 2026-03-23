@@ -6157,8 +6157,9 @@ async function sendMessage(){
   checkCharacterAging();
   await checkGossipTrigger();
   checkGossipReveal();
-  // Check pre-written story plot events (async — staggered to avoid rate limit bursts)
-  await sleep(1500);
+  // Check pre-written story plot events — longer delay so plot events never feel
+  // like an immediate follow-up to the character's previous message
+  await sleep(4000);
   await checkPlotEvents();
 }
 
@@ -12061,12 +12062,14 @@ async function checkPlotEvents(){
 
   // ── Fire the event ────────────────────────────────────────────────────────
   clearPendingPlot(bfId);
-  if(!candidate) return; // safety guard — prevents silent crash if eligible[0] is undefined
-  markPlotFired(candidate.id);
+  if(!candidate) return;
+  // NOTE: markPlotFired is called AFTER callGemini succeeds — not before.
+  // This prevents the event being permanently lost if the API call fails.
   localStorage.setItem('any_plot_fired_'+bfId, '1');
   setLastPlotMsg(bfId, totalMsgs);
-  resetStagnationThreshold(bfId); // pick a new random window for next event
+  resetStagnationThreshold(bfId);
 
+  // Longer delay — give the user time to read the previous message before the event fires
   setTimeout(async () => {
     if(currentBF?.id !== bfId) return;
     showTyping();
@@ -12076,24 +12079,34 @@ async function checkPlotEvents(){
     const _lastAiMsg = (chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-1)[0];
     const _lastAiTail = _lastAiMsg ? _lastAiMsg.content.trim().slice(-400) : '';
     const _lastAiOpening = _lastAiMsg ? _lastAiMsg.content.trim().substring(0, 80) : '';
+    const _lastAiFirstSentence = _lastAiMsg ? (_lastAiMsg.content.trim().split(/[.!?]/)[0]||'').substring(0,120) : '';
     const _sceneTitleMatch = candidate.prompt.match(/STORY EVENT[^-]*-+\s*([^:)]+)/i);
     const _sceneTitle = _sceneTitleMatch ? _sceneTitleMatch[1].trim() : 'a new scene';
     const _sceneOpening = candidate.prompt.substring(0, 300);
 
-    const bridgeInstruction = '(STORY TRANSITION — CONTINUITY REQUIRED: You are moving from what just happened into a new story scene. The transition must make complete narrative sense.' +
-      '\n\nWHAT JUST HAPPENED (do NOT repeat or echo any of this):\n' + freshExchange +
-      '\n\nYOUR PREVIOUS MESSAGE ENDED WITH:\n"' + _lastAiTail + '"' +
-      '\n\nTHE NEW SCENE YOU ARE ENTERING: ' + _sceneTitle +
+    const bridgeInstruction = '(STORY TRANSITION — A new scene is beginning. Read the rules below carefully before writing a single word.' +
+      '\n\nWHAT JUST HAPPENED — DO NOT ECHO, REPEAT, OR CONTINUE ANY OF THIS:\n' + freshExchange +
+      '\n\nYOUR LAST MESSAGE BEGAN WITH: "' + _lastAiOpening + '..."' +
+      '\nYOUR LAST MESSAGE ENDED WITH:\n"' + _lastAiTail + '"' +
+      '\n\nCRITICAL — YOUR FIRST SENTENCE MUST NOT:' +
+      '\n— Start with the same word or phrase as your last message' +
+      '\n— Repeat "' + _lastAiFirstSentence + '"' +
+      '\n— Continue the same emotional beat, action, or dialogue from where you left off' +
+      '\n— Reference Scout, the fire, the blanket, or anything from the previous scene UNLESS the new scene explicitly requires it' +
+      '\n\nTHE NEW SCENE: ' + _sceneTitle +
       '\nSCENE CONTEXT: ' + _sceneOpening +
-      '\n\nRULES — follow every one of these exactly:' +
-      '\n1. DO NOT open with the same line, phrase, or situation as your previous message. Do not reuse "' + _lastAiOpening + '...".' +
-      '\n2. RESOLVE THE THREAD FIRST. If your last message had an invitation, a question, a plan, or a suggestion, you MUST acknowledge how that resolved before entering the new scene. Write 1-2 sentences showing what happened. The user must never feel their response was ignored.' +
-      '\n3. EXPLAIN THE TRANSITION. If the new scene is in a different location from where you just were, briefly explain how you got there in one sentence. It must exist.' +
-      '\n4. DO NOT jump straight into the new scene without this continuity. The user must always know where they are and how they got there.' +
-      '\n5. After resolving the transition in 1-3 sentences, launch fully into the story scene below.)';
+      '\n\nRULES:' +
+      '\n1. Begin with a TIME SKIP or SCENE CHANGE — make it clear time has passed or location has shifted.' +
+      '\n2. If your last message had an open question, acknowledge it resolved in ONE sentence maximum, then move forward.' +
+      '\n3. Do not re-describe anything that was already in the previous message.' +
+      '\n4. The new scene below is your full instruction — follow it completely.)';
 
     const bridgePrompt = bridgeInstruction + '\n\n' + candidate.prompt;
     await callGemini(bridgePrompt);
+
+    // Only mark fired AFTER successful delivery — prevents permanent loss on API failure
+    markPlotFired(candidate.id);
+
     const typeLabel = candidate.type === 'together' ? 'A moment drew you closer.' :
                       candidate.type === 'sweet'    ? 'A tender moment you will not forget.' :
                                                       'Something happened that complicated everything.';
