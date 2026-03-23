@@ -7012,7 +7012,7 @@ async function autoSummarize(){
   const userName=userPersona?.name||'the user';
   const msgText=toSummarize.map(m=>`${m.role==='user'?userName:bfFirstName}: ${m.content}`).join('\n');
 
-  const sumPrompt=`Summarize this roleplay conversation between ${bfFirstName} and ${userName} in 3-5 sentences. Focus on: what happened, how the relationship progressed, key emotional moments, and anything important either person revealed. Be concise and specific.
+  const sumPrompt=`Summarize this roleplay conversation between ${bfFirstName} and ${userName} in 4-6 sentences. Focus on: what happened, how the relationship progressed, key emotional moments, important things either person revealed, and where things currently stand. Be specific — include character names, key events, and emotional shifts.
 
 CONVERSATION:
 ${msgText}
@@ -7020,7 +7020,7 @@ ${msgText}
 Summary:`;
 
   try{
-    const summary = await callAnyAPI('You are a conversation summarizer.', [{role:'user',content:sumPrompt}], 300, 0.7);
+    const summary = await callAnyAPI('You are a conversation summarizer. Write complete, uncut summaries. Never truncate mid-sentence.', [{role:'user',content:sumPrompt}], 800, 0.7);
     if(summary){ saveSummary(currentBF.id, summary); renderMemoryPanel(); }
   }catch(e){ /* silent fail */ }
 }
@@ -12398,22 +12398,10 @@ function markQDoneToday(bfId){
   localStorage.setItem('daily_q_done_'+bfId, new Date().toDateString());
 }
 function checkDailyQuestion(){
-  if(!currentBF||!apiKey) return;
-  if(hasDoneQToday(currentBF.id)) return;
-  const relData = getRelHealth(currentBF.id);
-  if(!['dating','fiance','married','close','friend'].includes(relData.status)){
-    const stage = getStage(currentBF);
-    if(stage < 2) return; // only show for friends or closer
-  }
-  const q = DAILY_QUESTIONS[getTodayDailyQIndex()];
-  const bf = savedBFs.find(b=>b.id===currentBF.id)||BF_DATA.find(b=>b.id===currentBF.id);
-  const overlay = document.getElementById('daily-q-overlay');
-  if(!overlay) return;
-  const nameEl = document.getElementById('daily-q-char-name');
-  const qEl = document.getElementById('daily-q-question');
-  if(nameEl) nameEl.textContent = (bf?.name.split(' ')[0]||'He') + ' wants to know...';
-  if(qEl) qEl.textContent = '"' + q + '"';
-  overlay.style.display='flex';
+  // Daily questions only go to the Texts tab via sendDailyQuestionToTexts.
+  // This function is intentionally disabled for the story tab to prevent
+  // the overlay popup appearing mid-scene.
+  return;
 }
 function dismissDailyQ(){
   const overlay = document.getElementById('daily-q-overlay');
