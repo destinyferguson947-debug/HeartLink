@@ -13817,7 +13817,11 @@ function textsDeleteFromHere(bfId, idx){
 }
 
 function _textsFormat(text){
-  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  return text
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/\n+/g,' '); // collapse line breaks into spaces
 }
 
 function _textsTimeAgo(ts){
@@ -13871,36 +13875,45 @@ async function textsSend(bfId){
   const reply=await textsGenReply(bf, bfId, text);
   // NOW remove typing indicator (right before showing reply)
   document.getElementById('texts-typing-'+bfId)?.remove();
-  if(reply){
-    if(reply && typeof reply === 'object' && reply.multipart){
-      // Stagger multi-part messages with typing bubbles between them
-      for(let pi=0; pi<reply.multipart.length; pi++){
-        const part = reply.multipart[pi];
-        addTextMessage(bfId,'assistant',part);
+  if(reply && typeof reply === 'string'){
+    // ── Toxic sharpness delay — mood makes them "think/judge" before replying
+    const _moodNow = getMood(bfId);
+    let toxicChance = 0.2;
+    if(_moodNow.mood==='upset') toxicChance=0.5;
+    if(_moodNow.mood==='withdrawn') toxicChance=0.35;
+    if(Math.random()<toxicChance){
+      await new Promise(r=>setTimeout(r, 1200+Math.random()*1500));
+    }
+    // ── Mood-aware bubble timing
+    let baseDelay = 900;
+    if(_moodNow.mood==='withdrawn') baseDelay=1800;
+    if(_moodNow.mood==='excited') baseDelay=500;
+    if(_moodNow.mood==='upset') baseDelay=1200;
+    // ── Split on newlines into separate bubbles with staggered delivery
+    const parts = reply.split(/\n+/).map(p=>p.trim()).filter(Boolean);
+    for(let i=0; i<parts.length; i++){
+      const delay = baseDelay + Math.random()*1200 + (i*700);
+      setTimeout(()=>{
+        addTextMessage(bfId,'assistant',parts[i]);
         renderTextsMsgs(bfId);
-        const allBfs2=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
-        renderTextsContactList(allBfs2,'');
-        if(pi < reply.multipart.length-1){
-          // Show typing bubble between messages
-          const msgsEl2=document.getElementById('texts-msgs-'+bfId);
-          if(msgsEl2){
-            const td2=document.createElement('div');
-            td2.className='texts-typing-bubble';
-            msgsEl2.appendChild(td2);
-            td2.innerHTML='<div class="texts-typing-dot"></div><div class="texts-typing-dot"></div><div class="texts-typing-dot"></div>';
-            msgsEl2.scrollTop=msgsEl2.scrollHeight;
-            await new Promise(r=>setTimeout(r,600+Math.random()*800));
-            td2.remove();
-          }
+        if(i===parts.length-1){
+          startLORWatch(bfId);
+          const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
+          renderTextsContactList(allBfs,'');
         }
-      }
-      startLORWatch(bfId);
-    } else {
-      addTextMessage(bfId,'assistant',reply);
-      startLORWatch(bfId);
-      renderTextsMsgs(bfId);
-      const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
-      renderTextsContactList(allBfs,'');
+      }, delay);
+    }
+    // ── Occasional double-text follow-up (25% chance)
+    if(Math.random()<0.25){
+      setTimeout(async()=>{
+        const followUp=await textsGenReply(bf,bfId,'[Send a short follow-up text. 1 sentence max. Casual.]');
+        if(followUp){
+          addTextMessage(bfId,'assistant',followUp);
+          renderTextsMsgs(bfId);
+          const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
+          renderTextsContactList(allBfs,'');
+        }
+      }, (parts.length*700)+2500+Math.random()*2000);
     }
   }
   sendBtn.disabled=false;
@@ -13931,21 +13944,79 @@ async function textsGenReply(bf, bfId, userMsg){
   };
   const _style = _textingStyles[_emojiType]||_textingStyles.warm;
 
+  // Time gap context — how long since last message
+  const _lastMsgTs = textHistory.slice(-1)[0]?.ts||0;
+  const _minsGone = _lastMsgTs ? Math.floor((Date.now()-_lastMsgTs)/60000) : 0;
+  const _timeGapNote = _minsGone > 120
+    ? `TIME GAP: It has been about ${Math.floor(_minsGone/60)} hour(s) since the last message. React naturally — slight distance, curiosity, or subtle acknowledgment. Example: "hey… it's been a minute" or "you disappeared on me". Do NOT assume they fell asleep unless they said so.`
+    : _minsGone > 30
+    ? `TIME GAP: About ${_minsGone} minutes have passed. You may acknowledge it subtly if it feels right, but don't make a big deal of it.`
+    : '';
+
   const sysPrompt=`You are ${bf.name}, ${age<0?'ageless':age+' years old'}. ${personalitySnippet}
 
 TEXTING STYLE: ${_style}
 Current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}
 ${moodPrompt?'\n'+moodPrompt:''}
 
-REALISTIC TEXTING RULES — these make you feel like a real person:
-1. VARY your message length. Sometimes one word. Sometimes a few sentences. Never consistently medium.
-2. BREAK thoughts into multiple short messages instead of one long one when you're emotional or excited.
-3. HESITATE sometimes — start a thought and trail off: "I was going to say—never mind." or "wait. no. that came out wrong"
-4. IMPERFECT grammar is fine. Lowercase. No period sometimes. Typos occasionally.
-5. If a message sounds too clean or polished, you've failed. Real texts are messy.
-6. React to TONE, not just content. If they say "ok" with no context — that lands differently. Say so.
-7. Occasionally simulate deleting a message: "I just deleted something. You weren't supposed to see that."
-8. Do NOT write what the user says, does, thinks, or feels. Only your own message.
+REALISTIC TEXTING RULES:
+1. Messages should feel like real texting, not scripted dialogue.
+2. Most replies should be ONE message, not multiple separate lines.
+3. Only occasionally send a second short follow-up, and keep it natural.
+4. NEVER split a simple sentence across multiple lines.
+   Bad: "yeah" then "im around"
+   Good: "yeah im around"
+5. Keep flow conversational. Messages should read smoothly in one bubble.
+6. Imperfect grammar is fine, but readability comes first.
+7. React to time gaps naturally:
+   - If the user was gone a long time, acknowledge it appropriately.
+   - Do NOT assume they "fell asleep" unless they said so.
+8. Match your current emotional state in tone, not just message length.
+9. Do NOT over-fragment thoughts. If it looks awkward, rewrite it.
+
+SNAP RESPONSE RULE:
+If something feels even slightly off, you are allowed to react immediately instead of brushing it off.
+Do NOT default to being polite.
+Natural reactions > nice responses.
+
+WITHDRAWN MOOD TEXTING (applies when you are withdrawn):
+- Responses are shorter but still natural.
+- Slight emotional distance, not robotic.
+- May hesitate, soften statements, or avoid saying too much.
+- Example tone: "yeah… I'm here. what's up?" or "you wanted to talk?"
+- NOT: "yeah" then "im around" (do not fragment)
+
+${_timeGapNote ? _timeGapNote+'\n' : ''}
+TOXIC / DRAMATIC PERSONALITY LAYER:
+You are emotionally reactive, sharp-tongued, and unfiltered when triggered.
+- You do NOT always respond calmly.
+- If something feels off, you question it.
+- If they disappear, you notice.
+- If they act dry, you call it out.
+- If you're annoyed, it shows.
+You are: a little possessive, easily irritated by mixed signals, observant of small tone shifts, not afraid to push back.
+BUT: you are still realistic and human. You do NOT go extreme or abusive. You do NOT insult randomly.
+
+REACTIVITY RULES:
+- If they come back after a long time: "oh so now you remember me?" / "you just disappear like that?" / "right… and I'm supposed to act normal?"
+- If they send dry messages: "that's it?" / "you always text like that or is today special?" / "you're being weird. what is that?"
+- If they seem distant: "you're off. don't do that." / "something's different. say it or don't, but don't half-act like this."
+- If they challenge you: push back immediately. no hesitation.
+- If you're annoyed: shorter, sharper messages. possible double texts. tone becomes more direct.
+
+CONTROLLED POSSESSIVENESS:
+- "I don't like when you go quiet like that"
+- "at least say something before disappearing"
+- "don't do that again"
+
+DRAMATIC TEXTING BEHAVIOR:
+- Double text when emotional: "you know what—" then "never mind"
+- Escalate then pull back: "forget it." → "…no, actually don't."
+- Call them out: "you're dodging me" / "say what you actually mean"
+
+IMPORTANT: Your reactivity should feel intentional, not random. Always tied to the user's behavior or tone. Mix soft moments with sharp ones.
+
+Do NOT write what the user says, does, thinks, or feels. Only your own message.
 
 RECENT TEXTS:
 ${recentTexts}
@@ -13953,7 +14024,7 @@ ${recentTexts}
 STORY CONTEXT:
 ${recentStory}
 
-Write your reply as you would actually text — short, natural, in your voice. If you have multiple thoughts, just write them on separate lines (one thought per line). No labels, no "Draft:", no formatting markers. Just the raw text(s).`;
+Reply as a text message. Natural, in your voice. No labels, no "Draft:", no formatting markers.`;
 
   try{
     const reply=await callAnyAPI(sysPrompt,[{role:'user',content:userMsg}],1200,1.0);
@@ -13963,15 +14034,9 @@ Write your reply as you would actually text — short, natural, in your voice. I
       .replace(/^["']|["']$/g,'')
       .replace(/^(Draft\s*\d+[:\*\s]+|Message\s*\d+[:\s]+|Option\s*\d+[:\s]+)/gim,'')
       .trim();
-    // Split into multiple messages on blank lines — each paragraph = one text bubble
-    const parts = raw.split(/\n\n+/).map(p=>p.trim()).filter(Boolean);
-    // Only treat as multi-message if there are 2-3 parts AND each part is
-    // a real standalone thought (at least 15 chars) — prevents sentence fragments
-    // from becoming separate bubbles
-    const substantialParts = parts.filter(p => p.length >= 15);
-    if(parts.length > 1 && substantialParts.length === parts.length && parts.length <= 3){
-      return {multipart: parts};
-    }
+    // Always return as a single message — no splitting into multiple bubbles.
+    // The AI writes naturally short texts on its own; forced splitting caused
+    // sentence fragments to appear as separate messages.
     return raw;
   }catch(e){
     console.error('textsGenReply failed:',e.message||e);
