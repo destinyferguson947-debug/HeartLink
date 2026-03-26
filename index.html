@@ -947,7 +947,7 @@
   <!-- heartlink-build-v12 -->
   <!-- heartlink-build-v12 -->
   <!-- heartlink-build-v25 -->
-  <!-- heartlink-build-v41 -->
+  <!-- heartlink-build-v42 -->
 </head>
 <body>
 
@@ -8586,10 +8586,22 @@ async function callGeminiForBF(bf, instruction){
 async function generateAndSaveAutoMsg(bf, instruction, routeToTexts){
   if(!apiKey && !proxyMode) return;
   const _useTexts = routeToTexts !== false && isTextsUnlocked(bf.id);
+  // For texts: use FULL personality snippet (not truncated) + current mood
+  const _autoMood = getMood(bf.id);
+  const _autoMoodLabel = MOOD_DATA[_autoMood?.mood]?.label || '';
+  const _autoMoodPrompt = getMoodPrompt(bf.id);
+  const _autoPersonality = (bf.core||bf.personality||'').replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,600);
   const sysPrompt = _useTexts
-    ? `You are ${bf.name}. ${(bf.personality||'').substring(0,400)}
-You are sending a text message on your phone. Keep it short (1-3 sentences), natural, casual. 
-NO action descriptions (*does something*). Just the text message itself. No quotes around it.`
+    ? `You are ${bf.name}. ${_autoPersonality}
+
+CURRENT MOOD: ${_autoMoodLabel||'yourself'}
+${_autoMoodPrompt || ''}
+
+AUTO TEXT RULES:
+This is a real unsolicited text, not a supportive assistant message.
+Do NOT sound polished, therapeutic, or generically warm.
+Your mood shapes everything — if you are cold, the text is clipped. If lonely, it reaches. If withdrawn, it may barely say anything. If irritable, it bites slightly. If warm or tender, let that be natural, not performed.
+Speak in your actual voice. 1-3 sentences max. No action descriptions. No quotes around the message.`
     : generateSystemPrompt(bf);
   const history = _useTexts ? getTextHistory(bf.id) : (chatHistory[bf.id]||[]);
   // For story auto-messages: only use last 4 messages to avoid the AI re-running
@@ -12735,8 +12747,9 @@ function checkTimeBasedMessage(){
   const today = new Date().toDateString();
   const key = 'time_msg_'+tod+'_'+today;
   if(localStorage.getItem(key)) return;
-  // Find the most-recently-active character who is close/dating/married
+  // Find eligible characters who have auto-msg ON and are close enough
   const eligible = savedBFs.filter(bf=>{
+    if(!getAutoMsgEnabled(bf.id)) return false; // respect per-character toggle
     const h = (chatHistory[bf.id]||[]).length;
     if(h < 3) return false;
     const rd = getRelHealth(bf.id);
@@ -12756,15 +12769,27 @@ function checkTimeBasedMessage(){
   localStorage.setItem(key, '1');
   const rd = getRelHealth(bf.id);
   const isCommitted = ['dating','fiance','married'].includes(rd.status);
+  // Get current mood to shape the message
+  const _tmMood = getMood(bf.id)?.mood || 'baseline';
+  const _tmLabel = MOOD_DATA[_tmMood]?.label || '';
+  const _coldMoods = ['cold','withdrawn','avoidant','argumentative'];
+  const _warmMoods = ['tender','playful','teasing','flustered','clingy','lonely','touchstarved'];
+  const _isCold = _coldMoods.includes(_tmMood);
+  const _isWarm = _warmMoods.includes(_tmMood);
+  // Build mood-aware instruction — NO generic warm/cheerful language when cold
+  let moodNote = '';
+  if(_isCold) moodNote = `Your current mood is ${_tmLabel}. The message reflects this — it is brief, clipped, or absent of warmth. You are not performing a "goodnight" ritual. If you reach out at all, it is minimal.`;
+  else if(_tmMood === 'lonely') moodNote = `Your current mood is Lonely. The message has a quality of reaching out in the quiet — not dramatic, just present.`;
+  else if(_tmMood === 'sad') moodNote = `Your current mood is low/quiet. The message is soft and short. Not cheerful.`;
+  else if(_tmMood === 'irritable' || _tmMood === 'moody') moodNote = `Your current mood is ${_tmLabel}. The message may be short, slightly off, or have a subtle edge to it.`;
+  else if(_isWarm) moodNote = `Your current mood is ${_tmLabel}. Let that warmth come through naturally — not performed, just present.`;
+  else moodNote = `Your current mood is ${_tmLabel||'yourself'}. Sound like yourself.`;
+
   let instruction = '';
   if(tod==='morning'){
-    instruction = isCommitted
-      ? `(It's morning. Send a short, natural good morning message in your voice — like you just woke up and thought of them. Maybe mention what you're doing this morning. Under 3 sentences. Don't be generic.)`
-      : `(It's morning. You thought of them. Send something brief and natural in your voice — maybe something you noticed this morning, or just a low-key check-in. Under 3 sentences. Don't be generic or formal.)`;
+    instruction = `(It's morning. You thought of them and sent a text. MOOD RIGHT NOW: ${moodNote} This is NOT a generic "good morning!" — it should sound like you woke up and a thought came to you, colored entirely by how you actually feel right now. ${isCommitted?'Maybe mention what you are doing this morning.':''} Under 3 sentences. No quotes around the message.)`;
   } else {
-    instruction = isCommitted
-      ? `(It's late. Send a short good night message in your voice — warm, specific, real. Maybe mention what you were doing tonight. Under 3 sentences.)`
-      : `(It's late. You thought of them before bed. Send something brief and real in your voice. Under 3 sentences. Not "sweet dreams" — something more like you.)`;
+    instruction = `(It's late at night. You sent a text before going to sleep or winding down. MOOD RIGHT NOW: ${moodNote} This is NOT a generic "goodnight, sweet dreams" — it should sound like whatever your actual headspace is right now. If you are cold, maybe you almost didn't send anything. If you are warm, let it be real not performative. ${isCommitted?'Maybe mention what you were doing tonight.':''} Under 3 sentences. No quotes around the message.)`;
   }
   setTimeout(async ()=>{
     if(!apiKey) return;
