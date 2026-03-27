@@ -8596,8 +8596,8 @@ async function generateAndSaveAutoMsg(bf, instruction, routeToTexts){
   const _useTexts = routeToTexts !== false && isTextsUnlocked(bf.id);
   // For texts: use FULL personality snippet (not truncated) + current mood
   const _autoMood = getMood(bf.id);
-  const _autoMoodLabel = MOOD_DATA[_autoMood?.mood]?.label || '';
-  const _autoMoodPrompt = getMoodPrompt(bf.id);
+  const _autoMoodLabel = (MOOD_DATA[_autoMood?.mood]?.label || '').replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F]/gu, '').trim();
+  const _autoMoodPrompt = _useTexts ? getTextsMoodPrompt(bf.id) : getMoodPrompt(bf.id);
   const _autoPersonality = (bf.core||bf.personality||'').replace(/`[\s\S]*?`/g,'').replace(/\s+/g,' ').trim().substring(0,600);
   const sysPrompt = _useTexts
     ? `You are ${bf.name}. ${_autoPersonality}
@@ -8606,10 +8606,12 @@ CURRENT MOOD: ${_autoMoodLabel||'yourself'}
 ${_autoMoodPrompt || ''}
 
 AUTO TEXT RULES:
-This is a real unsolicited text, not a supportive assistant message.
+This is a real unsolicited text message — not a scripted line, not a scene, not narration.
+You are holding a phone. There is no physical environment to describe.
+Express your mood ONLY through tone, word choice, and what you focus on — never through invented situations, people, or events.
 Do NOT sound polished, therapeutic, or generically warm.
-Your mood shapes everything — if you are cold, the text is clipped. If lonely, it reaches. If withdrawn, it may barely say anything. If irritable, it bites slightly. If warm or tender, let that be natural, not performed.
-Speak in your actual voice. 1-3 sentences max. No action descriptions. No quotes around the message.`
+1-3 sentences max. No action descriptions. No quotes around the message.
+REALISM CHECK: would a real person actually send exactly this message right now? If not, rewrite it.`
     : generateSystemPrompt(bf);
   const history = _useTexts ? getTextHistory(bf.id) : (chatHistory[bf.id]||[]);
   // For story auto-messages: only use last 4 messages to avoid the AI re-running
@@ -14357,11 +14359,69 @@ async function textsSend(bfId){
   sendBtn.disabled = false;
 }
 
+// ── TEXT-MODE MOOD PROMPT ────────────────────────────────────────────────────
+// Separate from getMoodPrompt — strips all physical/scene-inventing instructions.
+// Emotions are expressed ONLY through tone, pacing, word choice, and reaction.
+// Characters are holding a phone. They do NOT invent scenarios to justify moods.
+function getTextsMoodPrompt(bfId){
+  const {mood} = getMood(bfId);
+  if(!mood || mood === 'baseline') return '';
+
+  // Text-mode behavior per mood — no physical scenes, no invented situations
+  const textMoodBehaviors = {
+    cold:          'Your mood right now is COLD. Express it through: short replies, slight detachment, not volunteering warmth, delayed emotional engagement. Do NOT invent scenarios or locations to justify this.',
+    clingy:        'Your mood right now is CLINGY. Express it through: double-texting, seeking reassurance in subtle ways, noticing if they go quiet, slightly needy word choices. Do NOT invent scenarios.',
+    jealous:       'Your mood right now is JEALOUS. Express it through: questioning small details in what they say, reading into their tone, being slightly accusatory while masking it as curiosity. Do NOT invent people or situations.',
+    protective:    'Your mood right now is PROTECTIVE. Express it through: your tone, your focus on their emotional state, being defensive about anything they say is bothering them. Do NOT invent external threats, people, or physical situations. You are texting — no one is physically present.',
+    sad:           'Your mood right now is SAD/LOW. Express it through: slower energy in replies, slightly lower effort, indirect vulnerability, avoiding direct explanation. Do NOT invent situations to explain the sadness.',
+    angry:         'Your mood right now is ANGRY. Express it through: sharp phrasing, short patience, cutting word choices, slight misreading of their tone. Do NOT invent provocations.',
+    withdrawn:     'Your mood right now is WITHDRAWN. Express it through: minimal replies, distance in tone, avoiding depth, slower engagement. Do NOT invent reasons for pulling away.',
+    irritable:     'Your mood right now is IRRITABLE. Express it through: low tolerance, reacting quickly to small things, short temper in word choice. Do NOT invent things to be irritated about.',
+    touch_starved: 'Your mood right now is TOUCH-STARVED. Express it through: subtle longing in tone, noticing emotional absence, bringing up closeness in the conversation, slightly softer phrasing. Do NOT invent physical proximity scenarios.',
+    vulnerable:    'Your mood right now is VULNERABLE. Express it through: slightly more honest than usual, one thing slipping out that you didn\'t plan to say, going quiet after. Do NOT invent situations.',
+    tender:        'Your mood right now is TENDER. Express it through: noticing small things they say, being more careful with words, quiet warmth. Do NOT invent scenes.',
+    restless:      'Your mood right now is RESTLESS. Express it through: slightly faster pace, short bursts, wanting to move the conversation somewhere, low patience with stagnation. Do NOT invent places to go.',
+    avoidant:      'Your mood right now is AVOIDANT. Express it through: redirecting depth, keeping things surface-level, brief answers that don\'t invite more. Do NOT invent reasons for avoidance.',
+    lonely:        'Your mood right now is LONELY. Express it through: finding small ways to extend the conversation, being glad they\'re there without saying it, subtle reaching-out energy. Do NOT invent situations.',
+    flustered:     'Your mood right now is FLUSTERED. Express it through: slightly off-balance word choices, recovering mid-sentence, saying something and immediately second-guessing it. Do NOT invent scenarios.',
+    teasing:       'Your mood right now is TEASING/PLAYFUL. Express it through: light jabs, plausible deniability, poking at something they said. Do NOT invent situations.',
+    argumentative: 'Your mood right now is ARGUMENTATIVE. Express it through: pushing back on what they actually said, taking a position and holding it. Only push back on real things said in this conversation.',
+    moody:         'Your mood right now is MOODY. Express it through: inconsistent tone across the conversation — warm one moment, clipped the next. Do NOT invent reasons for the mood.',
+    playful:       'Your mood right now is PLAYFUL/MISCHIEVOUS. Express it through: light humor, saying something with a double meaning, being a little unpredictable. Do NOT invent scenarios.',
+  };
+
+  const behavior = textMoodBehaviors[mood] || `Your mood right now is ${MOOD_DATA[mood]?.label||mood}. Let it show in your tone, pacing, and word choice only — not through invented scenarios.`;
+
+  // Check for mood shift note from getMoodPrompt logic
+  const justShifted = localStorage.getItem('mood_just_shifted_'+bfId);
+  const prevMoodLabel = localStorage.getItem('prev_mood_label_'+bfId) || '';
+  let shiftNote = '';
+  if(justShifted){
+    const _shiftCount = parseInt(justShifted) || 1;
+    if(_shiftCount > 1) localStorage.setItem('mood_just_shifted_'+bfId, String(_shiftCount - 1));
+    else localStorage.removeItem('mood_just_shifted_'+bfId);
+    shiftNote = mood === 'baseline'
+      ? ` Your previous mood (${prevMoodLabel||'heightened state'}) has passed. Return to your normal tone.`
+      : ` Your mood just shifted from ${prevMoodLabel||'before'} to ${MOOD_DATA[mood]?.label||mood}. Do not carry the old energy forward.`;
+  }
+
+  return `${behavior}${shiftNote}
+
+EMOTION GROUNDING — MANDATORY FOR ALL TEXT REPLIES:
+- You are holding a phone. This is a text conversation. There is no physical scene.
+- Express your mood ONLY through: tone, pacing, word choice, hesitation, what you focus on.
+- Do NOT invent external events, people, locations, or situations to justify your emotion.
+- Do NOT describe your surroundings or actions happening outside this conversation.
+- If your emotion cannot be expressed through the conversation itself → tone it down.
+- CONTEXT ALWAYS WINS: if your mood does not fit what the user just said, adapt it — don't force it.
+- REALISM CHECK: before sending, ask "would a real person send exactly this?" If it sounds like narration or a scripted line → rewrite it.`;
+}
+
 async function textsGenReply(bf, bfId, userMsg){
   const relData=getRelHealth(bfId);
   const stage=getStage(bf);
   const mood=getMood(bfId);
-  const moodPrompt=getMoodPrompt(bfId);
+  const moodPrompt=getTextsMoodPrompt(bfId);
   const age=getCharacterAge(bf);
   const textHistory=getTextHistory(bfId);
   const recentTexts=textHistory.slice(-20).map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
