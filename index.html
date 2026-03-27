@@ -1468,18 +1468,7 @@
 </div>
 
 <!-- DAILY QUESTION OVERLAY -->
-<div id="daily-q-overlay" style="display:none;position:fixed;inset:0;background:rgba(42,26,31,0.7);z-index:600;backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center">
-  <div style="background:var(--card);border-radius:1.2rem;padding:1.5rem;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
-    <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--rose);margin-bottom:0.5rem">💬 Daily Question</div>
-    <div id="daily-q-char-name" style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--text);margin-bottom:0.8rem"></div>
-    <div id="daily-q-question" class="daily-q-text"></div>
-    <textarea id="daily-q-answer" class="daily-q-input" rows="3" placeholder="Your answer..."></textarea>
-    <div style="display:flex;gap:0.5rem;margin-top:0.6rem">
-      <button class="daily-q-send" onclick="submitDailyAnswer()">Send Answer 💌</button>
-      <button style="background:none;border:1px solid var(--border);border-radius:0.6rem;padding:0.4rem 0.8rem;font-size:0.8rem;cursor:pointer;color:var(--text-muted)" onclick="dismissDailyQ()">Later</button>
-    </div>
-  </div>
-</div>
+<!-- daily-q-overlay removed -->
 
 <!-- LOVE LANGUAGE SETUP MODAL -->
 <div id="ll-modal" style="display:none;position:fixed;inset:0;background:rgba(42,26,31,0.7);z-index:600;backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -5814,8 +5803,6 @@ function openChat(id){
   renderMessages();
   renderMemoryPanel();
   if(!chatHistory[id].length) sendGreeting();
-  // Check for daily question when opening chat
-  setTimeout(()=>checkDailyQuestion(), 2000);
   // Init and display mood
   initMood(id);
   updateMoodBadge(id);
@@ -7003,6 +6990,27 @@ WHO IS IN THIS SCENE: The user and any NPCs present. Write them fully.
     }
   } catch(e) {}
   // ── END SCENE EXIT DETECTION ──────────────────────────────────────────────
+
+  // ── CROSS-TAB CONTINUITY: Story tab knows what happened in Texts ─────────
+  try {
+    const _textHist = getTextHistory(currentBF.id);
+    if(_textHist.length > 0){
+      const _recentTexts = _textHist.slice(-8);
+      const _lastTextTs = _recentTexts[_recentTexts.length-1]?.ts || 0;
+      const _textAgeMinutes = (Date.now() - _lastTextTs) / 60000;
+      if(_textAgeMinutes < 180){
+        const _textSummary = _recentTexts.map(m => (m.role==='user' ? 'Them' : 'You') + ': ' + (m.content||'').substring(0, 80)).join('\n');
+        const _textContent = _recentTexts.map(m => m.content||'').join(' ').toLowerCase();
+        const _hadFight = ['fine','whatever','forget it','leave me alone','i\'m done','are you kidding','you always','you never','that\'s not fair'].some(w => _textContent.includes(w));
+        const _hadWarm  = ['miss you','thinking of you','want you','come over','need you','love you','stay'].some(w => _textContent.includes(w));
+        let _crossNote = '';
+        if(_hadFight) _crossNote = '\nIMPORTANT: You two had tension or conflict over text recently. Do NOT pretend everything is fine in person. Let that friction colour how you are right now — guarded, hurt, or waiting to see how they play it. You do not bring it up immediately, but you absolutely do not act like it never happened.';
+        else if(_hadWarm) _crossNote = '\nIMPORTANT: Things were warm and close over text recently. Let that ease carry into how you are with them right now.';
+        fullSystem += `\n\n--- CROSS-TAB: RECENT TEXTS (${Math.round(_textAgeMinutes)} min ago) ---\n${_textSummary}${_crossNote}\nRULE: Do not re-explain the texts or reference "your texts." Just let what happened there inform how you are right now. You are the same person in both spaces.\n--- END CROSS-TAB ---`;
+      }
+    }
+  } catch(e) {}
+  // ── END CROSS-TAB ────────────────────────────────────────────────────────
 
   const history = chatHistory[currentBF.id]||[];
   // Smart context window: keep summary + last 100 messages to avoid token overflow
@@ -12648,86 +12656,7 @@ function getLoveLanguagePrompt(bfId){
   return `\n[LOVE LANGUAGE — HOW YOU EXPRESS: ${prompts[charLL]||''}\nHOW THEY RECEIVE: ${userPrefs[userLL]||''}]`;
 }
 
-// ════════════════════════════════════════════════════════════
-// DAILY QUESTION SYSTEM
-// ════════════════════════════════════════════════════════════
-const DAILY_QUESTIONS = [
-  "What's one thing that scared you as a kid that you're not scared of anymore?",
-  "What's the first thing you do when you wake up in the morning?",
-  "If you could live anywhere, where would it be?",
-  "What's a song you could listen to on repeat?",
-  "What's something you're proud of that you never talk about?",
-  "What does a perfect lazy day look like for you?",
-  "What's the most beautiful thing you've ever seen?",
-  "What's a small thing that always makes you smile?",
-  "What's something you've changed your mind about?",
-  "What's one thing you wish people understood about you?",
-  "What's your earliest happy memory?",
-  "What's something you're currently learning or curious about?",
-  "What do you do when you're sad and no one can help?",
-  "If you had one free day with no obligations, what would you do?",
-  "What's something that instantly makes you feel better?",
-  "What's the last thing you looked forward to?",
-  "What's a habit you have that you don't tell people about?",
-  "What's something that felt impossible that you did anyway?",
-];
-
-function getTodayDailyQIndex(){
-  const today = new Date();
-  return (today.getFullYear()*500 + today.getMonth()*31 + today.getDate()) % DAILY_QUESTIONS.length;
-}
-function hasDoneQToday(bfId){
-  const key = 'daily_q_done_'+bfId;
-  const stored = localStorage.getItem(key);
-  if(!stored) return false;
-  const today = new Date().toDateString();
-  return stored === today;
-}
-function markQDoneToday(bfId){
-  localStorage.setItem('daily_q_done_'+bfId, new Date().toDateString());
-}
-function checkDailyQuestion(){
-  // Daily questions only go to the Texts tab via sendDailyQuestionToTexts.
-  // This function is intentionally disabled for the story tab to prevent
-  // the overlay popup appearing mid-scene.
-  return;
-}
-function dismissDailyQ(){
-  const overlay = document.getElementById('daily-q-overlay');
-  if(overlay) overlay.style.display='none';
-}
-async function submitDailyAnswer(){
-  const answer = document.getElementById('daily-q-answer')?.value?.trim();
-  if(!answer||!currentBF) return;
-  const q = DAILY_QUESTIONS[getTodayDailyQIndex()];
-  dismissDailyQ();
-  markQDoneToday(currentBF.id);
-  // Store as a memory
-  const bf = savedBFs.find(b=>b.id===currentBF.id)||BF_DATA.find(b=>b.id===currentBF.id);
-  const fn = bf?.name.split(' ')[0]||'He';
-  const memText = `When asked "${q}", they said: "${answer}"`;
-  const mems = getMemories(currentBF.id);
-  mems.push({id: Date.now(), text: memText, auto: true, ts: Date.now()});
-  saveMemories(currentBF.id, mems);
-  // React — pass ONLY the question/answer as context, not the full story history.
-  // Full history causes the AI to repeat the question then add a reaction at the bottom.
-  if(apiKey||proxyMode){
-    const sysPrompt = generateSystemPrompt(currentBF);
-    const reaction = await callAnyAPI(sysPrompt, [
-      {role:'model', content: `I wanted to ask you something — ${q}`},
-      {role:'user',  content: answer},
-      {role:'user',  content: `(React naturally to their answer in your voice. Genuinely listen. Maybe ask one follow-up. Under 4 sentences. Do NOT repeat the question.)`}
-    ], 300, 1.0);
-    if(reaction){
-      const clean = reaction.trim().replace(/^["'*]|["'*]$/g,'').trim();
-      if(!chatHistory[currentBF.id]) chatHistory[currentBF.id]=[];
-      chatHistory[currentBF.id].push({role:'assistant', content:clean});
-      saveHistory();
-      renderMessages();
-    }
-  }
-  showToast('Answer saved as a memory 💭');
-}
+// Daily question system removed — replaced by mood-driven check-ins in checkMoodCheckin()
 
 // ════════════════════════════════════════════════════════════
 // GOOD MORNING / GOOD NIGHT SYSTEM
@@ -12904,7 +12833,6 @@ async function sendMotionMessage(state){
 // ════════════════════════════════════════════════════════════
 function checkMoodCheckin(){
   if(!savedBFs.length||!apiKey) return;
-  // Find eligible characters who haven't gotten a check-in today
   savedBFs.forEach(bf=>{
     const stg = getStage(bf);
     if(stg < 2) return;
@@ -12912,17 +12840,29 @@ function checkMoodCheckin(){
     if(localStorage.getItem(key)) return;
     const lastMsg = parseInt(localStorage.getItem('last_user_msg_'+bf.id)||'0');
     const hoursSince = (Date.now()-lastMsg)/3600000;
-    if(hoursSince < 2 || hoursSince > 48) return; // only if 2-48h since last chat
+    if(hoursSince < 2 || hoursSince > 48) return;
     localStorage.setItem(key, '1');
-    const rd = getRelHealth(bf.id);
-    const isClose = ['dating','fiance','married'].includes(rd.status) || stg >= 3;
-    const instruction = isClose
-      ? `(You haven't heard from them in a while and you're checking in. Send a short, natural check-in in your voice — not "how are you" generically, but something specific to who you are. Under 2 sentences.)`
-      : `(You thought of them and are checking in after some time. Keep it brief and natural. Under 2 sentences.)`;
+    const mood = getMood(bf.id)?.mood || 'baseline';
+    // Mood-driven check-ins — personal, emotional, screenshot-worthy
+    const moodCheckins = {
+      cold:          `(You've been quiet and something is off. Text them — short, clipped. Something like "you disappeared." That energy. Don't explain it. Don't soften it.)`,
+      withdrawn:     `(You've been in your head. You text them without fully meaning to. Something brief and a little distant — "you've been quiet." Not accusing. Just true.)`,
+      jealous:       `(Something has been eating at you. Text them — short, pointed. "busy with someone else?" Don't dress it up. You're not hiding it.)`,
+      sad:           `(You're low today and you thought of them. Text them something small and honest — "you've been quiet." Let the weight show without explaining it.)`,
+      protective:    `(It's late or you're just thinking of them. Text them — "it's late. you okay?" Short. Real. The kind of message that means more than it says.)`,
+      clingy:        `(You need them today and you can't fully explain it. Text them something that shows it without announcing it — "where'd you go". Lowercase. Brief.)`,
+      restless:      `(You have too much going on and you keep thinking of them. Text them something brief and a little restless in tone. Not needy. Just real.)`,
+      irritable:     `(Something is bothering you and you haven't said what. Text them something short — not mean, but with an edge. The tone says more than the words.)`,
+      tender:        `(You've been thinking about them more than you should. Text them something honest — "been thinking about you more than I should." Lowercase, real, a little too honest.)`,
+      vulnerable:    `(Your guard is down. You text them something honest and brief — real, no armor. Let the vulnerability live in the word choice.)`,
+      lonely:        `(You're aware of the silence. Text them something small that extends the conversation — brief, low-key, just wanting them there.)`,
+      baseline:      `(You thought of them and decided to reach out. Send a natural, personal check-in — not generic "how are you" but something specific to who you are. Under 2 sentences.)`,
+    };
+    const instruction = moodCheckins[mood] || moodCheckins.baseline;
     setTimeout(async ()=>{
       if(!apiKey) return;
-      await generateAndSaveAutoMsg(bf, instruction);
-      sendBrowserNotif(bf.name.split(' ')[0], bf.name.split(' ')[0]+' is checking in on you 💗', bf.id);
+      await generateAndSaveAutoMsg(bf, instruction, true);
+      sendBrowserNotif(bf.name.split(' ')[0], bf.name.split(' ')[0]+' texted you 💬', bf.id);
     }, 5000 + Math.random()*30000);
   });
 }
@@ -14074,7 +14014,10 @@ function openTextsChat(bfId){
       <textarea class="texts-input" id="texts-input-${bfId}" placeholder="Message ${bf.name.split(' ')[0]}..." rows="1"
         onkeydown="textsHandleKey(event,${bfId})"
         oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
-      <button class="texts-send-btn" id="texts-send-${bfId}" onclick="textsSend(${bfId})" title="Send">➤</button>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:center;flex-shrink:0">
+        <button onclick="resetTextsData()" title="Reset texts data" style="width:28px;height:28px;border-radius:50%;background:var(--border);border:none;color:var(--text-muted);font-size:0.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;opacity:0.6" onmouseenter="this.style.opacity='1';this.style.background='var(--rose-light)'" onmouseleave="this.style.opacity='0.6';this.style.background='var(--border)'">↺</button>
+        <button class="texts-send-btn" id="texts-send-${bfId}" onclick="textsSend(${bfId})" title="Send">➤</button>
+      </div>
     </div>` : `
     <div class="texts-locked-overlay">
       <div style="font-size:2.5rem">🔒</div>
@@ -14290,103 +14233,128 @@ async function textsSend(bfId){
   inputEl.style.height='auto';
   const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
   if(!bf) return;
-  // Package reply context
-  var _sendReplyTarget = _textsReplyTarget ? {id:_textsReplyTarget.id,content:_textsReplyTarget.content,role:_textsReplyTarget.role} : null;
-  // Save user message with reply metadata
-  addTextMessage(bfId,'user',text,{
-    replyTo: _sendReplyTarget?_sendReplyTarget.id:null,
-    replyPreview: _sendReplyTarget?(_sendReplyTarget.content||'').slice(0,80):null
+
+  // Package reply context before clearing it
+  const _sendReplyTarget = _textsReplyTarget
+    ? {id:_textsReplyTarget.id, content:_textsReplyTarget.content, role:_textsReplyTarget.role}
+    : null;
+
+  // Save user message
+  addTextMessage(bfId, 'user', text, {
+    replyTo: _sendReplyTarget ? _sendReplyTarget.id : null,
+    replyPreview: _sendReplyTarget ? (_sendReplyTarget.content||'').slice(0,80) : null
   });
   cancelLORWatch(bfId);
-  // Clear reply target
-  _textsReplyTarget=null;
+  _textsReplyTarget = null;
   textsRenderReplyBar(bfId);
+  // Reactively shift mood based on what user said
+  reactivelyShiftMood(bfId, text);
+  localStorage.setItem('last_user_msg_'+bfId, Date.now().toString());
   renderTextsMsgs(bfId);
-  sendBtn.disabled=true;
-  // Interrupt check
-  var _nowSend=Date.now();
-  var _timeSinceLast=_nowSend-_textsLastUserSend;
-  _textsLastUserSend=_nowSend;
-  if(_textsIsTyping && _timeSinceLast<5000){
-    var _imood=getMood(bfId).mood;
-    var _imoods=['irritable','clingy','restless'];
-    if(getStage(bf)>=1 && (_imoods.includes(_imood)||Math.random()<0.18)){
-      var _iline=_getInterruptLine(bf,bfId);
+  sendBtn.disabled = true;
+
+  // Interrupt check — if already typing and user sends again rapidly
+  const _nowSend = Date.now();
+  const _timeSinceLast = _nowSend - _textsLastUserSend;
+  _textsLastUserSend = _nowSend;
+  if(_textsIsTyping && _timeSinceLast < 5000){
+    const _imood = getMood(bfId).mood;
+    if(getStage(bf)>=1 && (['irritable','clingy','restless'].includes(_imood) || Math.random()<0.18)){
+      const _iline = _getInterruptLine(bf, bfId);
       if(_iline){
-        addTextMessage(bfId,'assistant',_iline,{kind:'interruption'});
+        addTextMessage(bfId, 'assistant', _iline, {kind:'interruption'});
         renderTextsMsgs(bfId);
       }
     }
   }
+
   // Show typing indicator
-  const msgsEl=document.getElementById('texts-msgs-'+bfId);
+  const msgsEl = document.getElementById('texts-msgs-'+bfId);
   if(msgsEl){
-    const td=document.createElement('div');
-    td.id='texts-typing-'+bfId;
-    td.className='texts-typing-bubble';
-    td.innerHTML='<div class="texts-typing-dot"></div><div class="texts-typing-dot"></div><div class="texts-typing-dot"></div>';
+    document.getElementById('texts-typing-'+bfId)?.remove(); // clear any stale one
+    const td = document.createElement('div');
+    td.id = 'texts-typing-'+bfId;
+    td.className = 'texts-typing-bubble';
+    td.innerHTML = '<div class="texts-typing-dot"></div><div class="texts-typing-dot"></div><div class="texts-typing-dot"></div>';
     msgsEl.appendChild(td);
-    msgsEl.scrollTop=msgsEl.scrollHeight;
+    msgsEl.scrollTop = msgsEl.scrollHeight;
   }
-  _textsIsTyping=true;
-  var _replyCtxNote=_sendReplyTarget
-    ? ('\nREPLY CONTEXT:\nThe user is specifically replying to this earlier message of yours:\n"'+(_sendReplyTarget.content||'').slice(0,80)+'"\nIf their new message is short, interpret it in relation to that. Do not ignore it.')
+
+  _textsIsTyping = true;
+  const _replyCtxNote = _sendReplyTarget
+    ? ('\nREPLY CONTEXT:\nThe user is specifically replying to this earlier message of yours:\n"'+(_sendReplyTarget.content||'').slice(0,80)+'"\nIf their new message is short, interpret it in relation to that.')
     : '';
-  const reply=await textsGenReply(bf, bfId, text+_replyCtxNote);
-  _textsIsTyping=false;
-  // NOW remove typing indicator (right before showing reply)
+
+  let aiReply = null;
+  try {
+    aiReply = await textsGenReply(bf, bfId, text + _replyCtxNote);
+  } catch(e) {
+    console.error('textsGenReply error:', e);
+  }
+
+  _textsIsTyping = false;
   document.getElementById('texts-typing-'+bfId)?.remove();
-  // textsGenReply may return string or {content, replyTo}
-  var _aiReplyContent=null, _aiReplyToId=null;
-  if(reply && typeof reply==='object' && reply.content){ _aiReplyContent=reply.content; _aiReplyToId=reply.replyTo||null; }
-  else if(reply && typeof reply==='string'){ _aiReplyContent=reply; }
-  if(_aiReplyContent){
-    var _aiReplyPreview=null;
-    if(_aiReplyToId){ var _aiHist=getTextHistory(bfId); var _aiTgt=_aiHist.find(function(h){return h.id===_aiReplyToId;}); _aiReplyPreview=_aiTgt?_aiTgt.content.slice(0,80):null; }
-  if(_aiReplyContent && typeof _aiReplyContent === 'string'){
-    const reply = _aiReplyContent;
-    // ── Toxic sharpness delay — mood makes them "think/judge" before replying
-    const _moodNow = getMood(bfId);
-    let toxicChance = 0.2;
-    if(_moodNow.mood==='upset') toxicChance=0.5;
-    if(_moodNow.mood==='withdrawn') toxicChance=0.35;
-    if(Math.random()<toxicChance){
-      await new Promise(r=>setTimeout(r, 1200+Math.random()*1500));
-    }
-    // ── Mood-aware bubble timing
-    let baseDelay = 900;
-    if(_moodNow.mood==='withdrawn') baseDelay=1800;
-    if(_moodNow.mood==='excited') baseDelay=500;
-    if(_moodNow.mood==='upset') baseDelay=1200;
-    // ── Split on newlines into separate bubbles with staggered delivery
-    const parts = reply.split(/\n+/).map(p=>p.trim()).filter(Boolean);
-    for(let i=0; i<parts.length; i++){
-      const delay = baseDelay + Math.random()*1200 + (i*700);
-      setTimeout(()=>{
-        addTextMessage(bfId,'assistant',parts[i],i===0?{replyTo:_aiReplyToId,replyPreview:_aiReplyPreview}:{});
-        renderTextsMsgs(bfId);
-        if(i===parts.length-1){
-          startLORWatch(bfId);
-          const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
-          renderTextsContactList(allBfs,'');
-        }
-      }, delay);
-    }
-    // ── Occasional double-text follow-up (25% chance)
-    if(Math.random()<0.25){
-      setTimeout(async()=>{
-        const followUp=await textsGenReply(bf,bfId,'[Send a short follow-up text. 1 sentence max. Casual.]');
-        if(followUp){
-          addTextMessage(bfId,'assistant',followUp);
-          renderTextsMsgs(bfId);
-          const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
-          renderTextsContactList(allBfs,'');
-        }
-      }, (parts.length*700)+2500+Math.random()*2000);
-    }
-  } // end if(_aiReplyContent && string)
-  } // end if(_aiReplyContent)
-  sendBtn.disabled=false;
+
+  // Parse reply — may be string or {content, replyTo}
+  let aiContent = null;
+  let aiReplyToId = null;
+  if(aiReply && typeof aiReply === 'object' && aiReply.content){
+    aiContent = aiReply.content;
+    aiReplyToId = aiReply.replyTo || null;
+  } else if(typeof aiReply === 'string' && aiReply.trim()){
+    aiContent = aiReply.trim();
+  }
+
+  if(!aiContent){
+    // Fallback — character says something minimal rather than going silent
+    const fallbacks = {
+      withdrawn: ["...", "give me a sec.", "still here."],
+      irritable: ["hold on.", "i'm thinking.", "one sec."],
+      cold:      [".", "noted.", "okay."],
+      default:   ["i'm here.", "hold on.", "one sec."]
+    };
+    const mood = getMood(bfId)?.mood || 'baseline';
+    const pool = fallbacks[mood] || fallbacks.default;
+    aiContent = pool[Math.floor(Math.random()*pool.length)];
+  }
+
+  // Resolve reply preview if replying to an older message
+  let aiReplyPreview = null;
+  if(aiReplyToId){
+    const hist = getTextHistory(bfId);
+    const tgt = hist.find(h => h.id === aiReplyToId);
+    aiReplyPreview = tgt ? tgt.content.slice(0,80) : null;
+  }
+
+  // Mood-aware delivery timing
+  const moodNow = getMood(bfId)?.mood || 'baseline';
+  let baseDelay = 800;
+  if(moodNow === 'withdrawn') baseDelay = 1600;
+  else if(moodNow === 'cold') baseDelay = 1400;
+  else if(moodNow === 'restless' || moodNow === 'clingy') baseDelay = 400;
+
+  // Split on double-newlines only for intentional multi-bubble
+  const parts = aiContent.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+  // Use single bubble unless there are clearly multiple separate thoughts
+  const useParts = parts.length > 1 && parts.every(p => p.length >= 10) && parts.length <= 3
+    ? parts
+    : [aiContent];
+
+  for(let i = 0; i < useParts.length; i++){
+    const delay = baseDelay + (i * 800) + Math.random()*400;
+    await new Promise(r => setTimeout(r, delay));
+    addTextMessage(bfId, 'assistant', useParts[i],
+      i === 0 ? {replyTo: aiReplyToId, replyPreview: aiReplyPreview} : {}
+    );
+    renderTextsMsgs(bfId);
+  }
+
+  startLORWatch(bfId);
+  const allBfs = [...savedBFs].filter(b =>
+    (chatHistory[b.id]||[]).length > 0 || getTextHistory(b.id).length > 0
+  );
+  renderTextsContactList(allBfs, '');
+  sendBtn.disabled = false;
 }
 
 async function textsGenReply(bf, bfId, userMsg){
@@ -14423,11 +14391,15 @@ async function textsGenReply(bf, bfId, userMsg){
     ? `TIME GAP: About ${_minsGone} minutes have passed. You may acknowledge it subtly if it feels right, but don't make a big deal of it.`
     : '';
 
+  // Strip emoji characters from mood label so AI doesn't parrot them back in messages
+  const _moodLabel = (MOOD_DATA[mood.mood]?.label||'baseline').replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F]/gu, '').trim();
+
   const sysPrompt=`You are ${bf.name}, ${age<0?'ageless':age+' years old'}. ${personalitySnippet}
 
 TEXTING STYLE: ${_style}
-Current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}
+Current mood: ${_moodLabel}
 ${moodPrompt?'\n'+moodPrompt:''}
+EMOJI RULE: Do NOT append mood-indicator emojis (🌀🧲⚡🌧️🚪🕯️🌫️🫧🔥😏🌙🟢✨🛡️🧊🌸🤍🌩️😤) to the end of your messages. Use emoji sparingly and only when it feels completely natural for the character.
 
 REALISTIC TEXTING RULES:
 1. Messages should feel like real texting, not scripted dialogue.
@@ -14501,6 +14473,14 @@ ${recentTexts}
 
 STORY CONTEXT:
 ${recentStory}
+${(()=>{
+  const _sc = recentStory.toLowerCase();
+  const _fight = ['fight','conflict','you said','i said','that\'s not fair','leave me alone','stop','i\'m done','you always','you never'].some(w=>_sc.includes(w));
+  const _warm  = ['love','miss','together','hold','kiss','close','warmth','thank you'].some(w=>_sc.includes(w));
+  if(_fight) return '\nCROSS-TAB NOTE: Things were tense in your story chat recently. You are the same person — carry that energy here. You are not suddenly warm and breezy over text.';
+  if(_warm)  return '\nCROSS-TAB NOTE: Things were warm and close in your story chat recently. Let that ease show in how you text.';
+  return '';
+})()}
 
 Reply as a text message. Natural, in your voice. No labels, no "Draft:", no formatting markers.`;
 
@@ -15377,66 +15357,6 @@ function sendTextFromChar(bf, instruction, notifBody){
   });
 }
 
-// ════════════════════════════════════════════════════════════
-// DAILY QUESTION — route to texts
-// ════════════════════════════════════════════════════════════
-async function submitDailyAnswerTexts(bfId){
-  const answer = document.getElementById('daily-q-answer')?.value?.trim();
-  if(!answer) return;
-  const q = DAILY_QUESTIONS[getTodayDailyQIndex()];
-  dismissDailyQ();
-  markQDoneToday(bfId);
-  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
-  if(!bf) return;
-  // Store as memory
-  const memText = `When asked "${q}", they said: "${answer}"`;
-  const mems = getMemories(bfId);
-  mems.push({id:Date.now(), text:memText, auto:true, ts:Date.now()});
-  saveMemories(bfId, mems);
-  // Save user answer to texts
-  addTextMessage(bfId, 'user', answer);
-  if(_textsActiveBfId===bfId) renderTextsMsgs(bfId);
-  // Generate reaction — use a clean minimal context so the AI doesn't repeat the question
-  // Only pass the question + answer, not the full history which causes repetition
-  const emoji = getCharEmoji(bfId);
-  const fn = bf.name.split(' ')[0];
-  const age = getCharacterAge(bf);
-  const mood = getMood(bfId);
-  const moodPrompt = getMoodPrompt(bfId)||'';
-  const sysPrompt = `You are ${fn}, ${age<0?'ageless':age+' years old'}. ${(bf.personality||'').substring(0,300)}
-You are texting. Keep it short (1-3 sentences), natural, casual. NO asterisks or action descriptions. Just the message.
-Current mood: ${MOOD_DATA[mood.mood]?.label||'baseline'}.${moodPrompt?'\n'+moodPrompt:''}`;
-  try{
-    // Send ONLY the question-answer pair as context — no prior history
-    const reply = await callAnyAPI(sysPrompt, [
-      {role:'model', content:q},
-      {role:'user',  content:answer},
-      {role:'user',  content:`(React naturally to their answer above in 1-3 sentences. Show you actually heard them. Maybe follow up. Add ${emoji} if it fits your mood. Do NOT repeat the question.)`}
-    ], 200, 1.0);
-    if(reply){
-      const clean = reply.trim().replace(/^["'*]|["'*]$/g,'').trim();
-      addTextMessage(bfId,'assistant',clean);
-      if(_textsActiveBfId===bfId) renderTextsMsgs(bfId);
-      if(document.getElementById('page-texts')?.classList.contains('active')) renderTextsPage();
-    }
-  }catch(e){ console.error('Daily Q reaction failed:',e); }
-  showToast('Answer saved as memory 💭');
-}
-
-function sendDailyQuestionToTexts(bfId){
-  if(!isTextsUnlocked(bfId)) return;
-  if(hasDoneQToday(bfId)) return;
-  const q = DAILY_QUESTIONS[getTodayDailyQIndex()];
-  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
-  if(!bf) return;
-  const emoji = getCharEmoji(bfId);
-  const fn = bf.name.split(' ')[0];
-  const instruction = `(You want to ask them something personal. The question: "${q}". Ask it naturally in your voice — maybe rephrase it slightly so it sounds like you. Add ${emoji}. 1-2 sentences max. This is a text message.)`;
-  generateAndSaveAutoMsg(bf, instruction, true).then(()=>{
-    sendBrowserNotif(fn, fn+' asked you something... 💬', bfId);
-  });
-}
-
 // ---- INIT ----
 if(apiKey) document.getElementById('api-key-input').value=apiKey;
 const modelSel=document.getElementById('model-select');
@@ -15524,23 +15444,6 @@ setTimeout(()=>{
     }
   });
 }, 7000);
-// Check daily question (show after a little while)
-setTimeout(()=>{
-  if(savedBFs.length && apiKey){
-    // Fire daily question as a text to the most active char
-    const eligible = savedBFs.filter(bf=>{
-      return isTextsUnlocked(bf.id) && !hasDoneQToday(bf.id) && getStage(bf) >= 2;
-    });
-    if(eligible.length){
-      const bf = eligible.reduce((best,b)=>{
-        const bL=parseInt(localStorage.getItem('last_user_msg_'+b.id)||'0');
-        const bstL=parseInt(localStorage.getItem('last_user_msg_'+best.id)||'0');
-        return bL>bstL?b:best;
-      });
-      sendDailyQuestionToTexts(bf.id);
-    }
-  }
-}, 8000);
 // Mark user online on load
 markUserOnline();
 // Request notification permission on load
@@ -15567,6 +15470,27 @@ function saveModel(){
   st.style.display='inline';
   setTimeout(()=>st.style.display='none',2000);
   showToast(`Model switched to ${sel.options[sel.selectedIndex].text.split('—')[0].trim()} ✨`);
+}
+
+function resetTextsData(){
+  Object.keys(localStorage).forEach(k => {
+    if(
+      k.startsWith('text_history_') ||
+      k.startsWith('texts_reactions_') ||
+      k.startsWith('texts_pinned_') ||
+      k.startsWith('texts_unread_') ||
+      k.startsWith('txt_status_') ||
+      k.startsWith('checkin_sent_') ||
+      k.startsWith('lor_went_cold_') ||
+      k.startsWith('gc_history_') ||
+      k.startsWith('gc_unread_') ||
+      k.startsWith('online_return_') ||
+      k.startsWith('time_aware_')
+    ) {
+      localStorage.removeItem(k);
+    }
+  });
+  location.reload();
 }
 </script>
   <button class="dark-mode-fab" id="dark-mode-fab" onclick="toggleDarkMode()" title="Toggle dark/light mode">🌙 Dark</button>
