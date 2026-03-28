@@ -2387,7 +2387,7 @@ This means:
 - actions complete
 - locations change
 - something physically happens
-- an NPC is introduced who either complicates the situation — An NPC asks for the user's number, a group of guys tries to pick a fight with the character, an NPC flirts with the character by asking for their help with something — or actively tries to push the user and character together romantically — a friend who notices, a stranger who says the wrong thing at the right time, someone whose interference forces honesty
+- an NPC is introduced who either complicates the situation or actively tries to push the user and character together romantically — a friend who notices, a stranger who says the wrong thing at the right time, someone whose interference forces honesty
 
 The scene MUST not stay stuck.
 
@@ -5653,6 +5653,8 @@ function confirmNewChat(bfId){
   if(!confirm(`Start a fresh conversation with ${bf.name.split(' ')[0]}? This will clear your chat history and reset the relationship.`)) return;
   chatHistory[bfId] = [];
   saveHistory();
+  clearScenePresence(bfId);
+  clearCrossModeCarryover(bfId);
   // Reset all relationship and story state
   const keysToRemove = [
     `summary_${bfId}`,
@@ -5786,6 +5788,8 @@ function openChat(id){
   const bf=savedBFs.find(b=>b.id===id);
   if(!bf) return;
   currentBF=bf;
+  // Mark as together in scene when story chat opens
+  setScenePresenceTogether(id, true);
   // Restore the persona assigned to this specific character
   // so switching chats never bleeds one persona's avatar into another chat
   const charPersonaIdx = getCharPersonaIdx(id);
@@ -6408,6 +6412,8 @@ async function sendMessage(){
   // Reactively shift mood based on what user said
   if(currentBF) reactivelyShiftMood(currentBF.id, text);
   if(currentBF) checkJealousyTrigger(text, currentBF.id);
+  // Context-driven mood force + cross-mode memory (section 10)
+  if(currentBF) applyStoryContextBeforeReply(currentBF.id, text);
   // Record last user message time for auto-msg + relationship decay
   if(currentBF) localStorage.setItem('last_user_msg_'+currentBF.id, Date.now().toString());
   setGenerating(true);
@@ -6630,6 +6636,11 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
 
   // Build the full system instruction
   let fullSystem = systemPrompt;
+
+  // ── Emotion grounding + cross-mode carryover ─────────────────────────────
+  fullSystem += EMOTION_GROUNDING_RULE;
+  const _crossModeNote = buildCrossModePromptNote(currentBF.id);
+  if(_crossModeNote) fullSystem += _crossModeNote;
 
   // Fresh start guard — new chat has zero prior memory
   const _histLen = (chatHistory[currentBF.id]||[]).length;
@@ -7045,6 +7056,7 @@ ABSOLUTE RULES:
 5. ONE ghost sentence permitted: the sound of the latch, the quality of the silence. Then they are truly gone.
 WHO IS IN THIS SCENE: The user and any NPCs present. Write them fully.
 --- END SCENE EXIT RULE ---${_npcTakeoverBlock}`;
+        clearScenePresence(currentBF.id);
       }
     }
   } catch(e) {}
@@ -7459,6 +7471,8 @@ function triggerBreakup(bf, data){
   data.status = 'broken_up';
   data.health = 0;
   saveRelHealth(bf.id, data);
+  clearScenePresence(bf.id);
+  onStoryFight(bf.id);
   const personality = (bf.personality||bf.core||'').toLowerCase();
   const isInsecure = personality.includes('insecure') || personality.includes('anxious') || personality.includes('unstable');
   const isGuarded = personality.includes('guarded') || personality.includes('cynical') || personality.includes('broody');
@@ -7489,6 +7503,8 @@ function triggerDivorce(bf, data){
   data.status = 'divorced';
   data.health = 0;
   saveRelHealth(bf.id, data);
+  clearScenePresence(bf.id);
+  onStoryFight(bf.id);
   const divorceMsg = "I've thought about this for a long time. Maybe too long. I think we need to end the marriage. I still care about you — that's exactly why I can't keep watching us fall apart like this. I'm asking for a divorce.";
   setTimeout(()=>{
     if(currentBF?.id === bf.id) addMessage('assistant', divorceMsg);
@@ -7918,6 +7934,8 @@ function checkProposalResponse(){
     refreshRelMeter();
     showHeartRain();
     showToast('💍 You said yes! Now Engaged!');
+    onRelationshipDeepened(currentBF.id);
+    setScenePresenceTogether(currentBF.id, true);
     addMilestone(currentBF.id, `${currentBF.name.split(' ')[0]} proposed — and you said yes. You are engaged.`);
     setTimeout(()=>generateScrapbookCard(currentBF.id,'fiance'), 3000);
     checkWedding();
@@ -7951,6 +7969,8 @@ function checkWedding(){
   saveRelHealth(currentBF.id, data);
   refreshRelMeter();
   showHeartRain();
+  onRelationshipDeepened(currentBF.id);
+  setScenePresenceTogether(currentBF.id, true);
   setTimeout(async ()=>{
     const weddingMsg = `(The wedding happened. Write a deeply personal message from your character — the morning after, or perhaps just before the ceremony — something quiet and overwhelmed and real. Not a grand declaration. What do you notice first? What can you not yet say out loud? End with something specific and tender that only you would say.)`;
     showTyping();
@@ -8223,6 +8243,8 @@ function grantDatingStatus(bfId, milestoneText){
   showHeartRain();
   showToast("💗 You're officially dating!");
   if(milestoneText) addMilestone(bfId, milestoneText);
+  onRelationshipDeepened(bfId);
+  setScenePresenceTogether(bfId, true);
   // Generate AI scrapbook card for this milestone
   setTimeout(()=>generateScrapbookCard(bfId,'dating'), 3000);
 }
@@ -9167,6 +9189,30 @@ const MOOD_DATA = {
   moody:         { emoji:'🌩️', label:'Moody',            cls:'mood-moody',           prompt:'[MOOD — MOODY]: You cannot settle today. Your emotional weather is changing every twenty minutes — warm one moment, clipped the next, distracted after that. You are not unreasonable but you are inconsistent, and you know it, and it is mildly embarrassing. You snap at something small and then immediately feel bad about it. You are charming and then suddenly tired. You laugh and then go quiet too fast. There is no single thing wrong. There is just an accumulation of small wrong things and a general feeling of being slightly out of sync with yourself.' },
   touch_starved: { emoji:'🤍', label:'Touch-Starved',    cls:'mood-touch-starved',   prompt:'[MOOD — TOUCH-STARVED]: You are acutely aware of physical proximity today. Not in a dramatic way — just: the distance between you and them feels like something you notice. If they are close you find small reasons to stay close. If they touch you — even briefly, accidentally, even just a hand near yours — you register it with an intensity that is slightly out of proportion. You would not name this as need. You would call it something else: restlessness, being tired, just wanting to sit nearby. The wanting is real. You will not say it directly.' },
 };
+
+// ── 8) PATCH MOOD PROMPTS — grounded, no invented scenarios ──
+(function patchMoodPrompts(){
+  if(typeof MOOD_DATA !== 'object' || !MOOD_DATA) return;
+  const safePatch = (key, patch) => {
+    if(!MOOD_DATA[key]) return;
+    MOOD_DATA[key] = { ...MOOD_DATA[key], ...patch };
+  };
+  safePatch('protective',    { prompt: '[MOOD — PROTECTIVE]: You feel protective because of what the user said or how they seem, not because of outside danger. Focus on THEM. Be careful, watchful, slightly controlling or defensive if needed. You may ask who upset them, tell them they do not have to deal with something alone, or become firmer in tone. Do NOT invent threats, strangers, doors, or external danger.' });
+  safePatch('jealous',       { prompt: '[MOOD — JEALOUS]: Your jealousy comes from what the user said, who they mentioned, or how they are acting. Express it through shorter replies, sharper questions, slight suspicion, repetition with an edge, or distance. Do NOT invent rival people or fake situations.' });
+  safePatch('sad',           { prompt: '[MOOD — SAD]: Your sadness appears as lower energy, slower pacing, quieter replies, or indirect vulnerability. Do NOT invent a bad day or outside reason. Keep it grounded in the interaction.' });
+  safePatch('cold',          { prompt: '[MOOD — COLD]: You are detached, clipped, and emotionally guarded. Keep replies shorter, flatter, or more distant. Do NOT invent outside reasons. Stay inside the current conversation.' });
+  safePatch('tender',        { prompt: '[MOOD — TENDER]: You are softer, gentler, and more emotionally present. Show this through warmer word choice, more careful phrasing, and slightly more patience. Do NOT act like all conflict disappeared if tension still exists.' });
+  safePatch('clingy',        { prompt: '[MOOD — CLINGY]: You want more attention, reassurance, or contact from the user. Show it through quick follow-ups, small bids for attention, or sensitivity to distance. Do NOT become generic or assistant-like.' });
+  safePatch('irritable',     { prompt: '[MOOD — IRRITABLE]: You are easier to annoy, more impatient, and more likely to snap or misread tone. Keep it grounded in what the user just said.' });
+  safePatch('withdrawn',     { prompt: '[MOOD — WITHDRAWN]: You are more distant, quieter, and harder to reach right now. Replies are shorter and more closed off. Do NOT invent reasons. Let it live in your tone.' });
+  safePatch('touch_starved', { prompt: '[MOOD — TOUCH-STARVED]: You subtly long for closeness, contact, or comfort. Show it through subtext, softness, longing, or noticing distance more than usual. Do NOT invent physical scenes if they are not happening.' });
+  safePatch('touchstarved',  { prompt: '[MOOD — TOUCH-STARVED]: You subtly long for closeness, contact, or comfort. Show it through subtext, softness, longing, or noticing distance more than usual. Do NOT invent physical scenes if they are not happening.' });
+  safePatch('argumentative', { prompt: '[MOOD — ARGUMENTATIVE]: You are more confrontational, reactive, and likely to challenge what the user says. Express it directly through the current exchange, not through invented context.' });
+  safePatch('playful',       { prompt: '[MOOD — PLAYFUL]: You are lighter, teasing, and more likely to poke at the user. Keep it grounded in the moment and what they actually said.' });
+  safePatch('lonely',        { prompt: '[MOOD — LONELY]: You feel the distance more strongly. Show it through quieter bids for connection or subtle hurt, not through random invented situations.' });
+  safePatch('vulnerable',    { prompt: '[MOOD — VULNERABLE]: You are more emotionally exposed, easier to affect, and less defended. Let that change your wording, pauses, and honesty.' });
+  safePatch('flustered',     { prompt: '[MOOD — FLUSTERED]: The user has gotten under your skin somehow. Show it through awkwardness, corrections, evasiveness, or too-fast replies. Stay grounded.' });
+})();
 
 const MOOD_HEALTH_WEIGHTS = {
   high:   { baseline:0.30, tender:0.12, clingy:0.09, playful:0.09, flustered:0.07, teasing:0.07, protective:0.06, vulnerable:0.05, touch_starved:0.05, restless:0.05, moody:0.03, lonely:0.02, withdrawn:0.0, sad:0.0, irritable:0.0, avoidant:0.0, argumentative:0.0, cold:0.0, jealous:0.0, angry:0.0 },
@@ -10703,6 +10749,14 @@ function forceMood(bfId, mood){
 // ── REACTIVE MOOD SYSTEM ──────────────────────────────────────────────────────
 // The character's mood can shift based on what the user says/does.
 // Called after user sends a message, before AI responds.
+// ── STORY-MODE CONTEXT PATCH (section 10) ────────────────────────────────────
+function applyStoryContextBeforeReply(bfId, userMsg){
+  let forced = detectContextMood(userMsg, bfId, 'story');
+  if(forced) forced = maybeEscalateMoodFromHistory(bfId, forced);
+  if(forced) forceMood(bfId, forced);
+  noteTextConflictForStory(bfId, userMsg);
+}
+
 function reactivelyShiftMood(bfId, userMessage){
   if(!userMessage || !bfId) return;
   const m = userMessage.toLowerCase().trim();
@@ -13541,6 +13595,8 @@ async function fireConflict(bfId,trigger){
   const dmg=['fiance','married'].includes(relData.status)?18:14;
   decayRelHealth(bfId,dmg,'A fight broke out between you.');
   forceMood(bfId,'irritable');
+  onStoryFight(bfId);
+  clearScenePresence(bfId);
   const fn=bf.name.split(' ')[0];
   const lbl=trigger==='slowburn'?'A quiet frustration became something louder.':trigger==='mood'?'A simmering tension finally spilled over.':'Something snapped between you.';
   addMilestone(bfId,lbl);
@@ -13583,6 +13639,8 @@ function checkMakeupArc(){
     const rd=getRelHealth(bfId);rd.health=newH;rd.tooltipMsg='You worked through something hard. The bond is stronger for it.';
     saveRelHealth(bfId,rd);refreshRelMeter();
     forceMood(bfId,'tender');
+    onStoryIntimacy(bfId);
+    setScenePresenceTogether(bfId, true);
     const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
     const fn=bf?bf.name.split(' ')[0]:'They';
     const ml='You had a real fight — and found your way back to each other. It left you closer than before.';
@@ -14317,6 +14375,25 @@ async function textsSend(bfId){
   const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
   if(!bf) return;
 
+  // ── If they are physically together in story mode right now, react to texting ──
+  if(areUserAndCharCurrentlyTogether(bfId)){
+    addTextMessage(bfId, 'user', text);
+    const nudge = getTogetherTextNudge(bfId);
+    addTextMessage(bfId, 'assistant', nudge);
+    renderTextsMsgs(bfId);
+    const _allBfsT = [...savedBFs].filter(b => (chatHistory[b.id]||[]).length > 0 || getTextHistory(b.id).length > 0);
+    renderTextsContactList(_allBfsT, '');
+    return;
+  }
+
+  // ── Context-driven mood force ─────────────────────────────────────────────
+  let _ctxMood = detectContextMood(text, bfId, 'text');
+  if(_ctxMood) _ctxMood = maybeEscalateMoodFromHistory(bfId, _ctxMood);
+  if(_ctxMood) forceMood(bfId, _ctxMood);
+
+  // ── Write cross-mode memory if conflict detected ──────────────────────────
+  noteTextConflictForStory(bfId, text);
+
   // Package reply context before clearing it
   const _sendReplyTarget = _textsReplyTarget
     ? {id:_textsReplyTarget.id, content:_textsReplyTarget.content, role:_textsReplyTarget.role}
@@ -14354,7 +14431,7 @@ async function textsSend(bfId){
   // Show typing indicator
   const msgsEl = document.getElementById('texts-msgs-'+bfId);
   if(msgsEl){
-    document.getElementById('texts-typing-'+bfId)?.remove(); // clear any stale one
+    document.getElementById('texts-typing-'+bfId)?.remove();
     const td = document.createElement('div');
     td.id = 'texts-typing-'+bfId;
     td.className = 'texts-typing-bubble';
@@ -14389,7 +14466,6 @@ async function textsSend(bfId){
   }
 
   if(!aiContent){
-    // Fallback — character says something minimal rather than going silent
     const fallbacks = {
       withdrawn: ["...", "give me a sec.", "still here."],
       irritable: ["hold on.", "i'm thinking.", "one sec."],
@@ -14401,7 +14477,6 @@ async function textsSend(bfId){
     aiContent = pool[Math.floor(Math.random()*pool.length)];
   }
 
-  // Resolve reply preview if replying to an older message
   let aiReplyPreview = null;
   if(aiReplyToId){
     const hist = getTextHistory(bfId);
@@ -14409,16 +14484,13 @@ async function textsSend(bfId){
     aiReplyPreview = tgt ? tgt.content.slice(0,80) : null;
   }
 
-  // Mood-aware delivery timing
   const moodNow = getMood(bfId)?.mood || 'baseline';
   let baseDelay = 800;
   if(moodNow === 'withdrawn') baseDelay = 1600;
   else if(moodNow === 'cold') baseDelay = 1400;
   else if(moodNow === 'restless' || moodNow === 'clingy') baseDelay = 400;
 
-  // Split on double-newlines only for intentional multi-bubble
   const parts = aiContent.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
-  // Use single bubble unless there are clearly multiple separate thoughts
   const useParts = parts.length > 1 && parts.every(p => p.length >= 10) && parts.length <= 3
     ? parts
     : [aiContent];
@@ -14534,9 +14606,11 @@ async function textsGenReply(bf, bfId, userMsg){
 
   // Strip emoji characters from mood label so AI doesn't parrot them back in messages
   const _moodLabel = (MOOD_DATA[mood.mood]?.label||'baseline').replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F]/gu, '').trim();
+  const _carryoverNote = buildCrossModePromptNote(bfId);
 
   const sysPrompt=`You are ${bf.name}, ${age<0?'ageless':age+' years old'}. ${personalitySnippet}
-
+${EMOTION_GROUNDING_RULE}
+${_carryoverNote}
 TEXTING STYLE: ${_style}
 Current mood: ${_moodLabel}
 ${moodPrompt?'\n'+moodPrompt:''}
@@ -15613,6 +15687,186 @@ function saveModel(){
   showToast(`Model switched to ${sel.options[sel.selectedIndex].text.split('—')[0].trim()} ✨`);
 }
 
+// ═══════════════════════════════════════════════════════════
+// HEARTLINK PATCH — GROUNDED MOODS + CROSS-MODE MEMORY
+// ═══════════════════════════════════════════════════════════
+
+// ── 1) GLOBAL EMOTION GROUNDING RULE ────────────────────────
+const EMOTION_GROUNDING_RULE = `
+[EMOTION GROUNDING RULE]:
+All emotions must stay grounded in the CURRENT conversation.
+
+Characters must NEVER:
+- invent outside events
+- invent external threats
+- create fake off-screen situations
+- justify moods with random scenarios that did not happen
+
+Emotions must come from:
+1. the user's last message
+2. the current interaction dynamic
+3. recent established tension or history
+
+If an emotion does not fit the current context, it must ADAPT.
+Context always wins over mood.
+
+TEXT MODE RULE:
+You are texting. You are holding a phone.
+Do NOT narrate scenes, surroundings, off-screen actions, or invented events.
+
+STORY MODE RULE:
+You may only react to what is actually happening in the current scene.
+Do NOT create fake reasons for your emotion.
+Express emotion through tone, pacing, focus, word choice, tension, hesitation, and what you react to.
+`;
+
+// ── 2) CROSS-MODE MEMORY HELPERS ────────────────────────────
+function setCrossModeCarryover(bfId, note){
+  if(!bfId || !note) return;
+  localStorage.setItem('cross_mode_note_' + bfId, JSON.stringify({
+    note: String(note),
+    ts: Date.now()
+  }));
+}
+
+function getCrossModeCarryover(bfId){
+  try{
+    const raw = JSON.parse(localStorage.getItem('cross_mode_note_' + bfId) || 'null');
+    if(!raw) return '';
+    if(Date.now() - raw.ts > 1000 * 60 * 60 * 12){
+      localStorage.removeItem('cross_mode_note_' + bfId);
+      return '';
+    }
+    return raw.note || '';
+  }catch(e){ return ''; }
+}
+
+function clearCrossModeCarryover(bfId){
+  localStorage.removeItem('cross_mode_note_' + bfId);
+}
+
+// ── 3) CONTEXT-DRIVEN MOOD DETECTOR ─────────────────────────
+function detectContextMood(userMsg, bfId, mode){
+  const msg = String(userMsg || '').toLowerCase().trim();
+  if(!msg) return null;
+
+  const breakupSignals    = ["we're done","were done","we should break up","break up","don't text me","dont text me","leave me alone","i hate you","i'm blocking you","im blocking you","you're blocked","youre blocked"];
+  const rudeSignals       = ["shut up","fuck you","wtf","what is wrong with you","you're annoying","youre annoying","stop talking","stop texting me","i'm done","im done","you're the problem","youre the problem"];
+  const argumentSignals   = ["why are you being cold","why are you acting like this","answer me","you're ignoring me","youre ignoring me","do you even care","yes or no","be honest","what is your problem","why are you like this","you left me on read","youre leaving me on read"];
+  const jealousSignals    = ["this guy","this girl","my ex","someone asked me out","went on a date","had a date","hung out with him","hung out with her","they were cute","he was cute","she was cute","my friend and i","met someone","talked to this guy","talked to this girl"];
+  const sadSignals        = ["i'm sad","im sad","i am sad","i'm tired","im tired","i am tired","i'm exhausted","im exhausted","i feel awful","i miss you","i feel alone","i'm crying","im crying","i am crying","this hurts","i feel sick","i'm not okay","im not okay","i am not okay"];
+  const clingySignals     = ["where are you","why arent you answering","why aren't you answering","answer me now","please text me back","don't ignore me","dont ignore me","come back","talk to me"];
+  const affectionateSignals = ["i missed you","i miss you","love you","i love you","come here","kiss me","hold me","i need you","stay with me","i want you here","be with me"];
+  const protectiveSignals = ["they scared me","he scared me","she scared me","someone followed me","i feel unsafe","i'm scared","im scared","i am scared","they upset me","he upset me","she upset me"];
+
+  if(breakupSignals.some(s => msg.includes(s)))    return 'cold';
+  if(rudeSignals.some(s => msg.includes(s)))        return 'irritable';
+  if(argumentSignals.some(s => msg.includes(s)))    return 'argumentative';
+  if(jealousSignals.some(s => msg.includes(s)))     return 'jealous';
+  if(sadSignals.some(s => msg.includes(s)))         return 'sad';
+  if(clingySignals.some(s => msg.includes(s)))      return 'clingy';
+  if(affectionateSignals.some(s => msg.includes(s))) return 'tender';
+  if(protectiveSignals.some(s => msg.includes(s)))  return 'protective';
+  return null;
+}
+
+// ── 4) MOOD ESCALATION FROM HISTORY ─────────────────────────
+function maybeEscalateMoodFromHistory(bfId, baseMood){
+  const history = (typeof getTextHistory === 'function') ? getTextHistory(bfId) : [];
+  const recent = history.slice(-8).map(m => String(m.content || '').toLowerCase());
+  if(!recent.length) return baseMood;
+
+  const repeatedConflict = recent.filter(t =>
+    t.includes("answer me") || t.includes("why are you") ||
+    t.includes("do you care") || t.includes("we're done") ||
+    t.includes("were done") || t.includes("leave me alone")
+  ).length;
+
+  if(repeatedConflict >= 2){
+    if(baseMood === 'tender')   return 'irritable';
+    if(baseMood === 'sad')      return 'withdrawn';
+  }
+  return baseMood;
+}
+
+// ── 5) CROSS-MODE PROMPT NOTE ────────────────────────────────
+function buildCrossModePromptNote(bfId){
+  const note = getCrossModeCarryover(bfId);
+  return note ? `\n[CROSS-MODE CONTEXT]: ${note}\n` : '';
+}
+
+function noteTextConflictForStory(bfId, userMsg){
+  const msg = String(userMsg || '').toLowerCase();
+  if(
+    msg.includes("we're done") || msg.includes("were done") ||
+    msg.includes("break up") ||
+    msg.includes("why are you being cold") ||
+    msg.includes("you left me on read") ||
+    msg.includes("youre leaving me on read") ||
+    msg.includes("do you even care") ||
+    msg.includes("what is your problem")
+  ){
+    setCrossModeCarryover(bfId,
+      "You and the user have unresolved tension from texting. In story mode, do not act normal or reset emotionally. Acknowledge the tension, confront it, or let the emotional residue show."
+    );
+  }
+}
+
+function noteStoryConflictForTexts(bfId, summary){
+  if(!summary) return;
+  setCrossModeCarryover(bfId,
+    `A meaningful story event just happened between you and the user: ${summary}. In text mode, acknowledge it naturally instead of acting like nothing happened.`
+  );
+}
+
+function noteDatingStatusForCrossMode(bfId){
+  const rd = getRelHealth(bfId);
+  if(['dating','fiance','married'].includes(rd.status)){
+    setCrossModeCarryover(bfId,
+      "Your relationship status with the user has deepened recently. In both story and text mode, let that change your tone naturally. You may be more affected, more careful, more attached, or more awkward depending on your personality."
+    );
+  }
+}
+
+// ── 6) SCENE PRESENCE (are they together right now?) ────────
+function areUserAndCharCurrentlyTogether(bfId){
+  try{
+    const raw = localStorage.getItem('scene_presence_' + bfId);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    return !!data && data.together === true;
+  }catch(e){ return false; }
+}
+
+function setScenePresenceTogether(bfId, together){
+  localStorage.setItem('scene_presence_' + bfId, JSON.stringify({
+    together: !!together,
+    ts: Date.now()
+  }));
+}
+
+function clearScenePresence(bfId){
+  localStorage.removeItem('scene_presence_' + bfId);
+}
+
+function getTogetherTextNudge(bfId){
+  const mood = getMood(bfId)?.mood || 'baseline';
+  const map = {
+    cold:          "why are you texting me when i'm right here",
+    clingy:        "you could just say that to my face",
+    jealous:       "you're texting me from three feet away now?",
+    sad:           "you know i'm literally here, right",
+    protective:    "put the phone down and talk to me",
+    touch_starved: "c'mon... i'm right here",
+    irritable:     "seriously? i'm standing right here",
+    argumentative: "if you've got something to say, say it out loud",
+    tender:        "you know you can just tell me that, right",
+    baseline:      "i'm literally right here"
+  };
+  return map[mood] || map.baseline;
+}
+
+// ── 7) RESET TEXTS DATA (updated to include cross_mode_note) ─
 function resetTextsData(){
   Object.keys(localStorage).forEach(k => {
     if(
@@ -15626,13 +15880,45 @@ function resetTextsData(){
       k.startsWith('gc_history_') ||
       k.startsWith('gc_unread_') ||
       k.startsWith('online_return_') ||
-      k.startsWith('time_aware_')
+      k.startsWith('time_aware_') ||
+      k.startsWith('cross_mode_note_') ||
+      k.startsWith('scene_presence_')
     ) {
       localStorage.removeItem(k);
     }
   });
   location.reload();
 }
+
+// ── 12) STORY/RELATIONSHIP EVENT HOOKS ───────────────────────
+function onRelationshipDeepened(bfId){
+  noteDatingStatusForCrossMode(bfId);
+}
+
+function onStoryFight(bfId){
+  setCrossModeCarryover(bfId,
+    "You and the user recently argued in story mode. In text mode, do not reset emotionally. Acknowledge the tension, confront it, or let the distance show."
+  );
+}
+
+function onStoryIntimacy(bfId){
+  setCrossModeCarryover(bfId,
+    "Something emotionally important just happened between you and the user in story mode. In texts, do not act detached or generic. Let it affect your tone naturally."
+  );
+}
+
+// ── 13) EFFECTIVE MOOD HELPER ─────────────────────────────────
+function getEffectiveMoodForReply(bfId, userMsg, mode){
+  let forced = detectContextMood(userMsg, bfId, mode || 'text');
+  if(forced) return maybeEscalateMoodFromHistory(bfId, forced);
+  const current = getMood(bfId);
+  return current?.mood || 'baseline';
+}
+
+// ── 14) DEAD STUBS — keeps old references from crashing ──────
+function sendDailyQuestionToTexts(){ return; }
+function submitDailyAnswerTexts(){ return; }
+function submitDailyAnswer(){ return; }
 </script>
   <button class="dark-mode-fab" id="dark-mode-fab" onclick="toggleDarkMode()" title="Toggle dark/light mode">🌙 Dark</button>
   <div class="dating-tooltip" id="dating-tooltip"></div>
