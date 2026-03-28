@@ -2341,6 +2341,23 @@ WHAT YOU NEVER DO:
 The user can always leave if they choose. But you make it cost something first.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TIMESKIP CONTINUITY RULE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If you move to a later scene, another location, or another person:
+- first resolve the current interaction in 1-2 sentences
+- then show the passage of time
+- then enter the new scene
+
+Do NOT abruptly cut from one moment to a later one with no bridge.
+
+The user must always understand:
+- what just finished
+- how much time passed
+- where the character is now
+- why the scene changed
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ACTION COMPLETION RULE — CRITICAL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -14669,11 +14686,12 @@ async function textsSend(bfId){
   const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
   if(!bf) return;
 
-  // ── If they are physically together in story mode right now, react to texting ──
-  if(areUserAndCharCurrentlyTogether(bfId)){
+  // ── If they are physically together in story mode, acknowledge it ONCE then continue normally ──
+  if(areUserAndCharCurrentlyTogether(bfId) && !hasUsedTogetherTextAck(bfId)){
     addTextMessage(bfId, 'user', text);
     const nudge = getTogetherTextNudge(bfId);
     addTextMessage(bfId, 'assistant', nudge);
+    markTogetherTextAckUsed(bfId);
     renderTextsMsgs(bfId);
     const _allBfsT = [...savedBFs].filter(b => (chatHistory[b.id]||[]).length > 0 || getTextHistory(b.id).length > 0);
     renderTextsContactList(_allBfsT, '');
@@ -15635,6 +15653,34 @@ async function checkGossipTrigger(){
   await fireGossipScene(bfId);
 }
 
+// ── Clean story timeskip bridge helper ────────────────────────────────────────
+function buildTimeskipBridgePrompt(lastExchange, nextSceneLabel){
+  return `
+IMPORTANT TRANSITION RULES:
+
+Before entering the new scene, write a clean bridge of 2-4 sentences.
+
+You MUST do all of the following:
+1. Acknowledge the last thing that just happened between you and the user.
+2. Make it clear that the conversation or moment ended naturally.
+3. Signal the passage of time clearly (examples: later that night, a few hours later, the next day).
+4. Explain how you got to the new place or person before launching fully into the next scene.
+5. The user must never feel like the story teleported or skipped their last message.
+
+GOOD EXAMPLE SHAPE:
+- resolve the immediate moment
+- indicate the pause or ending
+- state the time skip
+- enter the next scene
+
+RECENT EXCHANGE:
+${lastExchange}
+
+NEW SCENE:
+${nextSceneLabel}
+`;
+}
+
 async function fireGossipScene(bfId){
   const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
   if(!bf) return;
@@ -15648,7 +15694,11 @@ async function fireGossipScene(bfId){
   try{const raw=localStorage.getItem('gossip_log_'+bfId);if(raw)gHistory.push(...JSON.parse(raw));}catch(e){}
   gHistory.push(gossipRecord);
   localStorage.setItem('gossip_log_'+bfId,JSON.stringify(gHistory.slice(-5)));
-  const gossipPrompt=`(GOSSIP SCENE: You are venting to ${friend} about what just happened with the person you are dating. This is private — they are not present.\n\nYOUR MOOD: ${mood}\nRECENT EXCHANGE:\n${recentExchange}\n\nWrite the scene. Say things you would NOT say to their face — slightly unfair things, honest things. ${friend} responds and is NOT automatically on your side. They may call you out or take the user's side. They say something honest and slightly brutal that only a close friend would say. End with something unresolved — something ${friend} said that you cannot unhear. Real venting energy. "${fn}, I swear to god—" energy.)`;
+
+  const gossipSceneLabel = `You later go to ${friend} to vent about what just happened with the person you are dating. This is private — they are not present.\n\nYOUR MOOD: ${mood}\n\nWrite the scene. Say things you would NOT say to their face — slightly unfair things, honest things. ${friend} responds and is NOT automatically on your side. They may call you out or take the user's side. They say something honest and slightly brutal that only a close friend would say. End with something unresolved — something ${friend} said that you cannot unhear. Real venting energy. "${fn}, I swear to god—" energy.`;
+  const bridge = buildTimeskipBridgePrompt(recentExchange, gossipSceneLabel);
+  const gossipPrompt = '(' + bridge + '\n\nGOSSIP SCENE: ' + gossipSceneLabel + ')';
+
   setTimeout(async()=>{
     if(currentBF?.id!==bfId) return;
     showTyping();
@@ -16136,32 +16186,109 @@ function areUserAndCharCurrentlyTogether(bfId){
   }catch(e){ return false; }
 }
 
+// ── Together-text acknowledgment state ──────────────────────────
+function _getTogetherAckKey(bfId){
+  return 'together_text_ack_' + bfId;
+}
+
+function hasUsedTogetherTextAck(bfId){
+  return localStorage.getItem(_getTogetherAckKey(bfId)) === '1';
+}
+
+function markTogetherTextAckUsed(bfId){
+  localStorage.setItem(_getTogetherAckKey(bfId), '1');
+}
+
+function clearTogetherTextAck(bfId){
+  localStorage.removeItem(_getTogetherAckKey(bfId));
+}
+
 function setScenePresenceTogether(bfId, together){
+  const prevRaw = localStorage.getItem('scene_presence_' + bfId);
+  let prevTogether = false;
+  try{
+    prevTogether = !!JSON.parse(prevRaw || 'null')?.together;
+  }catch(e){}
+
   localStorage.setItem('scene_presence_' + bfId, JSON.stringify({
     together: !!together,
     ts: Date.now()
   }));
+
+  // Only reset the one-time text acknowledgment when ENTERING a together scene
+  if(together && !prevTogether){
+    clearTogetherTextAck(bfId);
+  }
 }
 
 function clearScenePresence(bfId){
   localStorage.removeItem('scene_presence_' + bfId);
+  clearTogetherTextAck(bfId);
 }
 
 function getTogetherTextNudge(bfId){
   const mood = getMood(bfId)?.mood || 'baseline';
+
   const map = {
-    cold:          "why are you texting me when i'm right here",
-    clingy:        "you could just say that to my face",
-    jealous:       "you're texting me from three feet away now?",
-    sad:           "you know i'm literally here, right",
-    protective:    "put the phone down and talk to me",
-    touch_starved: "c'mon... i'm right here",
-    irritable:     "seriously? i'm standing right here",
-    argumentative: "if you've got something to say, say it out loud",
-    tender:        "you know you can just tell me that, right",
-    baseline:      "i'm literally right here"
+    cold: [
+      "why are you texting me when i'm right here",
+      "you could literally just say that out loud",
+      "i'm standing right here, you know"
+    ],
+    clingy: [
+      "you could just say that to my face",
+      "c'mon, i'm literally right here",
+      "you know i can hear you without the phone, right"
+    ],
+    jealous: [
+      "you're texting me from three feet away now?",
+      "seriously? while i'm right here?",
+      "you could've just looked at me and said that"
+    ],
+    sad: [
+      "you know i'm literally here, right",
+      "you could just say that to me",
+      "i'm right here..."
+    ],
+    protective: [
+      "put the phone down and talk to me",
+      "you don't need the phone. i'm right here.",
+      "just say it to me."
+    ],
+    touch_starved: [
+      "c'mon... i'm right here",
+      "you could just lean over and say that",
+      "you know i'm literally beside you, right"
+    ],
+    touchstarved: [
+      "c'mon... i'm right here",
+      "you could just lean over and say that",
+      "you know i'm literally beside you, right"
+    ],
+    irritable: [
+      "seriously? i'm standing right here",
+      "you're texting me while i'm next to you?",
+      "just say it out loud."
+    ],
+    argumentative: [
+      "if you've got something to say, say it out loud",
+      "don't text it. say it.",
+      "i'm right here. use your words."
+    ],
+    tender: [
+      "you know you can just tell me that, right",
+      "you could've just said that to me",
+      "i'm right here, you know"
+    ],
+    baseline: [
+      "i'm literally right here",
+      "you know i'm right here, yeah?",
+      "you could just say that out loud"
+    ]
   };
-  return map[mood] || map.baseline;
+
+  const pool = map[mood] || map.baseline;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 // ── 7) RESET TEXTS DATA (updated to include cross_mode_note) ─
@@ -16180,7 +16307,8 @@ function resetTextsData(){
       k.startsWith('online_return_') ||
       k.startsWith('time_aware_') ||
       k.startsWith('cross_mode_note_') ||
-      k.startsWith('scene_presence_')
+      k.startsWith('scene_presence_') ||
+      k.startsWith('together_text_ack_')
     ) {
       localStorage.removeItem(k);
     }
