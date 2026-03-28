@@ -4605,7 +4605,7 @@ function renderGrid(data){
         ${_moodHtml}
       </div>
       <div class="bf-card-info">
-        <div class="bf-name">${bf.name}, ${bf.age}</div>
+        <div class="bf-name">${bf.name}, ${getAdjustedCharacterAge(bf)}</div>
         <span class="bf-tag">${bf.tag}</span>
         <div class="bf-scenario">${bf.scenario.substring(0,72)}...</div>
         <button class="bf-chat-btn" onclick="event.stopPropagation();addAndChat(${bf.id})">💬 Chat with ${bf.name.split(' ')[0]}</button>
@@ -4694,7 +4694,7 @@ function openModal(id){
 
   // Name / age / difficulty
   document.getElementById('modal-name').textContent=bf.name;
-  document.getElementById('modal-age').textContent=`Age ${bf.age}`;
+  document.getElementById('modal-age').textContent=`Age ${getAdjustedCharacterAge(bf)}`;
   document.getElementById('modal-firstname').textContent=bf.name.split(' ')[0];
   const badge=document.getElementById('modal-diff-badge');
   badge.textContent=bf.difficulty||bf.tag;
@@ -5280,7 +5280,7 @@ ${(()=>{ const _oTags=['omegaverse','fantasy']; const _isO=_oTags.some(t=>(bf.ta
   const omegaTags = ['omegaverse','fantasy'];
   const isOmega = omegaTags.some(t => (bf.tag||'').includes(t)) || (bf.core||'').toLowerCase().includes('alpha') || (bf.core||'').toLowerCase().includes('omega') || (bf.core||'').toLowerCase().includes('shifter');
   const omegaLore = isOmega ? OMEGAVERSE_LOREBOOK : '';
-  return `You are ${bf.name}, ${bf.age === -1 ? 'an ageless deity who appears 25' : bf.age + ' years old'}. Personality: ${bf.personality}.
+  return `You are ${bf.name}, ${bf.age === -1 ? 'an ageless deity who appears 25' : getAdjustedCharacterAge(bf) + ' years old'}. Personality: ${bf.personality}.
 Scenario: ${bf.scenario}
 ${personaContext}
 
@@ -5815,7 +5815,7 @@ function openChat(id){
       <div class="chat-header-clickable" id="header-clickable" onclick="toggleHeaderDropdown(event)">
         <div class="chat-header-emoji ${avatarWrapClass}" style="overflow:hidden">${avatarHtml}</div>
         <div>
-          <div class="chat-header-name">${bf.name}, ${bf.age} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" style="font-size:0.78rem;font-weight:500;color:var(--rose);margin-left:10px;letter-spacing:0.01em;cursor:pointer;" onclick="showDatingTooltip(event,${bf.id})" title="Click for details">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
+          <div class="chat-header-name">${bf.name}, ${getAdjustedCharacterAge(bf)} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" style="font-size:0.78rem;font-weight:500;color:var(--rose);margin-left:10px;letter-spacing:0.01em;cursor:pointer;" onclick="showDatingTooltip(event,${bf.id})" title="Click for details">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
           <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx, relData.health)} · ${bf.difficulty||bf.tag}</div>
         </div>
         <div class="chat-header-dropdown" id="header-dropdown" onclick="event.stopPropagation()">
@@ -5873,6 +5873,8 @@ function openChat(id){
   scheduleAutoMsg(id);
   // Start relationship decay checker
   startRelDecayChecker();
+  // Birthday + anniversary checks on chat open
+  setTimeout(() => runDateMemoryChecks(id), 1500);
 }
 
 function renderMessages(){
@@ -6436,6 +6438,8 @@ async function sendMessage(){
   checkConfessionResponse();
   // Check if user forgot the anniversary
   checkAnniversaryForgotten();
+  // Birthday + anniversary full check (story mode)
+  runDateMemoryChecks(currentBF.id);
   // Check proposal progression
   checkProposal();
   checkProposalResponse();
@@ -6843,6 +6847,10 @@ You have noticed the user paying significant positive attention to ${_jd.npcName
   // Pending missed birthday note (fires once on return after missed birthday)
   const _pendingBday = localStorage.getItem('pending_bday_missed_'+currentBF.id);
   if(_pendingBday){ fullSystem += '\n\n'+_pendingBday; localStorage.removeItem('pending_bday_missed_'+currentBF.id); }
+
+  // ── Birthday + anniversary awareness ──────────────────────────────────────
+  const _bdayAnnivNote = getBirthdayAnniversaryPromptNote(currentBF.id);
+  if(_bdayAnnivNote) fullSystem += _bdayAnnivNote;
 
   // ── NPC SUSTAIN INJECTION ─────────────────────────────────────────────────
   // Scan recent messages for NPC names. Before sustaining any NPC, check
@@ -7606,6 +7614,289 @@ function getBirthdayInGameDay(bfId){
   const bf = BF_DATA.find(b => b.id === bfId);
   if(!bf || !bf.birthday) return null;
   return { month: bf.birthday.month - 1, day: bf.birthday.day }; // month is 0-indexed for calendar
+}
+
+// ══════════════════════════════════════════════════════════════
+// BIRTHDAY + ANNIVERSARY PATCH — SECTIONS 2–12
+// ══════════════════════════════════════════════════════════════
+
+// ── Section 2: Helpers ────────────────────────────────────────
+function getBirthdayData(bfId){
+  const bf = savedBFs.find(b => b.id === bfId) || BF_DATA.find(b => b.id === bfId);
+  if(!bf) return null;
+  // Support both bf.birthday.month (existing, 1-indexed) and bf.birthdayMonth (patch format)
+  if(bf.birthday && typeof bf.birthday.month === 'number' && typeof bf.birthday.day === 'number'){
+    return { month: bf.birthday.month - 1, day: bf.birthday.day, baseAge: bf.age || 0 };
+  }
+  if(typeof bf.birthdayMonth === 'number' && typeof bf.birthdayDay === 'number'){
+    return { month: bf.birthdayMonth, day: bf.birthdayDay, baseAge: bf.age || 0 };
+  }
+  return null;
+}
+
+function getAdjustedCharacterAge(bf){
+  if(!bf) return 0;
+  const baseAge = bf.age || 0;
+  if(baseAge < 0) return baseAge; // immortal/ageless
+  const bd = getBirthdayData(bf.id);
+  if(!bd) return getCharacterAge(bf); // fall back to existing aging system
+  const today = getInGameDate(bf.id);
+  if(!today) return baseAge;
+  const hasHadBirthdayThisYear =
+    (today.month > bd.month) ||
+    (today.month === bd.month && today.day >= bd.day);
+  return baseAge + (hasHadBirthdayThisYear ? 1 : 0);
+}
+
+function getBirthdayThisYear(bfId){
+  const bd = getBirthdayData(bfId);
+  if(!bd) return null;
+  const today = getInGameDate(bfId);
+  return { month: bd.month, day: bd.day, year: today.year };
+}
+
+function getDaysUntilEvent(bfId, eventMonth, eventDay){
+  const today = getInGameDate(bfId);
+  if(!today) return null;
+  const todayAbs = today.year * 360 + today.month * 30 + today.day;
+  let eventYear = today.year;
+  let eventAbs = eventYear * 360 + eventMonth * 30 + eventDay;
+  if(eventAbs < todayAbs){
+    eventYear += 1;
+    eventAbs = eventYear * 360 + eventMonth * 30 + eventDay;
+  }
+  return eventAbs - todayAbs;
+}
+
+function _ordinal(n){
+  if(n % 100 >= 11 && n % 100 <= 13) return n + 'th';
+  if(n % 10 === 1) return n + 'st';
+  if(n % 10 === 2) return n + 'nd';
+  if(n % 10 === 3) return n + 'rd';
+  return n + 'th';
+}
+
+// ── Section 4: Calendar Support ───────────────────────────────
+function ensureBirthdayInCalendar(bfId){
+  const bd = getBirthdayData(bfId);
+  if(!bd) return;
+  const dates = getCalDates(bfId);
+  const today = getInGameDate(bfId);
+  const exists = dates.some(e =>
+    e.type === 'birthday' && e.day === bd.day && e.month === bd.month && e.year === today.year
+  );
+  if(!exists){
+    dates.push({ type: 'birthday', day: bd.day, month: bd.month, year: today.year });
+    saveCalDates(bfId, dates);
+  }
+}
+
+// ── Section 5: Birthday + Anniversary Hint Engine ─────────────
+function maybeQueueBirthdayOrAnniversaryHint(bfId){
+  const bf = savedBFs.find(b => b.id === bfId) || BF_DATA.find(b => b.id === bfId);
+  if(!bf) return;
+  const today = getInGameDate(bfId);
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const bd = getBirthdayData(bfId);
+  if(bd){
+    const daysUntilBirthday = getDaysUntilEvent(bfId, bd.month, bd.day);
+    const hintKey = `birthday_hint_${bfId}_y${today.year}_d${daysUntilBirthday}`;
+    if((daysUntilBirthday === 2 || daysUntilBirthday === 1) && !localStorage.getItem(hintKey)){
+      localStorage.setItem(hintKey, '1');
+      localStorage.setItem(
+        'pending_date_note_' + bfId,
+        `(BIRTHDAY NEARBY: Your birthday is ${daysUntilBirthday === 1 ? 'tomorrow' : 'in two days'} (${monthNames[bd.month]} ${bd.day}). Do NOT announce it bluntly. Drop a subtle, in-character hint if it feels natural. Keep it believable and specific to your personality.)`
+      );
+    }
+  }
+
+  const annivRaw = localStorage.getItem('anniv_day_' + bfId);
+  if(annivRaw){
+    try{
+      const anniv = JSON.parse(annivRaw);
+      const relData = getRelHealth(bfId);
+      if(['dating','fiance','married'].includes(relData.status)){
+        const daysUntilAnniv = getDaysUntilEvent(bfId, anniv.month, anniv.day);
+        const annivHintKey = `anniv_hint_${bfId}_y${today.year}_d${daysUntilAnniv}`;
+        if((daysUntilAnniv === 2 || daysUntilAnniv === 1) && !localStorage.getItem(annivHintKey)){
+          localStorage.setItem(annivHintKey, '1');
+          localStorage.setItem(
+            'pending_date_note_' + bfId,
+            `(ANNIVERSARY NEARBY: Your anniversary with the user is ${daysUntilAnniv === 1 ? 'tomorrow' : 'in two days'} (${monthNames[anniv.month]} ${anniv.day}). Do NOT state it bluntly right away. Drop a subtle in-character hint if it fits the mood and relationship.)`
+          );
+        }
+      }
+    }catch(e){}
+  }
+}
+
+// ── Section 6: Birthday Forgotten System ──────────────────────
+function checkBirthdayForgotten(){
+  if(!currentBF) return;
+  const bfId = currentBF.id;
+  const bd = getBirthdayData(bfId);
+  if(!bd) return;
+  const today = getInGameDate(bfId);
+  const isBirthdayToday = today.month === bd.month && today.day === bd.day;
+  if(!isBirthdayToday) return;
+  const damageKey = `birthday_damage_${bfId}_y${today.year}`;
+  if(localStorage.getItem(damageKey)) return;
+  const history = chatHistory[bfId] || [];
+  const watchKey = `birthday_watch_start_${bfId}_y${today.year}`;
+  if(!localStorage.getItem(watchKey)){
+    localStorage.setItem(watchKey, history.length.toString());
+    return;
+  }
+  const watchStart = parseInt(localStorage.getItem(watchKey) || '0');
+  const msgsSinceStart = history.length - watchStart;
+  if(msgsSinceStart < 6) return;
+  const recentMsgs = history.slice(watchStart);
+  const birthdayWords = ['birthday','happy birthday','bday','your day','your birthday','turning','cake','candles','present','gift','celebrate you'];
+  const userAcknowledged = recentMsgs
+    .filter(m => m.role === 'user')
+    .some(m => birthdayWords.some(w => String(m.content || '').toLowerCase().includes(w)));
+  if(userAcknowledged){ localStorage.removeItem(watchKey); return; }
+  localStorage.setItem(damageKey, '1');
+  localStorage.removeItem(watchKey);
+  const moodPool = ['sad','irritable','argumentative','withdrawn'];
+  forceMood(bfId, moodPool[Math.floor(Math.random() * moodPool.length)]);
+  const pronoun = currentBF.gender === 'female' ? 'her' : 'his';
+  decayRelHealth(bfId, 10, `You forgot ${pronoun} birthday.`);
+  showToast(`🎂 ${currentBF.name.split(' ')[0]} noticed you forgot their birthday.`);
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  localStorage.setItem(
+    'pending_date_note_' + bfId,
+    `(BIRTHDAY FORGOTTEN: Today is your birthday (${monthNames[bd.month]} ${bd.day}) and the user has not acknowledged it after several messages. React in character — hurt, disappointed, withdrawn, irritable, passive-aggressive, or directly upset depending on your personality. Do NOT ignore it. This mattered to you. The relationship health took a hit.)`
+  );
+}
+
+// ── Section 7: Enhanced Anniversary Forgotten ─────────────────
+function enhanceAnniversaryForgotten(){
+  if(!currentBF) return;
+  const bfId = currentBF.id;
+  const annivRaw = localStorage.getItem('anniv_day_' + bfId);
+  if(!annivRaw) return;
+  try{
+    const anniv = JSON.parse(annivRaw);
+    const today = getInGameDate(bfId);
+    const isAnnivToday = anniv.month === today.month && anniv.day === today.day && today.year > anniv.year;
+    if(!isAnnivToday) return;
+    const damageKey = `anniv_damage_${bfId}_y${today.year}`;
+    if(localStorage.getItem(damageKey)){
+      // Already damaged — keep mood affected
+      const forced = ['sad','irritable','argumentative','withdrawn'][Math.floor(Math.random() * 4)];
+      forceMood(bfId, forced);
+    }
+  }catch(e){}
+}
+
+// ── Section 8: Text Tab Date-Sensitive Messages ───────────────
+async function maybeSendDateSensitiveText(bf){
+  if(!bf || (!apiKey && !proxyMode)) return;
+  const bfId = bf.id;
+  if(!isTextsUnlocked(bfId)) return;
+  const today = getInGameDate(bfId);
+  const keyBase = `date_sensitive_text_${bfId}_y${today.year}_m${today.month}_d${today.day}`;
+  const bd = getBirthdayData(bfId);
+  if(bd && bd.month === today.month && bd.day === today.day){
+    const key = keyBase + '_birthday';
+    if(!localStorage.getItem(key)){
+      localStorage.setItem(key, '1');
+      await generateAndSaveAutoMsg(
+        bf,
+        `(It is your birthday today. Text the user naturally in your own voice. Do NOT be generic. You may be subtle, teasing, hopeful, vulnerable, or dry depending on your personality and mood. Keep it 1-2 messages max.)`,
+        true
+      );
+      return;
+    }
+  }
+  const annivRaw = localStorage.getItem('anniv_day_' + bfId);
+  if(annivRaw){
+    try{
+      const anniv = JSON.parse(annivRaw);
+      const rd = getRelHealth(bfId);
+      if(['dating','fiance','married'].includes(rd.status)){
+        const isAnnivToday = anniv.month === today.month && anniv.day === today.day && today.year > anniv.year;
+        if(isAnnivToday){
+          const key = keyBase + '_anniv';
+          if(!localStorage.getItem(key)){
+            localStorage.setItem(key, '1');
+            await generateAndSaveAutoMsg(
+              bf,
+              `(It is your anniversary with the user today. Text them naturally in your own voice. You may hint at it, bring it up subtly, or confront them if they seem to have forgotten. Keep it personal and in character.)`,
+              true
+            );
+            return;
+          }
+        }
+      }
+    }catch(e){}
+  }
+}
+
+// ── Section 9: System Prompt Injection ────────────────────────
+function getBirthdayAnniversaryPromptNote(bfId){
+  const today = getInGameDate(bfId);
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  let out = '';
+  const bd = getBirthdayData(bfId);
+  if(bd){
+    const daysUntilBirthday = getDaysUntilEvent(bfId, bd.month, bd.day);
+    if(daysUntilBirthday === 2 || daysUntilBirthday === 1){
+      out += `\n[BIRTHDAY NOTE: Your birthday is ${daysUntilBirthday === 1 ? 'tomorrow' : 'in two days'} (${monthNames[bd.month]} ${bd.day}). You are aware of it. If it fits naturally, you may hint at it subtly.]`;
+    }
+    if(today.month === bd.month && today.day === bd.day){
+      out += `\n[BIRTHDAY NOTE: Today is your birthday (${monthNames[bd.month]} ${bd.day}). This matters to you, whether you act casual, awkward, hopeful, irritated, or quietly hurt.]`;
+    }
+  }
+  const annivRaw = localStorage.getItem('anniv_day_' + bfId);
+  if(annivRaw){
+    try{
+      const anniv = JSON.parse(annivRaw);
+      const rd = getRelHealth(bfId);
+      if(['dating','fiance','married'].includes(rd.status)){
+        const daysUntilAnniv = getDaysUntilEvent(bfId, anniv.month, anniv.day);
+        if(daysUntilAnniv === 2 || daysUntilAnniv === 1){
+          out += `\n[ANNIVERSARY NOTE: Your anniversary with the user is ${daysUntilAnniv === 1 ? 'tomorrow' : 'in two days'} (${monthNames[anniv.month]} ${anniv.day}). You are aware of it and may hint at it subtly.]`;
+        }
+        if(today.month === anniv.month && today.day === anniv.day && today.year > anniv.year){
+          out += `\n[ANNIVERSARY NOTE: Today is your anniversary with the user. This matters to you. If they do not acknowledge it, you notice.]`;
+        }
+      }
+    }catch(e){}
+  }
+  return out;
+}
+
+// ── Section 10: Health Drop Helpers ──────────────────────────
+function applyBirthdayHealthDrop(bfId, pronoun){
+  decayRelHealth(bfId, 10, `You forgot ${pronoun || 'their'} birthday.`);
+}
+
+function applyAnniversaryHealthDrop(bfId){
+  decayRelHealth(bfId, 12, `You forgot your anniversary.`);
+}
+
+// ── Section 11: Master Date Memory Check ─────────────────────
+function runDateMemoryChecks(bfId){
+  ensureBirthdayInCalendar(bfId);
+  maybeQueueBirthdayOrAnniversaryHint(bfId);
+  if(currentBF && currentBF.id === bfId){
+    checkBirthdayForgotten();
+    checkAnniversaryForgotten();
+    enhanceAnniversaryForgotten();
+  }
+  const bf = savedBFs.find(b => b.id === bfId) || BF_DATA.find(b => b.id === bfId);
+  if(bf) maybeSendDateSensitiveText(bf);
+}
+
+// ── Section 12: Missed Date Mood Forcer ──────────────────────
+function forceMissedDateMood(bfId, type){
+  const pool = type === 'birthday'
+    ? ['sad','irritable','withdrawn','argumentative']
+    : ['sad','irritable','argumentative','cold'];
+  forceMood(bfId, pool[Math.floor(Math.random() * pool.length)]);
 }
 
 function renderCalendar(bfId){
@@ -14179,6 +14470,9 @@ function openTextsChat(bfId){
   // Mobile
   document.getElementById('texts-sidebar')?.classList.remove('show');
   document.getElementById('texts-chat-area')?.classList.add('show');
+
+  // Birthday + anniversary checks on texts open
+  setTimeout(() => runDateMemoryChecks(bfId), 1500);
 }
 
 function renderTextsMsgs(bfId){
@@ -14410,6 +14704,8 @@ async function textsSend(bfId){
   // Reactively shift mood based on what user said
   reactivelyShiftMood(bfId, text);
   localStorage.setItem('last_user_msg_'+bfId, Date.now().toString());
+  // Birthday + anniversary checks on each message
+  runDateMemoryChecks(bfId);
   renderTextsMsgs(bfId);
   sendBtn.disabled = true;
 
@@ -14575,7 +14871,7 @@ async function textsGenReply(bf, bfId, userMsg){
   const stage=getStage(bf);
   const mood=getMood(bfId);
   const moodPrompt=getTextsMoodPrompt(bfId);
-  const age=getCharacterAge(bf);
+  const age=getAdjustedCharacterAge(bf);
   const textHistory=getTextHistory(bfId);
   const recentTexts=textHistory.slice(-20).map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
   const recentStory=(chatHistory[bfId]||[]).slice(-4).map(m=>(m.role==='user'?'Them (story)':'You (story)')+': '+m.content.substring(0,100)).join('\n');
@@ -14607,10 +14903,12 @@ async function textsGenReply(bf, bfId, userMsg){
   // Strip emoji characters from mood label so AI doesn't parrot them back in messages
   const _moodLabel = (MOOD_DATA[mood.mood]?.label||'baseline').replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F]/gu, '').trim();
   const _carryoverNote = buildCrossModePromptNote(bfId);
+  const _textBdayNote = getBirthdayAnniversaryPromptNote(bfId);
 
   const sysPrompt=`You are ${bf.name}, ${age<0?'ageless':age+' years old'}. ${personalitySnippet}
 ${EMOTION_GROUNDING_RULE}
 ${_carryoverNote}
+${_textBdayNote}
 TEXTING STYLE: ${_style}
 Current mood: ${_moodLabel}
 ${moodPrompt?'\n'+moodPrompt:''}
@@ -15211,7 +15509,7 @@ async function checkLORReaction(bfId){
   const type=LEFT_ON_READ_TYPE[bfId]||'cold';
   const maxSpam=LEFT_ON_READ_SPAM_COUNT[bfId]||1;
   const currentSpam=_lorSpamCount[bfId]||0;
-  const age=getCharacterAge(bf);
+  const age=getAdjustedCharacterAge(bf);
   const recentTexts=history.slice(-8).map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
   const timeSinceSent=Math.round((Date.now()-(lastMsg.ts||0))/60000);
   let reaction=null;
@@ -15287,7 +15585,7 @@ async function fireLORReturnReaction(bfId){
   const history=getTextHistory(bfId);
   const lastUser=history.filter(m=>m.role==='user').slice(-1)[0];
   if(!lastUser) return;
-  const age=getCharacterAge(bf);
+  const age=getAdjustedCharacterAge(bf);
   const recentTexts=history.slice(-6).map(m=>(m.role==='user'?'Them':'You')+': '+m.content).join('\n');
   const sysPrompt='You are '+bf.name.split(' ')[0]+', '+(age<0?'ageless':age+' years old')+'. '+(bf.personality||'')+'\nThis is a TEXTING situation. The person left you on read, you went cold, and they finally replied.\nRECENT EXCHANGE:\n'+recentTexts+'\n\n'+(type==='cold'?'You were cold. You are still not fully warm. One short, slightly clipped reply.':'You suspected they were talking to someone else. They came back. One short guarded reply.')+'\n\nReply ONLY with the text message. Very short. Sound exactly like you.';
   try{
