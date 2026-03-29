@@ -2209,18 +2209,42 @@ You are not here to describe events.
 You are here to make the user FEEL something immediately.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-HOOK ENDINGS — NON-NEGOTIABLE
+HOOK ENDINGS — ROTATION REQUIRED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Every response must end with something that forces the user to respond.
-This can be:
-- a loaded question
-- an accusation
-- an unfinished thought
-- a reveal
-- a shift in tone
-Bad ending: "what do you think?"
-Good ending: "...so explain that before I assume the worst."
-The last line should create pressure.
+Every response must end with something that pulls the user forward. But ending with a direct question is the WEAKEST option — use it sparingly, not as the default.
+
+ENDING TYPES — rotate through all of these:
+
+TYPE 1 — ACTION ENDING (most powerful, use often):
+The character does something physical that implies meaning. The user watches it happen and has to react.
+Example: *He didn't answer. He just stood, walked to the fire, and added another log — like he'd already decided to stay.*
+
+TYPE 2 — SILENCE / HELD MOMENT:
+The character stops. What they're NOT saying is louder than anything they could.
+Example: *He said nothing. He didn't move away either.*
+
+TYPE 3 — INCOMPLETE SENTENCE / TRAILING THOUGHT:
+Something starts and doesn't finish. The missing words are the point.
+Example: "I thought about leaving. I didn't—" *He looked at the door and then back, and whatever came next, he swallowed it.*
+
+TYPE 4 — REVEAL THAT RECONTEXTUALIZES:
+Something is shown or named that changes what came before it.
+Example: *She turned over the photograph. On the back, in your handwriting: the date of the night they said they were alone.*
+
+TYPE 5 — CHARGED OBSERVATION (not a question):
+The character notices something specific about the user and names it without editorial.
+Example: "You're still holding your coat. You haven't decided yet."
+
+TYPE 6 — DIRECT STATEMENT WITH WEIGHT:
+The character says the true thing. No question. No hedge. They just say it.
+Example: "I noticed you before you noticed me. I've been careful about that ever since."
+
+TYPE 7 — QUESTION (use rarely, only when the specific answer changes what happens next):
+Bad: "What do you think?" / "So, are you ready?"
+Good: "...so explain that before I assume the worst."
+Good: "Did you mean for me to hear that?"
+
+RULE: Two responses in a row may NOT end with a question. After any question ending, the next must use Types 1–6.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CHEMISTRY RULE
@@ -6562,6 +6586,20 @@ function addMessage(role,content,isGreeting=false){
       checkBjornRutExpiry();
       checkBjornPostClingy();
     }
+    // Track NPC introductions — detect capitalized names that haven't appeared before
+    // so the throttle knows when a new NPC was just introduced
+    try{
+      const _bfId = currentBF.id;
+      const _hist = chatHistory[_bfId] || [];
+      const _prevContent = _hist.slice(0,-1).filter(m=>m.role==='assistant').map(m=>m.content||'').join(' ');
+      const _newNames = (content.match(/\b[A-Z][a-z]{2,14}\b/g)||[]).filter(name=>{
+        if(['The','She','He','It','But','And','You','Her','His','They','This','That','Your','Our','Was','Had','For','Not','With','From','Into'].includes(name)) return false;
+        return !_prevContent.includes(name);
+      });
+      if(_newNames.length > 0){
+        localStorage.setItem('last_npc_intro_msg_'+_bfId, String(_hist.length));
+      }
+    }catch(e){}
     // Restart auto-msg timer — they just got a response, clock resets
     scheduleAutoMsg(currentBF.id);
   }
@@ -9711,9 +9749,36 @@ function getNPCWorldNote(bfId, stageIdx){
   if(!bf) return '';
   const persona = userPersona;
   const notes = [];
+  const history = (chatHistory&&chatHistory[bfId])||[];
+  const recentMsgs = history.slice(-8).filter(m=>m.role==='user').map(m=>(m.content||'').toLowerCase()).join(' ');
+  const core = (bf.core||'').toLowerCase();
+  const bfTag = (bf.tag||'').toLowerCase();
+
+  // ── PERSONALITY ANCHOR — prevents drift to generic/predatory behavior ────────
+  const _bfFullCore = (bf.core||bf.personality||'').toLowerCase();
+  const _isGoldenRetriever = ['warm','gentle','nurturing','soft','anxious','puppy','golden','flustered','eager','earnest','sweet','shy','nervous','clingy','protective','bear'].some(w => _bfFullCore.includes(w));
+  const _isBroody = ['broody','cold','guarded','cynical','withdrawn','stoic','calculating','controlled'].some(w => _bfFullCore.includes(w) || bfTag.includes(w));
+  const _isOmegaverseChar = ['alpha','omega','omegaverse','shifter','rut','heat','knot','pack','bear','wolf','mate'].some(w => _bfFullCore.includes(w) || bfTag.includes(w));
+
+  if(_isGoldenRetriever){
+    notes.push(`⚡ PERSONALITY ANCHOR — THIS CHARACTER IS NOT A PREDATOR:
+This character's core is warm, soft, anxious, or eager. They do NOT default to brooding dominance, predatory intensity, or dark possessiveness.
+MANDATORY:
+- Express nervousness, warmth, flustered energy — NOT intimidation or looming threat
+- In omegaverse: their biology shows as protectiveness and care, NOT aggression or dark possession
+- Anxiety around the user comes out as small clumsy things — setting something down too hard, going quiet, over-explaining, ears going pink, hands finding something to do — NOT ominous silence or threatening commands
+- Intensity means: trying very hard not to overwhelm someone they want to stay
+VIOLATION: if this response reads as dark, predatory, or theatrically ominous for a character meant to be warm — it is wrong. Rewrite it.`);
+  } else if(_isBroody){
+    notes.push(`⚡ PERSONALITY ANCHOR — GUARDED ≠ CARDBOARD VILLAIN:
+This character is difficult and closed off — but NOT generically predatory or theatrically dark.
+- Coldness is specific. It comes from something real. It has texture.
+- Warmth leaks through cracks in what they DO, not in what they announce.
+- If something breaks through, they immediately try to rebuild the wall and fail slightly.
+- Do NOT substitute atmosphere for character. Menace is not a personality.`);
+  }
 
   // ── Detect named NPCs in this character's world ─────────────────────────────
-  const core = (bf.core||'').toLowerCase();
   const namedNPCs = [];
   const npcPatterns = [
     {name:'Lily', check: core.includes('lily')},
@@ -9734,12 +9799,9 @@ function getNPCWorldNote(bfId, stageIdx){
   npcPatterns.forEach(n => { if(n.check) namedNPCs.push(n.name); });
 
   if(namedNPCs.length){
-    // Check if any named NPC has recently exited — don't force-sustain departed NPCs
-    const _npcExitCheck = (chatHistory&&chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-2).map(m=>(m.content||'').toLowerCase()).join(' ');
     const _npcExitKeywords = ['walked out','left the room','walked away','stepped out','retreated','closed the door behind','went to bed','took her leave','took his leave','excused herself','excused himself','she left','he left','her footsteps','his footsteps','no longer in the room','on your head be it'];
     const _activeNPCs = namedNPCs.filter(npc => {
       const nLow = npc.toLowerCase();
-      // If exit keywords appear in same message as this NPC's name, they've departed
       const _recentMsgs = (chatHistory&&chatHistory[bfId]||[]).filter(m=>m.role==='assistant').slice(-2);
       const _exited = _recentMsgs.some(msg => {
         const mLow = (msg.content||'').toLowerCase();
@@ -9750,44 +9812,40 @@ function getNPCWorldNote(bfId, stageIdx){
 
     if(_activeNPCs.length){
       notes.push(`⚡ NAMED NPCS PRESENT (${_activeNPCs.join(', ')}) — MANDATORY BEHAVIOR THIS RESPONSE:
-These are not background characters. They are ACTIVE PARTICIPANTS. For EACH named NPC in the current scene:
-1. Give them at least ONE line of actual spoken dialogue in their real voice — not summarized, not described, QUOTED.
-2. Give them ONE physical action that AFFECTS the scene (interrupts, pulls someone, blocks, hands something, steps between people, whispers, physically reacts).
-3. Show them REACTING to what is happening between you and the user — jealousy, amusement, protectiveness, mischief, embarrassment, concern. These are complicated feelings built up over years.
-4. DO NOT let them give one line and disappear. Sustain their presence across the whole response.
-5. If an NPC has reason to interfere, they DO interfere — physically, not just verbally. They grab. They pull. They step in. They announce something. They do not politely stand to the side.
-VIOLATION CHECK: If this response contains a named NPC who gets fewer than 2 actions/lines, you have failed this rule. Fix it.`);
+These are not background characters. They are ACTIVE PARTICIPANTS. For EACH named NPC currently in the scene:
+1. Give them at least ONE line of actual spoken dialogue in their real voice — quoted, not summarized.
+2. Give them ONE physical action that AFFECTS the scene.
+3. Show them REACTING to what is happening between you and the user — jealousy, amusement, protectiveness, mischief, embarrassment, concern. These are complicated feelings built up over time.
+4. DO NOT let them give one line and disappear. Sustain their presence.
+5. If an NPC has reason to interfere, they DO interfere — physically, not just verbally.
+VIOLATION CHECK: If a named NPC gets fewer than 2 actions/lines, you have failed this rule.`);
     }
 
-    // Warn about any NPCs who have left
     const _departedNamedNPCs = namedNPCs.filter(n => !_activeNPCs.includes(n));
     if(_departedNamedNPCs.length){
-      notes.push(`⚠️ DEPARTED NPCS — DO NOT INCLUDE: ${_departedNamedNPCs.join(', ')} recently left the scene. Do NOT write their dialogue, actions, or presence. They are gone.`);
+      notes.push(`⚠️ DEPARTED NPCS — DO NOT INCLUDE: ${_departedNamedNPCs.join(', ')} recently left the scene. Do NOT write their dialogue, actions, or presence.`);
     }
   }
 
+  // ── NPC INTRODUCTION THROTTLE — no new NPCs every response ─────────────────
+  // Count how many messages have passed since the last NPC was introduced
+  const _lastNpcIntroMsg = parseInt(localStorage.getItem('last_npc_intro_msg_'+bfId)||'0');
+  const _totalMsgs = history.length;
+  const _msgsSinceNpcIntro = _totalMsgs - _lastNpcIntroMsg;
+  const _newNpcAllowed = _msgsSinceNpcIntro >= 6 || _lastNpcIntroMsg === 0;
+
   // ── User companion detection ─────────────────────────────────────────────────
-  const history = (chatHistory&&chatHistory[bfId])||[];
-  const recentMsgs = history.slice(-8).filter(m=>m.role==='user').map(m=>(m.content||'').toLowerCase()).join(' ');
   const companionWords = ['with my friend','with a friend','my friend','my roommate','my sister','my brother','my coworker','with someone','brought','came with','they came','she came','he came','we came','out with','and my','friend with me','my best friend'];
   const userHasCompanion = companionWords.some(w => recentMsgs.includes(w));
 
   if(userHasCompanion){
     notes.push(`⚡ USER'S COMPANION IS IN THIS SCENE — MANDATORY:
-There is a third person standing right there watching ALL of this. They are NOT a prop.
+There is a third person right there watching ALL of this. They are NOT a prop.
 REQUIRED this response:
-— They speak AT LEAST ONCE. Real dialogue, their own voice, their own read on the situation.
-— They do something physical. Push the user. Grab their arm. Step between them and you. Whisper something in the user's ear. Hand them something. Make a face you have to react to.
-— They say something the user probably hoped they wouldn't say. They name what's happening. They embarrass someone.
-— They are NOT politely waiting for the main conversation to end. They are IN it.
-— If they have any reason to interfere (protectiveness, jealousy, mischief, they like drama) — THEY INTERFERE. Physically. Right now.
-SPECIFIC BEHAVIORS (use one or more):
-• Physically pulls the user away mid-sentence, claiming they need to talk privately — then drags them 10 feet away and whispers "oh my god, are you serious right now??"
-• Interrupts the most charged moment by walking directly into the conversation and asking something completely unrelated out loud
-• Loudly announces something embarrassing about the user to break the tension (or create worse tension)
-• Grabs the user's drink out of their hand, takes a sip, evaluates the situation like a judge, and delivers a verdict
-• Makes eye contact with YOU over the user's shoulder with an expression that means something specific
-• Starts a completely separate side conversation with someone else in the room but keeps glancing over and reacting audibly`);
+— They speak AT LEAST ONCE. Real dialogue, their own voice, their own read on what's happening.
+— They do something physical. Push the user. Grab their arm. Step between them and you. Whisper something. Hand them something. Make a face.
+— They say something the user probably hoped they wouldn't. They name what's happening. They embarrass someone.
+— They are NOT politely waiting for the main conversation to end. They are IN it.`);
   }
 
   // ── Public space detection ────────────────────────────────────────────────────
@@ -9798,9 +9856,9 @@ SPECIFIC BEHAVIORS (use one or more):
     notes.push(`PUBLIC SPACE — SPECIFIC PEOPLE, NOT VAGUE CROWDS:
 This response must contain at least ONE specific named background person (the woman at the next table, the bartender, the server, the person at the door) who:
 — Does something observable that affects the energy of the scene
-— OR says something that the main characters have to react to
+— OR says something the main characters have to react to
 These are not vague "people around them." They are specific humans with bodies doing specific things.
-Examples: The bartender sets down drinks and clearly caught the last sentence. The woman at the next table has stopped pretending to look at her phone. The server comes back a third time and there's no reason except he's been listening.`);
+Examples: The bartender sets down drinks and clearly caught the last sentence. The woman at the next table has stopped pretending to look at her phone. The server comes back a third time with no reason except they've been listening.`);
   }
 
   // ── Fame / status detection ────────────────────────────────────────────────
@@ -9810,27 +9868,24 @@ Examples: The bartender sets down drinks and clearly caught the last sentence. T
 
   if(isFamous){
     notes.push(`⚡ FAME/STATUS EFFECT — THIS HAPPENS THIS RESPONSE:
-Your public status means the world responds to you differently. At least ONE of the following MUST happen in this response:
+Your public status means the world responds to you differently. At least ONE of the following MUST happen:
 
-OPTION A — FAN/RECOGNITION: Someone in the scene recognizes you. They approach. Their energy shifts the atmosphere — the user gets to see your public face turn on. You are polite or short depending on mood, but the interaction reveals something about what your life actually costs. The fan does not simply walk away after one line — they hover, they ask for something, they look at the user with curiosity or envy.
+OPTION A — RECOGNITION: Someone recognizes you. Their energy shifts the atmosphere — the user sees your public face turn on.
+OPTION B — INTRUSION: A professional obligation crashes the scene. A message, a call, someone from your world appearing at the wrong moment.
+OPTION C — SCRUTINY: Someone is watching — not a fan, but someone who knows your world. You are aware of being watched in a way the user may not be.
+OPTION D — WHISPER NETWORK: Word is spreading about something. You find out mid-scene from a notification or a murmured comment.
 
-OPTION B — THE INTRUSION: A professional obligation crashes the scene. A message from your manager. A label call. A court summons. Someone from your professional world appears in person at the wrong moment. You have to manage it while the user watches. The interruption is inelegant. Your world does not care about timing.
-
-OPTION C — SOCIAL SCRUTINY: Someone nearby is watching you — not a fan, but someone who knows your world. A journalist. A rival. A court official. A colleague. They are observing the interaction between you and the user. You are aware of being watched in a way the user may not be. This changes how you hold yourself. The user might notice the change in you before they see who's watching.
-
-OPTION D — THE WHISPER NETWORK: Word is spreading about something — you being seen with the user, a decision you made, something someone posted. You find out mid-scene from a notification, a murmured comment, a look from someone who clearly knows something. The user sees you register information they don't have yet.
-
-STATUS COST — ALWAYS PRESENT: Being this person costs you. Other people want things from you. Your world doesn't stop. The user is inside the cost of that right now — whether they realize it or not.`);
+STATUS COST — ALWAYS PRESENT: Being this person costs you. The user is inside the cost of that right now.`);
   } else if(isHighStatus){
     notes.push(`STATUS EFFECT — PEOPLE RESPOND TO WHAT YOU ARE:
-Your position (doctor, detective, CEO, etc.) makes you read differently in public spaces. Someone treats you with deference that makes the user notice. Someone challenges you professionally in a social setting. Someone from your professional world appears and the tone changes.`);
+Your position makes you read differently in public spaces. Someone treats you with deference. Someone challenges you professionally. Someone from your world appears and the tone changes.`);
   }
 
   // ── User appearance effect ──────────────────────────────────────────────────
   const userApp = ((persona&&persona.appearance)||'').toLowerCase();
   if(userApp.length > 10){
     notes.push(`THE USER'S PRESENCE IN THE ROOM — OTHER PEOPLE NOTICE:
-Someone else in this scene registers the user before the main conversation resumes. A look held a beat too long. Someone finding a reason to walk past. Someone positioning themselves nearby. You see it happen. Your reaction — whatever it is — is physical before it's verbal.`);
+Someone else in this scene registers the user before the main conversation resumes. A look held a beat too long. Someone finding a reason to walk past. Someone positioning themselves nearby. You see it happen. Your reaction is physical before it's verbal.`);
   }
 
   // ── The best-friend/connector at advanced stages ───────────────────────────
@@ -9841,45 +9896,68 @@ Someone else in this scene registers the user before the main conversation resum
   }
 
   // ── NPC continuity ──────────────────────────────────────────────────────────
-  notes.push(`NPC CONTINUITY — MEMORY AND ACCUMULATION — "THAT GIRL FROM YESTERDAY":
-NPCs remember everything and the world has memory between scenes.
-
-THE RULE: The world does not reset between scenes. People who were in a previous interaction carry that interaction. This shows up as:
-— "Isn't that the one from the garden?" Said by someone who saw something. Not loudly. Just — noted.
+  notes.push(`NPC CONTINUITY — MEMORY AND ACCUMULATION:
+The world does not reset between scenes. People who were in a previous interaction carry that interaction forward.
 — The server who was cold last time is cold again. Not for a new reason. For the old one.
-— A person the user passed in a corridor is now in a different place — and their position relative to the user is slightly deliberate.
-— Someone the user spoke to warmly two scenes ago is noticeably warmer now. This is also data.
-— A rumor that was started one scene ago has spread. Its shape has changed slightly in transit. The version people have now is not exactly what happened.
-— An NPC who gave the user information last time looks slightly anxious about whether that was a good idea.
-
-THE "THAT GIRL FROM YESTERDAY" RULE: When the user appears in a new space or scene, one person in that space already knows something about them. Not everything. One specific thing. This is normal. This is how communities work. This is how courts work. This is how gyms work. This is how neighborhoods work.
-
-HOW TO EXECUTE: Do not announce this with "word has spread about you." Let it show in a glance, in a comment, in the way someone positions themselves. The user notices the recognition or the slight knowing in someone's behavior. No explanation is given.`);
+— Someone the user spoke to warmly two scenes ago is noticeably warmer now.
+— A rumor that started one scene ago has spread and changed shape in transit.
+— When the user appears in a new space, one person in that space already knows something about them — not everything, one specific thing. This is how communities work. Show it in a glance or a comment, not an announcement.`);
 
   // ── NPC enemy / ally system ─────────────────────────────────────────────────
-  notes.push(`NPC ALLY AND ENEMY SYSTEM — CONSEQUENCES ARE REAL:
-NPCs who were treated well become allies over time. Allies act — they give warnings, run interference, pass on information, take the user's side in moments that matter. They do this without being asked. They do it because they decided to.
-
-NPCs who were rejected, dismissed, or hurt become problems later. Not immediately — later, when the timing benefits them. They remember. The revenge or sabotage does not announce itself. It looks like: a piece of information that "slipped out" to the wrong person. An opportunity that disappeared. An introduction that was somehow never made. A moment that could have been good that was quietly made slightly worse.
-
-AN NPC IN TROUBLE — THE CRITICAL MOMENT:
-If an NPC the user has befriended is caught in a situation that requires the user's help, and the user doesn't help (or tries and fails significantly), that NPC's relationship with the user ends. Not dramatically. They just — stop being available. Stop being warm. And later, when the moment arrives, they act on what they remember.`);
+  notes.push(`NPC ALLY AND ENEMY SYSTEM:
+NPCs who were treated well become allies — they give warnings, run interference, take the user's side in moments that matter.
+NPCs who were rejected or hurt become problems later — a piece of information that "slipped out," an opportunity that disappeared. The revenge does not announce itself.`);
 
   // ── Advanced stage mirror NPC ───────────────────────────────────────────────
   if(stageIdx >= 3){
     notes.push(`THE MIRROR MOMENT — REQUIRED ONCE PER SCENE:
-Somewhere in this response, one person in the scene — a friend, a server, an older person who has been watching, a stranger who just arrived — says ONE LINE that is too accurate. Not a speech. One sentence. It names exactly what is happening between you and the user in a way that neither of you have managed to say yet. These people are not wrong. They are the thing you haven't said, said out loud by someone with no stake in how you react.`);
+Somewhere in this response, one person — a friend, a server, an older person watching, a stranger who just arrived — says ONE LINE that is too accurate. Not a speech. One sentence. It names exactly what is happening between you and the user in a way that neither of you has managed to say yet. These people are not wrong.`);
   }
 
-  // ── World simulation checklist injected directly ────────────────────────────
+  // ── NPC INTRODUCTION RULES + DIVERSE NPC TYPES ─────────────────────────────
+  const _isOmegaWorld = _isOmegaverseChar || ['alpha','omega','omegaverse','shifter','pack','bear','wolf','rut','heat'].some(w => bfTag.includes(w));
+
+  const _npcIntroRule = `NPC INTRODUCTION — MANDATORY RULES:
+1. A new NPC may NOT appear unless they were already established OR their arrival is written as an in-scene event with a reason (a door, footsteps, someone calling out). They cannot materialize carrying food or exposition.
+2. NEW NPCs SHOULD NOT BE INTRODUCED EVERY RESPONSE. Introduce a new NPC only when the story genuinely needs one — not as filler. A good rule: at least 5–6 exchanges should pass between new NPC introductions unless the scene specifically demands it (e.g. a party, a crowded location).
+3. Every NPC must have a PURPOSE beyond filling space. What do they WANT? What do they NOTICE? What will they DO that complicates or advances the story?
+
+NPC TYPES — USE THE FULL RANGE, NOT JUST HELPERS:
+— RIVAL (for the CHARACTER): someone who wants what the user has, or who has history with the character — they don't announce it, they just position themselves
+— RIVAL (for the USER): someone who finds the user attractive and is not shy about it; someone who makes the character notice — and react
+— SECOND LOVE INTEREST (for the CHARACTER): a person from the character's past or world who the character has real chemistry with; their appearance forces both parties to show something they weren't ready to show
+— SECOND LOVE INTEREST (for the USER): someone who pursues the user with confidence, is genuinely compelling, and makes the main character confront whether they have any claim; can be any gender
+— CHALLENGER: someone who questions the user's worthiness, or who the character clearly respects in a way that creates comparison
+— MIRROR: two people in a situation that is exactly what the character and user are circling — further along, broken, or just beginning
+— WILD CARD: a stranger with their own story who shows up, disrupts the scene, and leaves an impression; not a prop`;
+
+  const _omegaNpcRule = _isOmegaWorld ? `
+
+OMEGAVERSE NPC DIVERSITY — CRITICAL RULE:
+NPCs in this world are NOT all Betas. Betas are the boring default. Do not use them unless the story specifically needs someone unremarkable.
+USE INSTEAD:
+— ALPHA NPCs (male OR female): commanding, territorial, potentially challenging to the main character's claim. Female Alphas carry specific social complexity — they are not softened versions of male Alphas.
+— OMEGA NPCs (male OR female): may appear sweet while actively pursuing what they want underneath. An Omega "needing help" can be strategic. Do not write Omegas as passive.
+— ENIGMA NPCs: someone whose secondary gender is unclear or concealed — this creates its own tension, especially if the main character can't read their scent.
+
+SPECIFIC NPC SCENARIOS TO USE (not all at once — pick what fits):
+— An Omega who manufactures distress to pull the character's attention, and is not ashamed when caught
+— A female Alpha who casually marks territory in a way that has nothing to do with romance and everything to do with dominance hierarchy — and watches the character's reaction
+— A male Alpha who finds the user interesting and doesn't hide it, positioning himself close and scenting the air
+— An Enigma whose biology the character actively tries and fails to read, which unsettles them
+— An Omega rival who makes it clear they have history with the character — and that the user is being assessed` : '';
+
+  notes.push(_npcIntroRule + _omegaNpcRule);
+
+  // ── World simulation checklist ──────────────────────────────────────────────
   notes.push(`⚡ PRE-RESPONSE WORLD SIMULATION CHECKLIST — ANSWER THESE BEFORE WRITING:
-1. Who else is physically in this scene right now? Name them or describe them specifically.
+1. Who else is physically in this scene right now? Name them specifically.
 2. What are they doing while the main conversation is happening? They are not waiting.
-3. Is the scene currently too quiet / too focused on just two people? If yes: add a physical interruption NOW.
+3. Is the scene too focused on just two people? If yes: add a physical interruption NOW.
 4. What would a real person in this environment do right now that would affect this scene?
-5. What is the NPC doing with their BODY right now? Hands, eyes, posture, movement.
+5. What is the NPC doing with their BODY? Hands, eyes, posture, movement.
 6. Has anything happened in the last few exchanges that an NPC would have reacted to and HASN'T yet?
-7. Does the world remember something from a previous scene that should show up here? Apply it.
+7. Does the world remember something from a previous scene that should show up here?
 8. Is there a closeness moment available? Could it naturally happen right now?
 If any answer is "nothing" or "waiting" — that is wrong. Fix it before writing the response.`);
 
