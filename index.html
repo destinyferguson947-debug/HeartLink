@@ -977,6 +977,23 @@
 
 <!-- HOME -->
 <div id="page-home" class="page active">
+
+  <!-- ══ DEV PANEL (Ctrl+D to toggle) ══════════════════════════════════ -->
+  <div id="dev-panel" style="display:none;position:fixed;bottom:24px;right:24px;z-index:99999;background:#1a0a14;border:1.5px solid #c084fc;border-radius:14px;padding:18px 20px;min-width:280px;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:inherit;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span style="font-size:0.78rem;font-weight:700;color:#c084fc;letter-spacing:0.08em;text-transform:uppercase;">🔧 Dev Tools</span>
+      <button onclick="document.getElementById('dev-panel').style.display='none'" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:1rem;line-height:1;">✕</button>
+    </div>
+    <p style="font-size:0.75rem;color:#9ca3af;margin:0 0 14px 0;line-height:1.5;">Force selected characters to <strong style="color:#f9a8d4;">Close</strong> stage so you can test the text tab.</p>
+    <div id="dev-char-list" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="devPanelApply()" style="flex:1;padding:8px 0;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;">⚡ Apply</button>
+      <button onclick="devPanelReset()" style="flex:1;padding:8px 0;background:#1f2937;color:#9ca3af;border:1px solid #374151;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;">↩ Reset All</button>
+    </div>
+    <p style="font-size:0.68rem;color:#4b5563;margin:10px 0 0 0;text-align:center;">Ctrl+D to hide · dev only</p>
+  </div>
+  <!-- ══ END DEV PANEL ══════════════════════════════════════════════════ -->
+
   <div class="hero">
     <h1>Your perfect<br><em>AI lover</em><br>awaits</h1>
     <p>Browse hundreds of unique personalities and scenarios, or craft your own ideal companion — completely personalized to you.</p>
@@ -16896,6 +16913,111 @@ function getEffectiveMoodForReply(bfId, userMsg, mode){
 function sendDailyQuestionToTexts(){ return; }
 function submitDailyAnswerTexts(){ return; }
 function submitDailyAnswer(){ return; }
+
+// ══════════════════════════════════════════════════════════════
+// DEV PANEL — Ctrl+D to toggle
+// Forces characters in your relationships tab to stage: close
+// so the texts tab unlocks for testing.
+// ══════════════════════════════════════════════════════════════
+(function(){
+  const MSGS_NEEDED = 75; // enough to clear stage 3 for any difficulty
+  const DEV_TAG = '__dev_pad__';
+
+  // Toggle panel on Ctrl+D
+  document.addEventListener('keydown', function(e){
+    if(e.ctrlKey && e.key === 'd'){
+      e.preventDefault();
+      const panel = document.getElementById('dev-panel');
+      if(!panel) return;
+      const isOpen = panel.style.display !== 'none';
+      if(isOpen){
+        panel.style.display = 'none';
+      } else {
+        devPanelRender();
+        panel.style.display = 'block';
+      }
+    }
+  });
+
+  // Build the character checklist from savedBFs (relationships tab)
+  window.devPanelRender = function(){
+    const list = document.getElementById('dev-char-list');
+    if(!list) return;
+    const chars = (window.savedBFs || []);
+    if(!chars.length){
+      list.innerHTML = '<p style="font-size:0.75rem;color:#6b7280;text-align:center;">No characters in your relationships tab yet.</p>';
+      return;
+    }
+    const allHistory = JSON.parse(localStorage.getItem('chat_history') || '{}');
+    list.innerHTML = chars.map(bf => {
+      const msgs  = (allHistory[bf.id] || []).length;
+      const stage = getStage(bf);
+      const stageNames = ['Stranger','Acquaintance','Friend','Close','Romantic','Partner'];
+      const isClose = stage >= 3;
+      const padded  = (allHistory[bf.id] || []).some(m => m[DEV_TAG]);
+      return `<label style="display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:8px;background:#0f0a14;cursor:pointer;border:1px solid ${isClose?'#7c3aed':'#1f2937'};">
+        <input type="checkbox" data-bfid="${bf.id}" ${isClose?'checked':''} style="width:15px;height:15px;accent-color:#c084fc;flex-shrink:0;">
+        <span style="flex:1;min-width:0;">
+          <span style="font-size:0.82rem;font-weight:600;color:#f3f4f6;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${bf.name}</span>
+          <span style="font-size:0.69rem;color:${isClose?'#a78bfa':'#6b7280'};">${stageNames[stage]||'?'} · ${msgs} msgs${padded?' · dev padded':''}</span>
+        </span>
+      </label>`;
+    }).join('');
+  };
+
+  // Apply: pad history for checked characters to reach stage 3
+  window.devPanelApply = function(){
+    const checks = document.querySelectorAll('#dev-char-list input[type=checkbox]');
+    if(!checks.length) return;
+    const allHistory = JSON.parse(localStorage.getItem('chat_history') || '{}');
+    let changed = 0;
+    checks.forEach(cb => {
+      const bfId = parseInt(cb.dataset.bfid);
+      if(!cb.checked) return;
+      const current = (allHistory[bfId] || []).length;
+      if(current >= MSGS_NEEDED) return; // already enough
+      const needed = MSGS_NEEDED - current;
+      const padding = Array.from({length: needed}, (_, i) => ({
+        role: i % 2 === 0 ? 'user' : 'assistant',
+        content: '.',
+        [DEV_TAG]: true
+      }));
+      allHistory[bfId] = [...(allHistory[bfId] || []), ...padding];
+      // Also set health to 75 so hard chars don't gate the stage
+      const relKey = 'rel_health_' + bfId;
+      const rel = JSON.parse(localStorage.getItem(relKey) || '{"health":50,"status":"stage","tooltipMsg":"","lastDecay":0}');
+      if(rel.health < 75){ rel.health = 75; localStorage.setItem(relKey, JSON.stringify(rel)); }
+      changed++;
+    });
+    if(!changed){
+      showToast('Selected characters are already at Close stage or above ✅');
+      return;
+    }
+    localStorage.setItem('chat_history', JSON.stringify(allHistory));
+    window.chatHistory = allHistory;
+    if(window.renderGrid) renderGrid();
+    if(window.renderSidebar) renderSidebar();
+    devPanelRender(); // refresh the list
+    showToast(`⚡ Done! ${changed} character${changed===1?'':'s'} unlocked to Close stage.`);
+  };
+
+  // Reset: remove all dev-padded messages from all characters
+  window.devPanelReset = function(){
+    const allHistory = JSON.parse(localStorage.getItem('chat_history') || '{}');
+    let changed = 0;
+    Object.keys(allHistory).forEach(id => {
+      const before = allHistory[id].length;
+      allHistory[id] = allHistory[id].filter(m => !m[DEV_TAG]);
+      if(allHistory[id].length !== before) changed++;
+    });
+    localStorage.setItem('chat_history', JSON.stringify(allHistory));
+    window.chatHistory = allHistory;
+    if(window.renderGrid) renderGrid();
+    if(window.renderSidebar) renderSidebar();
+    devPanelRender();
+    showToast(changed ? `↩ Reset ${changed} character${changed===1?'':'s'} to their real stage.` : 'Nothing to reset.');
+  };
+})();
 </script>
   <button class="dark-mode-fab" id="dark-mode-fab" onclick="toggleDarkMode()" title="Toggle dark/light mode">🌙 Dark</button>
   <div class="dating-tooltip" id="dating-tooltip"></div>
