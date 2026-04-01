@@ -15272,7 +15272,8 @@ async function textsSend(bfId){
   sendBtn.disabled = false;
 
   // ── Detect if both sides just agreed to meet/do something right now ──
-  detectAndFireMeetupScene(bfId);
+  // Delayed so it never fires at the same time as the main reply
+  setTimeout(() => detectAndFireMeetupScene(bfId), 8000);
 }
 
 // ── MEETUP / PLAN DETECTION ────────────────────────────────────────────────
@@ -15295,6 +15296,20 @@ async function detectAndFireMeetupScene(bfId) {
   const history = getTextHistory(bfId);
   const recent = history.slice(-6);
   if (recent.length < 2) return;
+
+  // ── Keyword pre-screen — skip the API call entirely if no meetup language ──
+  // This prevents a wasted API call on every single message exchange.
+  const _combinedText = recent.map(m => m.content).join(' ').toLowerCase();
+  const _meetupKeywords = [
+    'come over','coming over','come to','on my way','omw','heading over',
+    'be there','see you','see u','meet up','meet me','pick you up','pick u up',
+    'swing by','stop by','come by','drop by','lets meet',
+    'ill come','im coming','come here','get there',
+    'head over','be right there','be right over','around the corner','almost there',
+    'leaving now','left now','just left','outside','downstairs','at your','at ur',
+    'together tonight','together today','hang tonight','hang today'
+  ];
+  if (!_meetupKeywords.some(kw => _combinedText.includes(kw))) return;
 
   // Only look for agreements that involve the character coming to the user,
   // the user going to the character, or them doing something together NOW.
