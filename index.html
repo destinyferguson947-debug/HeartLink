@@ -14794,6 +14794,7 @@ function renderTextsMsgs(bfId){
       const msgActions=`<div class="texts-msg-actions" style="display:none;gap:3px;margin-top:2px;${isUser?'justify-content:flex-end':''}">
         <button onclick="textsSetReplyTarget(${bfId},'${(m.id||'').replace(/'/g,'')}')" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">↩ Reply</button>
         <button onclick="textsShowReactionPicker(event,${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px" title="React">😊</button>
+        ${isUser?`<button onclick="textsRerollUserMsg(${bfId},${i})" style="background:none;border:1px solid var(--rose-light);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--rose);padding:1px 5px" title="Reroll">&#8635; Reroll</button>`:''}
         ${!isUser?`<button onclick="textsPinMsg(${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">📌</button>`:''}
         <button onclick="textsDeleteMsg(${bfId},${i})" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:0.65rem;color:var(--text-muted);padding:1px 5px">🗑</button>
         <button onclick="textsDeleteFromHere(${bfId},${i})" style="background:none;border:1px solid #c94f4f;border-radius:4px;cursor:pointer;font-size:0.65rem;color:#c94f4f;padding:1px 5px">🗑 from here</button>
@@ -14942,6 +14943,101 @@ function textsUnpin(bfId){
   localStorage.removeItem('texts_pinned_'+bfId);
   openTextsChat(bfId);
   showToast('📌 Message unpinned');
+}
+
+async function textsRerollUserMsg(bfId, idx){
+  const history = getTextHistory(bfId);
+  const msg = history[idx];
+  if(!msg || msg.role !== 'user') return;
+  const bf = savedBFs.find(b=>b.id===bfId) || BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  const sendBtn = document.getElementById('texts-send-'+bfId);
+
+  // Trim everything from this message onward, then re-add just the user message
+  const trimmed = history.slice(0, idx);
+  trimmed.push(msg);
+  saveTextHistory(bfId, trimmed);
+  renderTextsMsgs(bfId);
+
+  // Show typing indicator
+  const msgsEl = document.getElementById('texts-msgs-'+bfId);
+  if(msgsEl){
+    document.getElementById('texts-typing-'+bfId)?.remove();
+    const td = document.createElement('div');
+    td.id = 'texts-typing-'+bfId;
+    td.className = 'texts-typing-bubble';
+    td.innerHTML = '<div class="texts-typing-dot"></div><div class="texts-typing-dot"></div><div class="texts-typing-dot"></div>';
+    msgsEl.appendChild(td);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+  if(sendBtn) sendBtn.disabled = true;
+
+  let aiReply = null;
+  try{ aiReply = await textsGenReply(bf, bfId, msg.content); }catch(e){ console.error('reroll error:',e); }
+
+  document.getElementById('texts-typing-'+bfId)?.remove();
+  if(sendBtn) sendBtn.disabled = false;
+
+  // Error handling
+  if(aiReply && aiReply.__error){
+    const errMsg = aiReply.message || '';
+    let friendlyMsg = '⚠️ Something went wrong with the API.';
+    if(!apiKey && !proxyMode){
+      friendlyMsg = '⚠️ No API key found. Please add your Gemini API key on the Home page.';
+    } else if(/api.?key/i.test(errMsg) || /invalid.?key/i.test(errMsg)){
+      friendlyMsg = '⚠️ Your API key is invalid. Double-check it on the Home page.';
+    } else if(/quota/i.test(errMsg) || /rate.?limit/i.test(errMsg) || /429/.test(errMsg)){
+      friendlyMsg = '⚠️ API rate limit exceeded. Wait a bit and try again.';
+    } else if(errMsg){
+      friendlyMsg = '⚠️ API error: ' + errMsg;
+    }
+    const errEl = document.getElementById('texts-msgs-'+bfId);
+    if(errEl){
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'text-align:center;padding:8px 16px;margin:8px auto;max-width:340px;background:rgba(220,60,60,0.12);border:1px solid rgba(220,60,60,0.35);border-radius:10px;font-size:0.8rem;color:#c0392b;line-height:1.5;';
+      errDiv.textContent = friendlyMsg;
+      errEl.appendChild(errDiv);
+      errEl.scrollTop = errEl.scrollHeight;
+    }
+    return;
+  }
+
+  let aiContent = null;
+  let aiReplyToId = null;
+  if(aiReply && typeof aiReply === 'object' && aiReply.content){
+    aiContent = aiReply.content;
+    aiReplyToId = aiReply.replyTo || null;
+  } else if(typeof aiReply === 'string' && aiReply.trim()){
+    aiContent = aiReply.trim();
+  }
+  if(!aiContent){
+    const errEl = document.getElementById('texts-msgs-'+bfId);
+    if(errEl){
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'text-align:center;padding:8px 16px;margin:8px auto;max-width:340px;background:rgba(220,60,60,0.12);border:1px solid rgba(220,60,60,0.35);border-radius:10px;font-size:0.8rem;color:#c0392b;line-height:1.5;';
+      errDiv.textContent = '⚠️ No response from the API. Check your API key on the Home page.';
+      errEl.appendChild(errDiv);
+      errEl.scrollTop = errEl.scrollHeight;
+    }
+    return;
+  }
+
+  const moodNow = getMood(bfId)?.mood || 'baseline';
+  let baseDelay = 800;
+  if(moodNow === 'withdrawn') baseDelay = 1600;
+  else if(moodNow === 'cold') baseDelay = 1400;
+  else if(moodNow === 'restless' || moodNow === 'clingy') baseDelay = 400;
+
+  const parts = aiContent.split(/\n\n+/).map(p=>p.trim()).filter(Boolean);
+  const useParts = parts.length > 1 && parts.every(p=>p.length >= 10) && parts.length <= 3 ? parts : [aiContent];
+  for(let i = 0; i < useParts.length; i++){
+    await new Promise(r=>setTimeout(r, baseDelay + (i*800) + Math.random()*400));
+    addTextMessage(bfId, 'assistant', useParts[i], i===0 ? {replyTo: aiReplyToId} : {});
+    renderTextsMsgs(bfId);
+  }
+  showToast('↺ Reply rerolled');
+  const allBfs = [...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
+  renderTextsContactList(allBfs, '');
 }
 
 function textsDeleteMsg(bfId, idx){
