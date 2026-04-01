@@ -15270,6 +15270,94 @@ async function textsSend(bfId){
   );
   renderTextsContactList(allBfs, '');
   sendBtn.disabled = false;
+
+  // ── Detect if both sides just agreed to meet/do something right now ──
+  detectAndFireMeetupScene(bfId);
+}
+
+// ── MEETUP / PLAN DETECTION ────────────────────────────────────────────────
+// After each text exchange, check if both sides just agreed to do something
+// together right now. If so, fire an immediate scene in the story tab.
+
+// Debounce key — only fires once per agreed plan
+const _meetupFiredKey = (bfId) => 'meetup_fired_' + bfId + '_' + Math.floor(Date.now() / 60000 / 10); // 10-min window
+
+async function detectAndFireMeetupScene(bfId) {
+  if (!apiKey && !proxyMode) return;
+  const bf = savedBFs.find(b => b.id === bfId) || BF_DATA.find(b => b.id === bfId);
+  if (!bf) return;
+
+  // Don't fire if we already detected a plan in this 10-min window
+  const _debounceKey = _meetupFiredKey(bfId);
+  if (localStorage.getItem(_debounceKey)) return;
+
+  // Grab the last 6 texts (3 exchanges) — enough context to detect agreement
+  const history = getTextHistory(bfId);
+  const recent = history.slice(-6);
+  if (recent.length < 2) return;
+
+  // Only look for agreements that involve the character coming to the user,
+  // the user going to the character, or them doing something together NOW.
+  const recentText = recent.map(m => (m.role === 'user' ? 'User' : bf.name.split(' ')[0]) + ': ' + m.content).join('
+');
+
+  const systemPrompt = `You detect whether two people just agreed to meet up or do something together immediately/very soon in a text conversation. Reply ONLY with valid JSON, no extra text.`;
+  const userPrompt = `Conversation:
+${recentText}
+
+Did they BOTH just agree to meet up, hang out, come over, or do something together right now or very soon (within the hour)? Look for mutual confirmation — one person suggesting AND the other agreeing (not just one person asking with no reply, not vague future plans).
+
+Reply with ONLY this JSON:
+{"agreed": true/false, "what": "short description of what they agreed to do, from the character's perspective e.g. 'coming over to see you' or 'meeting you at the coffee shop' or 'coming to pick you up'"}
+
+If not agreed, reply: {"agreed": false, "what": ""}`;
+
+  let result = null;
+  try {
+    const raw = await callStructuredJSON(systemPrompt, userPrompt, 200);
+    const clean = (raw || '').replace(/```json|```/g, '').trim();
+    result = JSON.parse(clean);
+  } catch(e) {
+    return; // silent fail — detection is best-effort
+  }
+
+  if (!result || !result.agreed || !result.what) return;
+
+  // Mark as fired for this window so it doesn't double-trigger
+  localStorage.setItem(_debounceKey, '1');
+  setTimeout(() => localStorage.removeItem(_debounceKey), 10 * 60 * 1000);
+
+  const what = String(result.what).trim();
+  const firstName = bf.name.split(' ')[0];
+  const timeOfDay = getTimeOfDay();
+  const relData = getRelHealth(bfId);
+  const stage = getStage(bf);
+
+  // Write a cross-mode carryover note so the story tab knows what happened
+  setCrossModeCarryover(bfId,
+    `You and the user just agreed over text that you would be ${what}. Act on this immediately — you are now present with them or arriving to them. Do not reference the texts directly.`
+  );
+
+  // Build the instruction for the story scene
+  const instruction = `(IMMEDIATE SCENE — TEXT AGREEMENT: You and the user just agreed over text that you would be ${what}. This scene begins RIGHT NOW as that happens — you arriving, them arriving, or the moment starting. It is ${timeOfDay}. Do NOT reference the text conversation. Do NOT delay or build up to it — start in the middle of the moment. Write it with physical presence: movement, detail, the reality of two people suddenly in the same space. Keep it to 2–4 sentences. End on an open beat that invites the user to respond.)`;
+
+  // Short delay to feel natural — like he actually traveled there
+  const arrivalDelay = 4000 + Math.random() * 5000;
+  setTimeout(async () => {
+    if (!apiKey && !proxyMode) return;
+    // Route to story tab (routeToTexts = false)
+    await generateAndSaveAutoMsg(bf, instruction, false);
+    // If the user is in the story tab for this character, just re-render
+    if (currentBF?.id === bfId) {
+      renderMessages();
+    }
+    // Notify if not looking at the story tab
+    const storyActive = document.getElementById('page-chat')?.classList.contains('active') && currentBF?.id === bfId;
+    if (!storyActive) {
+      sendBrowserNotif(firstName, `${firstName} is here... 💫`, bfId);
+      showToast(`${firstName} arrived in the story tab ✨`);
+    }
+  }, arrivalDelay);
 }
 
 // ── TEXT-MODE MOOD PROMPT ────────────────────────────────────────────────────
