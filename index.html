@@ -14544,6 +14544,7 @@ let _textsActiveBfId = null;
 let _textsReplyTarget = null;
 let _textsIsTyping = false;
 let _textsLastUserSend = 0;
+let _textsInterruptFired = false;
 let _activeGroupId = null;
 
 function renderTextsPage(){
@@ -15045,15 +15046,16 @@ async function textsSend(bfId){
   renderTextsMsgs(bfId);
   sendBtn.disabled = true;
 
-  // Interrupt check — if already typing and user sends again rapidly
+  // Interrupt check — fires AT MOST ONCE per typing session, never loops
   const _nowSend = Date.now();
   const _timeSinceLast = _nowSend - _textsLastUserSend;
   _textsLastUserSend = _nowSend;
-  if(_textsIsTyping && _timeSinceLast < 5000){
+  if(_textsIsTyping && _timeSinceLast < 5000 && !_textsInterruptFired){
     const _imood = getMood(bfId).mood;
     if(getStage(bf)>=1 && (['irritable','clingy','restless'].includes(_imood) || Math.random()<0.18)){
       const _iline = _getInterruptLine(bf, bfId);
       if(_iline){
+        _textsInterruptFired = true; // lock — no more interrupts until reply lands
         addTextMessage(bfId, 'assistant', _iline, {kind:'interruption'});
         renderTextsMsgs(bfId);
       }
@@ -15085,6 +15087,7 @@ async function textsSend(bfId){
   }
 
   _textsIsTyping = false;
+  _textsInterruptFired = false; // unlock interrupt for next exchange
   document.getElementById('texts-typing-'+bfId)?.remove();
 
   // Parse reply — may be string or {content, replyTo}
