@@ -15298,8 +15298,7 @@ async function detectAndFireMeetupScene(bfId) {
 
   // Only look for agreements that involve the character coming to the user,
   // the user going to the character, or them doing something together NOW.
-  const recentText = recent.map(m => (m.role === 'user' ? 'User' : bf.name.split(' ')[0]) + ': ' + m.content).join('
-');
+  const recentText = recent.map(m => (m.role === 'user' ? 'User' : bf.name.split(' ')[0]) + ': ' + m.content).join('\n');
 
   const systemPrompt = `You detect whether two people just agreed to meet up or do something together immediately/very soon in a text conversation. Reply ONLY with valid JSON, no extra text.`;
   const userPrompt = `Conversation:
