@@ -15093,6 +15093,33 @@ async function textsSend(bfId){
   // Parse reply — may be string or {content, replyTo}
   let aiContent = null;
   let aiReplyToId = null;
+  // Check for API error returned from textsGenReply
+  if(aiReply && aiReply.__error){
+    const errMsg = aiReply.message || '';
+    let friendlyMsg = '⚠️ Something went wrong with the API.';
+    if(!apiKey && !proxyMode){
+      friendlyMsg = '⚠️ No API key found. Please add your Gemini API key on the Home page.';
+    } else if(/api.?key/i.test(errMsg) || /invalid.?key/i.test(errMsg) || /api_key/i.test(errMsg)){
+      friendlyMsg = '⚠️ Your API key is invalid. Double-check it on the Home page and make sure it\'s a valid Gemini API key.';
+    } else if(/quota/i.test(errMsg) || /rate.?limit/i.test(errMsg) || /429/.test(errMsg)){
+      friendlyMsg = '⚠️ API rate limit or quota exceeded. You may need to wait a bit, or check your Gemini usage limits.';
+    } else if(/network|fetch|failed to fetch/i.test(errMsg)){
+      friendlyMsg = '⚠️ Network error — couldn\'t reach the API. Check your internet connection.';
+    } else if(errMsg){
+      friendlyMsg = '⚠️ API error: ' + errMsg;
+    }
+    const errEl = document.getElementById('texts-msgs-'+bfId);
+    if(errEl){
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'text-align:center;padding:8px 16px;margin:8px auto;max-width:340px;background:rgba(220,60,60,0.12);border:1px solid rgba(220,60,60,0.35);border-radius:10px;font-size:0.8rem;color:#c0392b;line-height:1.5;';
+      errDiv.textContent = friendlyMsg;
+      errEl.appendChild(errDiv);
+      errEl.scrollTop = errEl.scrollHeight;
+    }
+    sendBtn.disabled = false;
+    return;
+  }
+
   if(aiReply && typeof aiReply === 'object' && aiReply.content){
     aiContent = aiReply.content;
     aiReplyToId = aiReply.replyTo || null;
@@ -15101,15 +15128,17 @@ async function textsSend(bfId){
   }
 
   if(!aiContent){
-    const fallbacks = {
-      withdrawn: ["...", "give me a sec.", "still here."],
-      irritable: ["hold on.", "i'm thinking.", "one sec."],
-      cold:      [".", "noted.", "okay."],
-      default:   ["i'm here.", "hold on.", "one sec."]
-    };
-    const mood = getMood(bfId)?.mood || 'baseline';
-    const pool = fallbacks[mood] || fallbacks.default;
-    aiContent = pool[Math.floor(Math.random()*pool.length)];
+    // Truly empty response (no error, but nothing came back) — show a generic notice
+    const errEl = document.getElementById('texts-msgs-'+bfId);
+    if(errEl){
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'text-align:center;padding:8px 16px;margin:8px auto;max-width:340px;background:rgba(220,60,60,0.12);border:1px solid rgba(220,60,60,0.35);border-radius:10px;font-size:0.8rem;color:#c0392b;line-height:1.5;';
+      errDiv.textContent = '⚠️ No response from the API. Check your API key on the Home page.';
+      errEl.appendChild(errDiv);
+      errEl.scrollTop = errEl.scrollHeight;
+    }
+    sendBtn.disabled = false;
+    return;
   }
 
   let aiReplyPreview = null;
@@ -15367,7 +15396,7 @@ Reply as a text message. Natural, in your voice. No labels, no "Draft:", no form
     return raw;
   }catch(e){
     console.error('textsGenReply failed:',e.message||e);
-    return null;
+    return {__error: true, message: e.message||String(e)};
   }
 }
 
