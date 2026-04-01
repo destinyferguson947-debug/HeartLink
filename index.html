@@ -7511,7 +7511,7 @@ ${msgText}
 Summary:`;
 
   try{
-    const summary = await callAnyAPI('You are a conversation summarizer. Write complete, uncut summaries. Never truncate mid-sentence.', [{role:'user',content:sumPrompt}], 800, 0.7);
+    const summary = await callAnyAPI('You are a conversation summarizer. You MUST write a complete, fully-formed summary. Every sentence must be finished. Never stop mid-sentence. Never truncate. Write all 4-6 sentences in full before stopping.', [{role:'user',content:sumPrompt}], 1500, 0.7);
     if(summary){ saveSummary(currentBF.id, summary); renderMemoryPanel(); }
   }catch(e){ /* silent fail */ }
 }
@@ -9151,7 +9151,7 @@ REALISM CHECK: would a real person actually send exactly this message right now?
   const msgs = histSlice.map(m=>({role:m.role==='user'?'user':'model', content:m.content}));
   msgs.push({role:'user', content:instruction});
   try{
-    const reply = await callAnyAPI(sysPrompt, msgs, 1200, 1.05);
+    const reply = await callAnyAPI(sysPrompt, msgs, 2000, 1.05);
     if(reply){
       const clean = reply.trim().replace(/^["'*]|["'*]$/g,'').trim();
       if(_useTexts){
@@ -13349,63 +13349,47 @@ function getTimeOfDay(){
   return 'night';
 }
 function checkTimeBasedMessage(){
+  // This function is intentionally reduced — morning/night auto-texts removed.
+  // Time-of-day awareness is now handled inline inside textsGenReply via _timeContextForReply().
+  // Only fire an unusual-hours acknowledgment if the user OPENS the app at a strange hour
+  // AND auto-message is enabled for that character. One-time per session.
   if(!savedBFs.length||!apiKey) return;
-  const tod = getTimeOfDay();
-  if(tod !== 'morning' && tod !== 'night') return;
-  // Only fire once per time-of-day per day
-  const today = new Date().toDateString();
-  const key = 'time_msg_'+tod+'_'+today;
-  if(localStorage.getItem(key)) return;
-  // Find eligible characters who have auto-msg ON and are close enough
+  const h = new Date().getHours();
+  // Only act on very late night (1–4am) or very early (5–6am)
+  const isVeryLate = h >= 1 && h < 5;
+  const isVeryEarly = h >= 5 && h < 7;
+  if(!isVeryLate && !isVeryEarly) return;
+
+  const sessionKey = 'unusual_hour_ack_'+new Date().toDateString()+'_'+h;
+  if(localStorage.getItem(sessionKey)) return;
+
+  // Find most recently active character with auto-msg ON
   const eligible = savedBFs.filter(bf=>{
-    if(!getAutoMsgEnabled(bf.id)) return false; // respect per-character toggle
-    const h = (chatHistory[bf.id]||[]).length;
-    if(h < 3) return false;
-    const rd = getRelHealth(bf.id);
-    const stg = getStage(bf);
-    return stg >= 2 || ['dating','fiance','married'].includes(rd.status);
+    if(!getAutoMsgEnabled(bf.id)) return false;
+    const h2 = (chatHistory[bf.id]||[]).length;
+    if(h2 < 3) return false;
+    return getStage(bf) >= 2;
   });
   if(!eligible.length) return;
-  // Pick most recently chatted
-  const bf = eligible.reduce((best, b)=>{
+  const bf = eligible.reduce((best,b)=>{
     const bLast = parseInt(localStorage.getItem('last_user_msg_'+b.id)||'0');
     const bestLast = parseInt(localStorage.getItem('last_user_msg_'+best.id)||'0');
     return bLast > bestLast ? b : best;
   });
-  const lastMsg = parseInt(localStorage.getItem('last_user_msg_'+bf.id)||'0');
-  const hoursSince = (Date.now()-lastMsg)/3600000;
-  if(hoursSince < 4) return; // had recent chat, skip
-  localStorage.setItem(key, '1');
-  const rd = getRelHealth(bf.id);
-  const isCommitted = ['dating','fiance','married'].includes(rd.status);
-  // Get current mood to shape the message
-  const _tmMood = getMood(bf.id)?.mood || 'baseline';
-  const _tmLabel = MOOD_DATA[_tmMood]?.label || '';
-  const _coldMoods = ['cold','withdrawn','avoidant','argumentative'];
-  const _warmMoods = ['tender','playful','teasing','flustered','clingy','lonely','touchstarved'];
-  const _isCold = _coldMoods.includes(_tmMood);
-  const _isWarm = _warmMoods.includes(_tmMood);
-  // Build mood-aware instruction — NO generic warm/cheerful language when cold
-  let moodNote = '';
-  if(_isCold) moodNote = `Your current mood is ${_tmLabel}. The message reflects this — it is brief, clipped, or absent of warmth. You are not performing a "goodnight" ritual. If you reach out at all, it is minimal.`;
-  else if(_tmMood === 'lonely') moodNote = `Your current mood is Lonely. The message has a quality of reaching out in the quiet — not dramatic, just present.`;
-  else if(_tmMood === 'sad') moodNote = `Your current mood is low/quiet. The message is soft and short. Not cheerful.`;
-  else if(_tmMood === 'irritable' || _tmMood === 'moody') moodNote = `Your current mood is ${_tmLabel}. The message may be short, slightly off, or have a subtle edge to it.`;
-  else if(_isWarm) moodNote = `Your current mood is ${_tmLabel}. Let that warmth come through naturally — not performed, just present.`;
-  else moodNote = `Your current mood is ${_tmLabel||'yourself'}. Sound like yourself.`;
-
+  localStorage.setItem(sessionKey,'1');
+  const _mood = getMood(bf.id)?.mood||'baseline';
+  const _moodLabel = (MOOD_DATA[_mood]?.label||'').replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F]/gu,'').trim();
   let instruction = '';
-  if(tod==='morning'){
-    instruction = `(It's morning. You thought of them and sent a text. MOOD RIGHT NOW: ${moodNote} This is NOT a generic "good morning!" — it should sound like you woke up and a thought came to you, colored entirely by how you actually feel right now. ${isCommitted?'Maybe mention what you are doing this morning.':''} Under 3 sentences. No quotes around the message.)`;
+  if(isVeryLate){
+    instruction = `(It is ${h}AM — the middle of the night. The user just opened the app. React to the fact that it's this late. Maybe you're surprised they're up, or you were awake too and weren't going to say anything. Don't be cheerful. Be real. Under 2 sentences. No quotes. Current mood: ${_moodLabel||'baseline'}.)`;
   } else {
-    instruction = `(It's late at night. You sent a text before going to sleep or winding down. MOOD RIGHT NOW: ${moodNote} This is NOT a generic "goodnight, sweet dreams" — it should sound like whatever your actual headspace is right now. If you are cold, maybe you almost didn't send anything. If you are warm, let it be real not performative. ${isCommitted?'Maybe mention what you were doing tonight.':''} Under 3 sentences. No quotes around the message.)`;
+    instruction = `(It is ${h}AM — extremely early. The user just showed up. React to this. Maybe you've been up already, maybe you're half-asleep, maybe it's just surprising. Not a good morning greeting. Something real and in your voice. Under 2 sentences. No quotes. Current mood: ${_moodLabel||'baseline'}.)`;
   }
-  setTimeout(async ()=>{
+  setTimeout(async()=>{
     if(!apiKey) return;
-    await generateAndSaveAutoMsg(bf, instruction);
-    const fn = bf.name.split(' ')[0];
-    sendBrowserNotif(fn, tod==='morning'?fn+' is thinking of you this morning ☀️':fn+' sent you a good night message 🌙', bf.id);
-  }, 3000 + Math.random()*8000);
+    await generateAndSaveAutoMsg(bf, instruction, true);
+    sendBrowserNotif(bf.name.split(' ')[0], bf.name.split(' ')[0]+' noticed the time... 👀', bf.id);
+  }, 3000+Math.random()*6000);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -13514,6 +13498,7 @@ async function sendMotionMessage(state){
 function checkMoodCheckin(){
   if(!savedBFs.length||!apiKey) return;
   savedBFs.forEach(bf=>{
+    if(!getAutoMsgEnabled(bf.id)) return; // ← respect per-character auto-msg toggle
     const stg = getStage(bf);
     if(stg < 2) return;
     const key = 'checkin_sent_'+bf.id+'_'+new Date().toDateString();
@@ -14854,21 +14839,72 @@ async function textsToggleReaction(bfId, idx, emoji){
   }
   saveTextsReactions(bfId, reactions);
   renderTextsMsgs(bfId);
-  // Tell the character about the reaction after a short delay
+
   const history = getTextHistory(bfId);
   const msg = history[idx];
-  if(msg && msg.role==='assistant' && emoji && !_textsReactionPending){
+  if(!msg || msg.role!=='assistant' || _textsReactionPending) return;
+
+  // ── SMART REACTION SYSTEM ──────────────────────────────────────────────────
+  // Classify the message tone to decide if a reaction is "wrong"
+  const msgLower = (msg.content||'').toLowerCase();
+  const isSad     = ['sad','upset','hurt','miss','alone','tired','cry','pain','sorry','broken','lost','scared','afraid','low','quiet','down'].some(w=>msgLower.includes(w));
+  const isAngry   = ['angry','mad','pissed','done','enough','stop','leave','hate','never','always','wrong','furious','fed up','seriously'].some(w=>msgLower.includes(w));
+  const isSerious = ['need to talk','important','listen','we need','something happened','tell you','honest','serious','truth'].some(w=>msgLower.includes(w));
+  const isHappy   = ['haha','lol','😂','funny','joke','laugh','hilarious','😄','😆','good','great','love it'].some(w=>msgLower.includes(w));
+
+  // Reactions that are "light/unserious"
+  const unseriousEmojis = ['😂','👍','❤️','🔥','💀'];
+  const isUnseriousReaction = unseriousEmojis.includes(emoji);
+  const isNegativeReaction = ['👎','😡'].includes(emoji);
+  const isPositiveReaction = ['❤️','😮'].includes(emoji);
+  const isLaughReaction = emoji === '😂';
+  const isSkullReaction = emoji === '💀';
+
+  // Determine if response should fire and what tone it takes
+  let shouldRespond = false;
+  let reactionInstruction = '';
+
+  if((isSad || isSerious) && isLaughReaction){
+    // Laughing at sadness/seriousness → character confronts it
+    shouldRespond = true;
+    reactionInstruction = `[REACTION EVENT: The user just reacted with a laughing emoji (😂) to your message: "${msg.content.substring(0,100)}". You were being serious/emotional and they laughed at it. You are NOT okay with this. React authentically — call it out, be hurt or sharp, don't let it slide. 1-2 sentences max. No narration. Text only.]`;
+  } else if((isSad || isSerious) && isSkullReaction){
+    // Skull at serious moment → slight offense
+    shouldRespond = true;
+    reactionInstruction = `[REACTION EVENT: The user reacted with 💀 to your message: "${msg.content.substring(0,100)}". You were being genuine and they responded with a skull emoji. React to this — a little thrown off or mildly irritated. 1 sentence max.]`;
+  } else if(isAngry && isUnseriousReaction){
+    // Thumbs up / heart / laugh at anger → character escalates
+    shouldRespond = true;
+    reactionInstruction = `[REACTION EVENT: You were expressing frustration and the user reacted with ${emoji} to your message: "${msg.content.substring(0,100)}". That reaction feels dismissive to you. Call it out or let the irritation show. Don't be polite. 1-2 sentences max.]`;
+  } else if(isHappy && isNegativeReaction){
+    // Thumbs down at something you were happy about → character notices
+    shouldRespond = true;
+    reactionInstruction = `[REACTION EVENT: The user gave a thumbs down to your message: "${msg.content.substring(0,100)}". You were in a lighter mood and that stings a bit. React — confused, slightly put off, maybe a little sharp. 1-2 sentences.]`;
+  } else if(isPositiveReaction && !isHappy && !isSad){
+    // Heart on neutral message — character internally notes it, maybe says something small
+    // Only 30% chance to even acknowledge it aloud
+    if(Math.random() < 0.3){
+      shouldRespond = true;
+      reactionInstruction = `[REACTION EVENT: The user just reacted with ❤️ to your message: "${msg.content.substring(0,100)}". You notice it. React very briefly — something small, warm, maybe a little caught off guard. One short line only. Don't make it a big deal.]`;
+    }
+  }
+  // All other reactions (positive reaction to happy msg, etc.) → silently noted, no reply
+
+  if(shouldRespond && !_textsReactionPending){
     _textsReactionPending = true;
     setTimeout(async()=>{
       _textsReactionPending = false;
       const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
       if(!bf) return;
-      const reaction = await textsGenReply(bf,bfId,`[EMOJI REACTION: The user reacted ${emoji} to your message: "${msg.content.substring(0,80)}". React naturally to this in 1-2 sentences. If it's ❤️ be warm/pleased, if 😂 be amused, if 😡 be surprised/defensive, if 👍 casual acknowledgement. Be brief and real.]`);
+      const reaction = await textsGenReply(bf,bfId,reactionInstruction);
       if(reaction){
-        addTextMessage(bfId,'assistant',reaction);
-        renderTextsMsgs(bfId);
-        const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
-        renderTextsContactList(allBfs,'');
+        const reactionContent = typeof reaction === 'object' ? reaction.content : reaction;
+        if(reactionContent){
+          addTextMessage(bfId,'assistant',reactionContent);
+          renderTextsMsgs(bfId);
+          const allBfs=[...savedBFs].filter(b=>(chatHistory[b.id]||[]).length>0||getTextHistory(b.id).length>0);
+          renderTextsContactList(allBfs,'');
+        }
       }
     }, 1500+Math.random()*2000);
   }
@@ -15185,8 +15221,18 @@ async function textsGenReply(bf, bfId, userMsg){
 
   // Strip emoji characters from mood label so AI doesn't parrot them back in messages
   const _moodLabel = (MOOD_DATA[mood.mood]?.label||'baseline').replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F]/gu, '').trim();
+  const _moodForPrompt = mood.mood && mood.mood !== 'baseline' ? mood.mood : 'baseline';
   const _carryoverNote = buildCrossModePromptNote(bfId);
   const _textBdayNote = getBirthdayAnniversaryPromptNote(bfId);
+
+  // Time-of-day awareness — only flag unusual hours
+  const _nowHour = new Date().getHours();
+  let _timeOfDayNote = '';
+  if(_nowHour >= 1 && _nowHour < 5){
+    _timeOfDayNote = `TIME AWARENESS: It is ${_nowHour}AM — the middle of the night. The user is texting you at an unusual hour. You may acknowledge this naturally if it fits your personality (e.g. "why are you up right now", "it's literally 3am", or simply noticing it). Do NOT send a cheerful greeting. React like a real person would at this hour.`;
+  } else if(_nowHour >= 5 && _nowHour < 7){
+    _timeOfDayNote = `TIME AWARENESS: It is very early morning (${_nowHour}AM). The user texted you at an unusually early hour. You may acknowledge this if it feels natural — surprise, curiosity, or just noting it. Keep it brief and real. Do NOT use this as an excuse for a "good morning!" message.`;
+  }
 
   const sysPrompt=`You are ${bf.name}, ${age<0?'ageless':age+' years old'}. ${personalitySnippet}
 ${EMOTION_GROUNDING_RULE}
@@ -15194,7 +15240,7 @@ ${_carryoverNote}
 ${_textBdayNote}
 TEXTING STYLE: ${_style}
 Current mood: ${_moodLabel}
-${moodPrompt?'\n'+moodPrompt:''}
+${moodPrompt?'\n'+moodPrompt:'\nEMOTION GROUNDING — MANDATORY FOR ALL TEXT REPLIES:\n- You are holding a phone. This is a text conversation. There is no physical scene.\n- Express yourself ONLY through tone, pacing, word choice, and what you choose to focus on.\n- Do NOT invent external events, people, locations, or situations.\n- Do NOT describe surroundings or actions outside this conversation.\n- REALISM CHECK: before sending, ask "would a real person send exactly this?" If it sounds scripted → rewrite it.'}
 EMOJI RULE: Do NOT append mood-indicator emojis (🌀🧲⚡🌧️🚪🕯️🌫️🫧🔥😏🌙🟢✨🛡️🧊🌸🤍🌩️😤) to the end of your messages. Use emoji sparingly and only when it feels completely natural for the character.
 
 REALISTIC TEXTING RULES:
@@ -15224,7 +15270,7 @@ WITHDRAWN MOOD TEXTING (applies when you are withdrawn):
 - Example tone: "yeah… I'm here. what's up?" or "you wanted to talk?"
 - NOT: "yeah" then "im around" (do not fragment)
 
-${_timeGapNote ? _timeGapNote+'\n' : ''}
+${_timeGapNote ? _timeGapNote+'\n' : ''}${_timeOfDayNote ? _timeOfDayNote+'\n' : ''}
 TOXIC / DRAMATIC PERSONALITY LAYER:
 You are emotionally reactive, sharp-tongued, and unfiltered when triggered.
 - You do NOT always respond calmly.
@@ -15264,6 +15310,14 @@ then your text after that on a new line.
 
 Do NOT write what the user says, does, thinks, or feels. Only your own message.
 
+TEXTING ANTI-NARRATION RULES (CRITICAL):
+- You are composing a text message on a phone. Nothing else.
+- Do NOT use story/narration language ("He said", "*leans against the wall*", "Reckon I've done enough", action beats, etc.)
+- Do NOT write incomplete sentences. Every message must be a complete, readable thought.
+- Do NOT use regional/story-voice dialect (e.g. "Reckon", "ain't got", "fixin' to") UNLESS that is genuinely how this character texts casually. Even then — finish the sentence.
+- If you catch yourself mid-word or mid-thought → complete the sentence before stopping.
+- NEVER end a message with a comma, dash, or conjunction (and, but, so, because, or).
+
 RECENT TEXTS:
 ${recentTexts}
 
@@ -15281,7 +15335,7 @@ ${(()=>{
 Reply as a text message. Natural, in your voice. No labels, no "Draft:", no formatting markers.`;
 
   try{
-    const reply=await callAnyAPI(sysPrompt,[{role:'user',content:userMsg}],1200,1.0);
+    const reply=await callAnyAPI(sysPrompt,[{role:'user',content:userMsg}],2000,1.0);
     if(!reply) throw new Error('Empty reply');
     var raw = reply.trim()
       .replace(/^["']|["']$/g,'')
@@ -16182,6 +16236,93 @@ function sendTextFromChar(bf, instruction, notifBody){
   if(!apiKey || !isTextsUnlocked(bf.id)) return;
   generateAndSaveAutoMsg(bf, instruction, true).then(()=>{
     if(notifBody) sendBrowserNotif(bf.name.split(' ')[0], notifBody, bf.id);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// 🔧 DEV TRIGGER — Hidden stage & relationship tool
+// Usage (browser console):
+//   devClose()               → sets ALL unlocked characters to stage: close
+//   devClose(36)             → sets ONLY Caleb (id 36) to close stage
+//   devClose([36, 14, 22])   → sets those specific character IDs to close stage
+//   devReset(36)             → resets a character's forced stage override
+//   devStatus()              → prints current stage for all characters
+// Trigger: type  devClose()  in the browser DevTools console.
+// ════════════════════════════════════════════════════════════
+function devClose(ids){
+  // Stage 3 = "close". We fake enough messages to hold stage 3 for any difficulty.
+  // We write directly into chat_history with dummy messages so getStage() returns 3+.
+  const TARGET_STAGE = 3;
+  const MSGS_NEEDED  = 70; // clears even hard-char thresholds at stage 3
+
+  const allBfs = [...(window.savedBFs||[]), ...(window.BF_DATA||[])];
+  let targets = [];
+
+  if(ids === undefined){
+    // All unlocked (have at least one story message)
+    targets = allBfs.filter(bf => (JSON.parse(localStorage.getItem('chat_history')||'{}')[bf.id]||[]).length > 0);
+  } else if(typeof ids === 'number'){
+    const found = allBfs.find(b=>b.id===ids);
+    if(found) targets = [found];
+  } else if(Array.isArray(ids)){
+    targets = ids.map(id=>allBfs.find(b=>b.id===id)).filter(Boolean);
+  }
+
+  if(!targets.length){ console.warn('[devClose] No matching characters found.'); return; }
+
+  const allHistory = JSON.parse(localStorage.getItem('chat_history')||'{}');
+
+  targets.forEach(bf=>{
+    const current = (allHistory[bf.id]||[]).length;
+    if(current >= MSGS_NEEDED){
+      console.log(`[devClose] ${bf.name} already has ${current} messages — stage is already ${getStage(bf)}.`);
+      return;
+    }
+    const needed = MSGS_NEEDED - current;
+    const padded = Array.from({length:needed},(_,i)=>({
+      role: i%2===0 ? 'user' : 'assistant',
+      content: '.',
+      _dev: true
+    }));
+    allHistory[bf.id] = [...(allHistory[bf.id]||[]), ...padded];
+
+    // Also set relationship health to a decent level so hard chars don't gate
+    const relKey = 'rel_health_'+bf.id;
+    const relData = JSON.parse(localStorage.getItem(relKey)||'{"health":50,"status":"stage","tooltipMsg":"","lastDecay":0}');
+    if(relData.health < 75) relData.health = 75;
+    localStorage.setItem(relKey, JSON.stringify(relData));
+
+    console.log(`[devClose] ✅ ${bf.name} (id:${bf.id}) → padded to ${MSGS_NEEDED} msgs. Stage now: ${getStage(bf)}`);
+  });
+
+  localStorage.setItem('chat_history', JSON.stringify(allHistory));
+  window.chatHistory = allHistory;
+  if(window.renderGrid) renderGrid();
+  if(window.renderSidebar) renderSidebar();
+  console.log('[devClose] Done. Texts tab will now unlock for targeted characters. Refresh if sidebar looks stale.');
+}
+
+function devReset(id){
+  if(!id){ console.warn('[devReset] Pass a character id. e.g. devReset(36)'); return; }
+  const allHistory = JSON.parse(localStorage.getItem('chat_history')||'{}');
+  if(!allHistory[id]){ console.log('[devReset] No history for id', id); return; }
+  allHistory[id] = allHistory[id].filter(m=>!m._dev);
+  localStorage.setItem('chat_history', JSON.stringify(allHistory));
+  window.chatHistory = allHistory;
+  const bf = [...(window.savedBFs||[]),...(window.BF_DATA||[])].find(b=>b.id===id);
+  console.log(`[devReset] ✅ Removed dev padding for ${bf?.name||id}. Stage now: ${bf?getStage(bf):'unknown'}`);
+  if(window.renderGrid) renderGrid();
+}
+
+function devStatus(){
+  const allBfs = [...(window.savedBFs||[]),...(window.BF_DATA||[])];
+  const allHistory = JSON.parse(localStorage.getItem('chat_history')||'{}');
+  const STAGE_NAMES = ['stranger','acquaintance','friend','close','romantic interest','partner'];
+  allBfs.forEach(bf=>{
+    const msgs = (allHistory[bf.id]||[]).length;
+    const stage = getStage(bf);
+    const textsOn = isTextsUnlocked ? (isTextsUnlocked(bf.id)?'✅ texts':'❌ texts') : '';
+    console.log(`${bf.name} (id:${bf.id}) | msgs:${msgs} | stage:${stage} (${STAGE_NAMES[stage]||'?'}) ${textsOn}`);
   });
 }
 
