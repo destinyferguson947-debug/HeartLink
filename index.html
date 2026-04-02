@@ -6185,27 +6185,55 @@ function cancelEdit(idx, encodedOriginal){
 function deleteMessage(idx){
   if(!currentBF) return;
   const bfId = currentBF.id;
-  chatHistory[bfId].splice(idx, 1);
-  saveHistory();
-
-  // Reindex msgAlts so cached alt responses don't bleed onto the wrong messages
-  // after deletion. Remove the entry at idx, shift all higher indices down by 1.
-  if(msgAlts[bfId]){
-    const newAlts = {};
-    const newAltIdx = {};
-    for(const key of Object.keys(msgAlts[bfId])){
-      const k = parseInt(key);
-      if(k === idx) continue;           // deleted — discard its alts
-      const newK = k > idx ? k - 1 : k; // shift down
-      newAlts[newK] = msgAlts[bfId][k];
-      newAltIdx[newK] = msgAltIdx[bfId]?.[k] ?? 0;
+  const history = chatHistory[bfId]||[];
+  const removeCount = history.length - idx;
+  // Show cute warning — deletes this message and everything after
+  showDeleteWarning(
+    removeCount === 1
+      ? 'This will delete this message. Are you sure?'
+      : `⚠️ This will delete this message and the ${removeCount - 1} message${removeCount-1===1?'':'s'} after it. Are you sure?`,
+    () => {
+      chatHistory[bfId].splice(idx, removeCount);
+      saveHistory();
+      if(msgAlts[bfId]){
+        const newAlts={}, newAltIdx={};
+        for(const key of Object.keys(msgAlts[bfId])){
+          const k=parseInt(key);
+          if(k>=idx) continue;
+          newAlts[k]=msgAlts[bfId][k];
+          newAltIdx[k]=msgAltIdx[bfId]?.[k]??0;
+        }
+        msgAlts[bfId]=newAlts; msgAltIdx[bfId]=newAltIdx;
+        saveMsgAlts(bfId);
+      }
+      renderMessages();
+      showToast(`🗑 Deleted ${removeCount} message${removeCount===1?'':'s'}`);
     }
-    msgAlts[bfId] = newAlts;
-    msgAltIdx[bfId] = newAltIdx;
-    saveMsgAlts(bfId);
-  }
+  );
+}
 
-  renderMessages();
+function showDeleteWarning(message, onConfirm){
+  // Remove any existing warning
+  document.getElementById('delete-warning-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'delete-warning-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.15s ease';
+  overlay.innerHTML = `
+    <div style="background:var(--card);border:1.5px solid var(--border);border-radius:1.2rem;padding:1.6rem 1.8rem;max-width:320px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.25);text-align:center;font-family:'DM Sans',sans-serif;">
+      <div style="font-size:1.6rem;margin-bottom:0.6rem">🗑️</div>
+      <div style="font-size:0.95rem;font-weight:600;color:var(--text);margin-bottom:0.4rem">Delete messages?</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1.2rem;line-height:1.5">${message}</div>
+      <div style="display:flex;gap:0.7rem;justify-content:center">
+        <button onclick="document.getElementById('delete-warning-overlay').remove()" style="flex:1;padding:0.55rem 0;border-radius:2rem;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-family:'DM Sans',sans-serif;font-size:0.88rem;cursor:pointer">Cancel</button>
+        <button id="delete-warning-confirm" style="flex:1;padding:0.55rem 0;border-radius:2rem;border:none;background:#c94f4f;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer">Delete</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('delete-warning-confirm').onclick = () => {
+    overlay.remove();
+    onConfirm();
+  };
+  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
 }
 
 function deleteFromHere(idx){
@@ -6213,21 +6241,26 @@ function deleteFromHere(idx){
   const bfId=currentBF.id;
   const history=chatHistory[bfId]||[];
   const removeCount=history.length-idx;
-  chatHistory[bfId].splice(idx,removeCount);
-  saveHistory();
-  if(msgAlts[bfId]){
-    const newAlts={},newAltIdx={};
-    for(const key of Object.keys(msgAlts[bfId])){
-      const k=parseInt(key);
-      if(k>=idx) continue;
-      newAlts[k]=msgAlts[bfId][k];
-      newAltIdx[k]=msgAltIdx[bfId]?.[k]??0;
+  showDeleteWarning(
+    `⚠️ This will delete ${removeCount} message${removeCount===1?'':'s'} — this one and everything after it. Are you sure?`,
+    () => {
+      chatHistory[bfId].splice(idx,removeCount);
+      saveHistory();
+      if(msgAlts[bfId]){
+        const newAlts={},newAltIdx={};
+        for(const key of Object.keys(msgAlts[bfId])){
+          const k=parseInt(key);
+          if(k>=idx) continue;
+          newAlts[k]=msgAlts[bfId][k];
+          newAltIdx[k]=msgAltIdx[bfId]?.[k]??0;
+        }
+        msgAlts[bfId]=newAlts; msgAltIdx[bfId]=newAltIdx;
+        saveMsgAlts(bfId);
+      }
+      renderMessages();
+      showToast(`🗑 Deleted ${removeCount} message${removeCount===1?'':'s'}`);
     }
-    msgAlts[bfId]=newAlts; msgAltIdx[bfId]=newAltIdx;
-    saveMsgAlts(bfId);
-  }
-  renderMessages();
-  showToast(`🗑 Deleted ${removeCount} message${removeCount===1?'':'s'}`);
+  );
 }
 
 // ── ALT MESSAGE SYSTEM ─────────────────────────────────────────────────────
@@ -6568,6 +6601,8 @@ async function sendMessage(){
   }
 
   addMessage('user',text);
+  // Extract and remember any personal facts the user just shared
+  if(currentBF) maybeExtractUserFact(currentBF.id, text);
   // Reactively shift mood based on what user said
   if(currentBF) reactivelyShiftMood(currentBF.id, text);
   if(currentBF) checkJealousyTrigger(text, currentBF.id);
@@ -10981,25 +11016,65 @@ function resolveUnresolvedMoment(bfId,keyword){
   }catch(e){}
 }
 
+// ── USER SELF-DISCLOSURE MEMORY SYSTEM ──────────────────────────────────────
+// Persistently stores facts the user reveals about themselves across both tabs.
+// Facts are extracted by AI after every few messages, stored per-character,
+// and injected into both story and text prompts as natural character awareness.
+
+function getUserFacts(bfId){
+  try{ return JSON.parse(localStorage.getItem('user_facts_'+bfId)||'[]'); }catch(e){ return []; }
+}
+function saveUserFacts(bfId, arr){
+  // Keep max 30 facts, newest last
+  localStorage.setItem('user_facts_'+bfId, JSON.stringify(arr.slice(-30)));
+}
+
+// Called after every user message in both story and texts tabs
+async function maybeExtractUserFact(bfId, userMsg){
+  if(!apiKey && !proxyMode) return;
+  if(!userMsg || userMsg.length < 8) return;
+  // Only run every 3 messages to avoid API spam — use a lightweight counter
+  const counterKey = 'uf_counter_'+bfId;
+  const count = (parseInt(localStorage.getItem(counterKey)||'0') + 1);
+  localStorage.setItem(counterKey, count);
+  if(count % 3 !== 0) return;
+
+  const existing = getUserFacts(bfId).map(f=>f.fact).join('; ');
+  const sysPrompt = 'You extract personal facts a user reveals about themselves in conversation. Reply ONLY with valid JSON, no extra text.';
+  const userPrompt = `User message: "${userMsg.substring(0,300)}"
+Already known facts: "${existing.substring(0,300)}"
+
+Does this message reveal a NEW personal fact about the user — something about their life, job, interests, feelings, family, habits, experiences, or identity? Only count direct statements about themselves (e.g. "I have a dog", "I study nursing", "I hate mornings", "my sister is visiting").
+
+Reply with ONLY this JSON:
+{"found": true/false, "fact": "concise fact in third person, e.g. 'Has a dog named Biscuit' or 'Studies nursing' or 'Has an older sister'"}
+
+If nothing new: {"found": false, "fact": ""}`;
+
+  try{
+    const raw = await callStructuredJSON(sysPrompt, userPrompt, 120);
+    const clean = (raw||'').replace(/```json|```/g,'').trim();
+    const result = JSON.parse(clean);
+    if(result && result.found && result.fact && result.fact.length > 3){
+      const facts = getUserFacts(bfId);
+      // Deduplicate — skip if very similar fact already stored
+      const isDupe = facts.some(f => f.fact.toLowerCase().includes(result.fact.toLowerCase().substring(0,15)));
+      if(!isDupe){
+        facts.push({ fact: result.fact.trim(), ts: Date.now() });
+        saveUserFacts(bfId, facts);
+      }
+    }
+  }catch(e){ /* silent */ }
+}
+
 function getUserFactsNote(bfId){
   try{
-    const history=(chatHistory&&chatHistory[bfId])||[];
-    if(history.length<6||history.length%10!==0) return '';
-    const userMsgs=history.filter(m=>m.role==='user').slice(-40);
-    const facts={
-      'left their job':['quit','left my job','fired','unemployed','between jobs'],
-      'moved somewhere new':['moved','new apartment','new place','just moved'],
-      'recent breakup':['broke up','my ex','ended things','single now','got dumped'],
-      'something they are proud of':['proud of','finally did','i finished','i got','i made'],
-      'going through something hard':['struggling','hard time','not okay','stressed','overwhelmed'],
-    };
-    const found=[];
-    for(const[label,keywords]of Object.entries(facts)){
-      if(userMsgs.some(m=>keywords.some(k=>m.content.toLowerCase().includes(k)))) found.push(label);
-    }
-    if(!found.length) return '';
-    return '[USER AWARENESS: You know these things about this person. Let awareness shape your engagement naturally: '+found.slice(0,2).join(', ')+']';
-  }catch(e){return '';}
+    const facts = getUserFacts(bfId);
+    if(!facts.length) return '';
+    // Inject up to 8 most recent facts
+    const recent = facts.slice(-8).map(f=>f.fact).join(', ');
+    return `[THINGS YOU KNOW ABOUT THEM: ${recent}. Reference these naturally when the moment calls for it — don't announce them, just let them shape how you engage.]`;
+  }catch(e){ return ''; }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -13577,10 +13652,11 @@ async function generateScrapbookCard(bfId, triggerKey){
 Based on this recent context: "${recentHistory}"
 Write 2-3 sentences in the character's voice — what this moment meant, how it felt, one specific detail.
 Write it as if ${fn} is writing in a private journal about this moment.
+CRITICAL: Refer to yourself only as "I" or "me". Refer to the other person only as "you" or "they". Do NOT use any character names or real names in the text — especially not "${fn}". No names at all.
 Be specific, emotional, and real. No generic phrases. Start with the feeling, not the event.`;
   try{
     const text = await callAnyAPI(
-      `You are ${fn}, writing a private journal entry. Write in first person, emotionally honest, specific.`,
+      `You are ${fn}, writing a private journal entry. Write in first person, emotionally honest, specific. Do NOT mention any character names — use only "I", "me", "you", "they".`,
       [{role:'user', content:prompt}],
       200,
       0.95
@@ -15134,6 +15210,8 @@ async function textsSend(bfId){
   cancelLORWatch(bfId);
   _textsReplyTarget = null;
   textsRenderReplyBar(bfId);
+  // Extract and remember any personal facts the user just shared
+  maybeExtractUserFact(bfId, text);
   // Reactively shift mood based on what user said
   reactivelyShiftMood(bfId, text);
   localStorage.setItem('last_user_msg_'+bfId, Date.now().toString());
@@ -15481,6 +15559,7 @@ async function textsGenReply(bf, bfId, userMsg){
     _timeOfDayNote = `TIME AWARENESS: It is very early morning (${_nowHour}AM). The user texted you at an unusually early hour. You may acknowledge this if it feels natural — surprise, curiosity, or just noting it. Keep it brief and real. Do NOT use this as an excuse for a "good morning!" message.`;
   }
 
+  const _userFactsNoteTexts = getUserFactsNote(bfId);
   const sysPrompt=`You are ${bf.name}, ${age<0?'ageless':age+' years old'}.
 
 WHO YOU ARE (your primary reference — everything else is secondary to this):
@@ -15490,6 +15569,7 @@ Text exactly like this person. Their voice, their energy, their specific way of 
 ${EMOTION_GROUNDING_RULE}
 ${_carryoverNote}
 ${_textBdayNote}
+${_userFactsNoteTexts}
 TEXTING STYLE: ${_style}
 Current mood: ${_moodLabel}
 ${moodPrompt?'\n'+moodPrompt:'\nEMOTION GROUNDING — MANDATORY FOR ALL TEXT REPLIES:\n- You are holding a phone. This is a text conversation. There is no physical scene.\n- Express yourself ONLY through tone, pacing, word choice, and what you choose to focus on.\n- Do NOT invent external events, people, locations, or situations.\n- Do NOT describe surroundings or actions outside this conversation.\n- REALISM CHECK: before sending, ask "would a real person send exactly this?" If it sounds scripted → rewrite it.'}
