@@ -5848,6 +5848,11 @@ function confirmNewChat(bfId){
     `mem_interval_${bfId}`,
     `last_user_msg_${bfId}`,
     `pending_date_note_${bfId}`,
+    `scrapbook_${bfId}`,
+    `milestones_${bfId}`,
+    `album_extra_${bfId}`,
+    `playlist_${bfId}`,
+    `playlist_err_${bfId}`,
   ];
   keysToRemove.forEach(k => localStorage.removeItem(k));
   if(msgAlts[bfId]) { msgAlts[bfId]={}; msgAltIdx[bfId]={}; }
@@ -5945,7 +5950,7 @@ function openChatWithPersona(id){
 }
 
 function openChat(id){
-  const bf=savedBFs.find(b=>b.id===id);
+  const bf=savedBFs.find(b=>b.id===id)||BF_DATA.find(b=>b.id===id);
   if(!bf) return;
   currentBF=bf;
   // Mark as together in scene when story chat opens
@@ -6404,11 +6409,11 @@ async function sendGreeting(){
   const bf=currentBF;
   const userName = userPersona?.name || 'them';
 
-  // If character has a preset first message, use it directly (no API call)
-  // UNLESS this is a forced fresh start after confirmNewChat
+  // If character has a preset first message, always use it directly (no API call)
+  // Clear any stale force_fresh flag but still show the preset opener
   const _forceFresh = localStorage.getItem('force_fresh_greeting_'+bf.id);
   if(_forceFresh) localStorage.removeItem('force_fresh_greeting_'+bf.id);
-  if(bf.firstMessage && bf.firstMessage.trim() && !_forceFresh){
+  if(bf.firstMessage && bf.firstMessage.trim()){
     addMessage('assistant', bf.firstMessage.trim(), true);
     // For characters whose first message IS their s0 plot event, pre-fire it
     // so the story skips straight to s1 after the greeting.
