@@ -6038,11 +6038,7 @@ function openChat(id){
         <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send">➤</button>
         <button class="stop-btn" id="stop-btn" onclick="stopGeneration()" title="Stop generating">■</button>
       </div>
-      <div class="reroll-bar" id="reroll-bar">
-        <span style="font-size:0.72rem;color:var(--text-muted)">Sent by mistake?</span>
-        <button class="reroll-btn" onclick="editLastUserMsg()" title="Edit your last message">✏️ Edit message</button>
-        <button class="reroll-btn" onclick="rerollLastUserMsg()" title="Resend your last message and get a new reply">↺ Reroll reply</button>
-      </div>
+
     </div>
   `;
   const saved=savedBFs.find(b=>b.id===id);
@@ -6123,9 +6119,16 @@ function renderMessages(){
       : `<div class="msg-bubble${bubbleExtraAlt}">${formatMsg(displayContent)}</div>${altNavHtml}`;
 
     // Action buttons — different set for user vs assistant
+    // For user messages: show Edit and Reroll inline under the bubble
+    const isLastUserMsg = isUser && (() => {
+      for(let _j = history.length-1; _j >= 0; _j--){
+        if(history[_j].role === 'user') return _j === idx;
+      }
+      return false;
+    })();
     const actions = isUser
       ? `<div class="msg-actions">
-           <button class="msg-action-btn" onclick="editMessage(${idx})" title="Edit">✏️ Edit</button>
+           ${isLastUserMsg ? `<button class="msg-action-btn" onclick="editLastUserMsg()" title="Edit your message">✏️ Edit message</button><button class="msg-action-btn reroll" onclick="rerollLastUserMsg()" title="Get a new reply">↺ Reroll reply</button>` : ''}
            <button class="msg-action-btn delete" onclick="deleteMessage(${idx})" title="Delete this message">🗑 Delete</button>
            <button class="msg-action-btn delete" onclick="deleteFromHere(${idx})" title="Delete this and everything after">🗑 From here</button>
          </div>`
@@ -6534,10 +6537,9 @@ function setGenerating(on){
   _generationAborted = false;
   const sendBtn = document.getElementById('send-btn');
   const stopBtn = document.getElementById('stop-btn');
-  const rerollBar = document.getElementById('reroll-bar');
   if(sendBtn){ sendBtn.disabled = on; }
   if(stopBtn){ stopBtn.classList.toggle('visible', on); }
-  if(rerollBar){ rerollBar.classList.toggle('visible', !on && (chatHistory[currentBF?.id]||[]).filter(m=>m.role==='user').length > 0); }
+
 }
 
 function stopGeneration(){
@@ -6567,7 +6569,6 @@ function editLastUserMsg(){
     input.focus();
     autoResize(input);
   }
-  document.getElementById('reroll-bar')?.classList.remove('visible');
   showToast('Message restored to input ✏️');
 }
 
@@ -6579,6 +6580,20 @@ async function rerollLastUserMsg(){
   for(let i = history.length-1; i >= 0; i--){ if(history[i].role==='user'){ lastUserIdx=i; break; } }
   if(lastUserIdx === -1) return;
   const lastUserMsg = history[lastUserIdx].content;
+
+  // Restore health to what it was BEFORE this message was sent
+  const _snap = localStorage.getItem('health_snapshot_'+currentBF.id);
+  if(_snap){
+    try{
+      const _snapData = JSON.parse(_snap);
+      const _cur = getRelHealth(currentBF.id);
+      _cur.health = _snapData.health;
+      _cur.tooltipMsg = _snapData.tooltipMsg || _cur.tooltipMsg;
+      saveRelHealth(currentBF.id, _cur);
+      refreshRelMeter();
+    }catch(e){}
+  }
+
   // Remove the AI reply(s) after the last user message
   chatHistory[currentBF.id].splice(lastUserIdx+1);
   saveHistory();
@@ -6628,6 +6643,11 @@ async function sendMessage(){
     return;
   }
 
+  // Snapshot health before this message so reroll can restore it
+  if(currentBF){
+    const _snapHealth = getRelHealth(currentBF.id);
+    localStorage.setItem('health_snapshot_'+currentBF.id, JSON.stringify({health:_snapHealth.health, tooltipMsg:_snapHealth.tooltipMsg}));
+  }
   addMessage('user',text);
   // Extract and remember any personal facts the user just shared
   if(currentBF) maybeExtractUserFact(currentBF.id, text);
