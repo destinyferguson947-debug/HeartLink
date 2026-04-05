@@ -6024,8 +6024,7 @@ function openChat(id){
           <div class="rel-meter-tooltip">${relData.tooltipMsg||'Your relationship is healthy.'}</div>
         </div>
         <button onclick="showPage('texts')" style="font-size:0.72rem;background:none;border:1px solid var(--border);border-radius:1rem;padding:3px 10px;cursor:pointer;color:var(--text-muted);font-family:'DM Sans',sans-serif;transition:all .2s" title="Open texting">💬 Texts</button>
-        <button id="plot-toggle-btn-${bf.id}" class="plot-toggle-btn ${getPlotEventsEnabled(bf.id)?'active':''}" onclick="togglePlotEvents(${bf.id})" title="Toggle automatic plot events on/off">${getPlotEventsEnabled(bf.id)?'⚡ Events: On':'⚡ Events: Off'}</button>
-        <button id="plot-manual-btn-${bf.id}" class="plot-manual-btn" onclick="triggerNextPlotEvent(${bf.id})" title="Manually trigger the next story event" style="display:${getPlotEventsEnabled(bf.id)?'none':'inline-block'}">📖 Trigger Event</button>
+
       </div>
     </div>
     <div class="chat-messages" id="chat-msgs"></div>
@@ -6213,6 +6212,27 @@ function cancelEdit(idx, encodedOriginal){
   renderMessages();
 }
 
+// Restore health to the snapshot taken just before message at `idx`
+function restoreHealthToSnapshot(bfId, idx){
+  try{
+    const store = JSON.parse(localStorage.getItem('health_snapshots_'+bfId)||'{}');
+    // Find the closest snapshot at or before idx
+    const keys = Object.keys(store).map(Number).filter(k => k <= idx).sort((a,b)=>b-a);
+    if(!keys.length) return;
+    const snap = store[keys[0]];
+    if(!snap) return;
+    const cur = getRelHealth(bfId);
+    cur.health = snap.health;
+    cur.tooltipMsg = snap.tooltipMsg || cur.tooltipMsg;
+    saveRelHealth(bfId, cur);
+    refreshRelMeter();
+    // Clean up snapshots at and after idx (they're now invalid)
+    Object.keys(store).map(Number).filter(k => k >= idx).forEach(k => delete store[k]);
+    localStorage.setItem('health_snapshots_'+bfId, JSON.stringify(store));
+  }catch(e){}
+}
+
+
 function deleteMessage(idx){
   if(!currentBF) return;
   const bfId = currentBF.id;
@@ -6224,6 +6244,7 @@ function deleteMessage(idx){
       ? 'This will delete this message. Are you sure?'
       : `⚠️ This will delete this message and the ${removeCount - 1} message${removeCount-1===1?'':'s'} after it. Are you sure?`,
     () => {
+      restoreHealthToSnapshot(bfId, idx);
       chatHistory[bfId].splice(idx, removeCount);
       saveHistory();
       if(msgAlts[bfId]){
@@ -6275,6 +6296,7 @@ function deleteFromHere(idx){
   showDeleteWarning(
     `⚠️ This will delete ${removeCount} message${removeCount===1?'':'s'} — this one and everything after it. Are you sure?`,
     () => {
+      restoreHealthToSnapshot(bfId, idx);
       chatHistory[bfId].splice(idx,removeCount);
       saveHistory();
       if(msgAlts[bfId]){
@@ -6643,9 +6665,17 @@ async function sendMessage(){
     return;
   }
 
-  // Snapshot health before this message so reroll can restore it
+  // Snapshot health before this message — keyed by message index so delete can restore too
   if(currentBF){
     const _snapHealth = getRelHealth(currentBF.id);
+    const _snapIdx = (chatHistory[currentBF.id]||[]).length; // index this message WILL get
+    const _snapStore = JSON.parse(localStorage.getItem('health_snapshots_'+currentBF.id)||'{}');
+    _snapStore[_snapIdx] = {health:_snapHealth.health, tooltipMsg:_snapHealth.tooltipMsg};
+    // Keep at most 60 snapshots
+    const _snapKeys = Object.keys(_snapStore).map(Number).sort((a,b)=>a-b);
+    if(_snapKeys.length > 60) { delete _snapStore[_snapKeys[0]]; }
+    localStorage.setItem('health_snapshots_'+currentBF.id, JSON.stringify(_snapStore));
+    // Also keep the simple single-key for reroll compatibility
     localStorage.setItem('health_snapshot_'+currentBF.id, JSON.stringify({health:_snapHealth.health, tooltipMsg:_snapHealth.tooltipMsg}));
   }
   addMessage('user',text);
