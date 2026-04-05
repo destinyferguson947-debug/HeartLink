@@ -59,6 +59,38 @@
   /* ---- DARK MODE TOGGLE ---- */
   .dark-mode-btn { background: var(--warm); border: 1.5px solid var(--border); border-radius: 2rem; padding: 0.35rem 0.9rem; font-size: 0.82rem; cursor: pointer; font-family: 'DM Sans',sans-serif; color: var(--text-muted); transition: all 0.2s; display: flex; align-items: center; gap: 0.4rem; }
   .dark-mode-btn:hover { border-color: var(--rose); color: var(--rose); }
+
+  /* ---- CALLUM CHIBI WIDGET ---- */
+  #callum-chibi-wrap {
+    position: absolute;
+    bottom: 0;
+    right: 16px;
+    width: 110px;
+    pointer-events: none;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #callum-chibi-img {
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+    opacity: 0.92;
+    filter: drop-shadow(0 2px 8px rgba(180,90,110,0.18));
+    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(.34,1.56,.64,1);
+    transform: translateY(0px);
+    border-radius: 0;
+  }
+  #callum-chibi-img.chibi-switching {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  @media(max-width:640px){
+    #callum-chibi-wrap { width: 80px; right: 8px; }
+    #callum-chibi-img { width: 80px; height: 80px; }
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; }
 
@@ -5972,6 +6004,7 @@ function openChatWithPersona(id){
 function openChat(id){
   const bf=savedBFs.find(b=>b.id===id)||BF_DATA.find(b=>b.id===id);
   if(!bf) return;
+  if(id !== CALLUM_ID) hideCallumChibi();
   currentBF=bf;
   // Mark as together in scene when story chat opens
   setScenePresenceTogether(id, true);
@@ -6028,7 +6061,10 @@ function openChat(id){
       </div>
     </div>
     <div class="chat-messages" id="chat-msgs"></div>
-    <div class="chat-input-area">
+    <div class="chat-input-area" style="position:relative;">
+      <div id="callum-chibi-wrap" style="display:none;">
+        <img id="callum-chibi-img" src="" alt="Callum" />
+      </div>
       <textarea class="system-prompt-input" id="extra-system-prompt" rows="1"
         placeholder="💡 Custom instructions — add rules, set a scene, give directions... character MUST follow these (only you see this)"
         oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,70)+'px'"></textarea>
@@ -6049,6 +6085,7 @@ function openChat(id){
   // Init and display mood
   initMood(id);
   updateMoodBadge(id);
+  updateCallumChibi(id);
   // Start auto-message timer
   scheduleAutoMsg(id);
   // Start relationship decay checker
@@ -11509,6 +11546,8 @@ function updateMoodBadge(bfId){
   const data = MOOD_DATA[mood] || MOOD_DATA.baseline;
   badge.textContent = data.emoji + ' ' + data.label;
   badge.className = 'mood-badge ' + data.cls;
+  // Update Callum's chibi whenever his mood badge updates
+  if(currentBF && currentBF.id === bfId) updateCallumChibi(bfId);
 }
 
 // Allow plot events to force a specific mood
@@ -17379,7 +17418,97 @@ function submitDailyAnswer(){ return; }
   const DEV_TAG = '__dev_pad__';
   const STAGE_NAMES = ['Stranger','Acquaintance','Friend','Close','Romantic','Partner'];
 
-  // Always read fresh from localStorage so timing doesn't matter
+  
+// ============================================================
+// CALLUM CHIBI SYSTEM
+// ============================================================
+const CALLUM_ID = 45;
+
+const CALLUM_CHIBI_MAP = {
+  // Happy / excited / playful / restless / teasing
+  happy:        'https://i.imgur.com/oRqwzWs.jpeg',
+  excited:      'https://i.imgur.com/oRqwzWs.jpeg',
+  playful:      'https://i.imgur.com/oRqwzWs.jpeg',
+  restless:     'https://i.imgur.com/oRqwzWs.jpeg',
+  teasing:      'https://i.imgur.com/oRqwzWs.jpeg',
+  // Neutral / baseline / withdrawn / cold / quiet
+  neutral:      'https://i.imgur.com/fTkL2gQ.png',
+  baseline:     'https://i.imgur.com/fTkL2gQ.png',
+  withdrawn:    'https://i.imgur.com/fTkL2gQ.png',
+  cold:         'https://i.imgur.com/fTkL2gQ.png',
+  quiet:        'https://i.imgur.com/fTkL2gQ.png',
+  avoidant:     'https://i.imgur.com/fTkL2gQ.png',
+  // Clingy / tender
+  clingy:       'https://i.imgur.com/T9Wd7to.png',
+  tender:       'https://i.imgur.com/T9Wd7to.png',
+  postclingy:   'https://i.imgur.com/T9Wd7to.png',
+  // Mischievous
+  mischievous:  'https://i.imgur.com/V3wX7Se.png',
+  // Argumentative / flustered / moody / angry / protective / jealous
+  argumentative:'https://i.imgur.com/93pVBLp.jpeg',
+  flustered:    'https://i.imgur.com/93pVBLp.jpeg',
+  moody:        'https://i.imgur.com/93pVBLp.jpeg',
+  angry:        'https://i.imgur.com/93pVBLp.jpeg',
+  irritable:    'https://i.imgur.com/93pVBLp.jpeg',
+  protective:   'https://i.imgur.com/93pVBLp.jpeg',
+  jealous:      'https://i.imgur.com/93pVBLp.jpeg',
+  // Sad
+  sad:          'https://i.imgur.com/lhHWgPY.jpeg',
+  // Vulnerable / lonely / touch-starved
+  vulnerable:   'https://i.imgur.com/8bageEq.jpeg',
+  lonely:       'https://i.imgur.com/8bageEq.jpeg',
+  touch_starved:'https://i.imgur.com/8bageEq.jpeg',
+};
+
+// Default (fallback) chibi
+const CALLUM_CHIBI_DEFAULT = 'https://i.imgur.com/fTkL2gQ.png';
+
+let _callumChibiCurrent = null;
+
+function getCallumChibiSrc(mood) {
+  if (!mood) return CALLUM_CHIBI_DEFAULT;
+  return CALLUM_CHIBI_MAP[mood] || CALLUM_CHIBI_DEFAULT;
+}
+
+function updateCallumChibi(bfId) {
+  const wrap = document.getElementById('callum-chibi-wrap');
+  const img  = document.getElementById('callum-chibi-img');
+  if (!wrap || !img) return;
+
+  // Only show for Callum
+  if (bfId !== CALLUM_ID) {
+    wrap.style.display = 'none';
+    return;
+  }
+
+  const moodData = getMood(bfId);
+  const mood = moodData ? moodData.mood : null;
+  const src = getCallumChibiSrc(mood);
+
+  // Show the wrap
+  wrap.style.display = 'flex';
+
+  // If same image, no transition needed
+  if (src === _callumChibiCurrent && img.src && !img.classList.contains('chibi-switching')) return;
+
+  // Animate out
+  img.classList.add('chibi-switching');
+  setTimeout(() => {
+    img.src = src;
+    _callumChibiCurrent = src;
+    img.classList.remove('chibi-switching');
+  }, 350);
+}
+
+function hideCallumChibi() {
+  const wrap = document.getElementById('callum-chibi-wrap');
+  if (wrap) wrap.style.display = 'none';
+  _callumChibiCurrent = null;
+}
+
+// ============================================================
+
+// Always read fresh from localStorage so timing doesn't matter
   function getChars(){
     try { return JSON.parse(localStorage.getItem('saved_bfs') || '[]'); } catch(e){ return []; }
   }
