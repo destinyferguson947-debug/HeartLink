@@ -1400,11 +1400,7 @@
   </div>
 </div>
 
-<div id="page-chat" class="page" style="position:relative;">
-  <!-- Callum chibi — lives here so it survives openChat re-renders -->
-  <div id="callum-chibi-wrap" style="display:none;">
-    <img id="callum-chibi-img" src="" alt="" />
-  </div>
+<div id="page-chat" class="page">
   <div class="chat-layout">
     <div class="chat-sidebar">
       <h3>💝 Your Chats</h3>
@@ -6734,7 +6730,7 @@ async function sendMessage(){
   // Extract and remember any personal facts the user just shared
   if(currentBF) maybeExtractUserFact(currentBF.id, text);
   // Check character-specific choice beats (e.g. Callum's first conversation)
-  checkCallumChoices(text);
+  try { checkCallumChoices(text); } catch(e) { console.error('checkCallumChoices error:', e); _callumScriptedReply = false; }
   // Reactively shift mood based on what user said
   if(currentBF) reactivelyShiftMood(currentBF.id, text);
   if(currentBF) checkJealousyTrigger(text, currentBF.id);
@@ -6753,7 +6749,13 @@ async function sendMessage(){
   }
   showTyping();
   const cutOffPrefix = wasCutOff ? getCutOffReaction(currentBF, _cutCount) + '\n\n' : '';
-  await callGemini(text, cutOffPrefix);
+  try {
+    await callGemini(text, cutOffPrefix);
+  } catch(e) {
+    hideTyping();
+    addMessage('assistant', '❌ Error calling AI: ' + (e.message||String(e)));
+    console.error('callGemini top-level error:', e);
+  }
   setGenerating(false);
   if(_generationAborted) return; // user stopped — skip post-processing
   // Auto-detect date proposal in the AI's latest reply and schedule it
@@ -17694,6 +17696,10 @@ function hideCallumChibi() {
         <button class="ppbtn-confirm" onclick="confirmPersonaPicker()">Start Chat ✨</button>
       </div>
     </div>
+  </div>
+  <!-- Callum chibi — body level so position:fixed always works -->
+  <div id="callum-chibi-wrap" style="display:none;">
+    <img id="callum-chibi-img" src="" alt="" />
   </div>
 </body>
 </html>
