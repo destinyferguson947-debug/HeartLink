@@ -5914,6 +5914,7 @@ function confirmNewChat(bfId){
     const ev = PLOT_EVENTS.find(e => e.id === evId);
     if(ev && ev.bfId === bfId) localStorage.removeItem(k);
   });
+  clearCallumChoiceFlags(bfId);
   localStorage.setItem('force_fresh_greeting_'+bfId,'1');
   if(currentBF?.id === bfId){
     refreshRelMeter(bfId);
@@ -5935,6 +5936,7 @@ function confirmDeleteBF(bfId){
   const _wipeKeys = ['summary_','memories_','rel_health_','mood_','mood_just_shifted_','dating_since_time_','dating_since_msgs_','pending_plot_','first_chat_ts_','bday_fired_','bday_waiting_','bday_wait_start_msgs_','cal_dates_','msg_alts_','last_plot_msg_','stag_thresh_','asked_out_','askout_pending_','confessed_','confession_pending_','proposed_','proposal_pending_','married_','engaged_since_msgs_','anti_repetition_','npc_trust_','known_npcs_','user_paranoia_','unresolved_moments_','conflict_state_','jealousy_active_','char_goals_','anniv_day_','pending_scheduled_date_'];
   _wipeKeys.forEach(k => localStorage.removeItem(k+bfId));
   Object.keys(localStorage).forEach(k => { if(k.endsWith('_'+bfId)) localStorage.removeItem(k); });
+  clearCallumChoiceFlags(bfId);
   if(msgAlts&&msgAlts[bfId]){msgAlts[bfId]={};} if(msgAltIdx&&msgAltIdx[bfId]){msgAltIdx[bfId]={};}
   const allPlotKeys2 = Object.keys(localStorage).filter(k => k.startsWith('plot_'));
   allPlotKeys2.forEach(k => {
@@ -6279,6 +6281,9 @@ function deleteMessage(idx){
       : `⚠️ This will delete this message and the ${removeCount - 1} message${removeCount-1===1?'':'s'} after it. Are you sure?`,
     () => {
       restoreHealthToSnapshot(bfId, idx);
+      // If deleting from (or before) the first user message, reset Callum's choice flags
+      const _firstUserIdx = (chatHistory[bfId]||[]).findIndex(m => m.role === 'user');
+      if(idx <= _firstUserIdx || _firstUserIdx === -1) clearCallumChoiceFlags(bfId);
       chatHistory[bfId].splice(idx, removeCount);
       saveHistory();
       if(msgAlts[bfId]){
@@ -6331,6 +6336,9 @@ function deleteFromHere(idx){
     `⚠️ This will delete ${removeCount} message${removeCount===1?'':'s'} — this one and everything after it. Are you sure?`,
     () => {
       restoreHealthToSnapshot(bfId, idx);
+      // If deleting from (or before) the first user message, reset Callum's choice flags
+      const _firstUserIdx2 = (chatHistory[bfId]||[]).findIndex(m => m.role === 'user');
+      if(idx <= _firstUserIdx2 || _firstUserIdx2 === -1) clearCallumChoiceFlags(bfId);
       chatHistory[bfId].splice(idx,removeCount);
       saveHistory();
       if(msgAlts[bfId]){
@@ -6637,6 +6645,11 @@ async function rerollLastUserMsg(){
   if(lastUserIdx === -1) return;
   const lastUserMsg = history[lastUserIdx].content;
 
+  // If rerolling the first user message, reset Callum's choice flags so Beat 1 fires again
+  if(lastUserIdx === 0 && currentBF.id === CALLUM_ID){
+    clearCallumChoiceFlags(currentBF.id);
+  }
+
   // Restore health to what it was BEFORE this message was sent
   const _snap = localStorage.getItem('health_snapshot_'+currentBF.id);
   if(_snap){
@@ -6776,6 +6789,18 @@ const CALLUM_ID = 45;
 function _callumFlag(key){ return 'callum_choice_'+key; }
 function _callumFired(key){ return !!localStorage.getItem(_callumFlag(key)); }
 function _callumSetFired(key){ localStorage.setItem(_callumFlag(key), '1'); }
+
+// Wipes all choice flags for a character — called on new chat, delete, remove, reroll
+function clearCallumChoiceFlags(bfId){
+  if(bfId !== CALLUM_ID) return;
+  // Remove every callum_choice_* key from localStorage
+  Object.keys(localStorage)
+    .filter(k => k.startsWith('callum_choice_'))
+    .forEach(k => localStorage.removeItem(k));
+  // Also reset health snapshots so reroll starts clean
+  localStorage.removeItem('health_snapshot_' + bfId);
+  localStorage.removeItem('health_snapshots_' + bfId);
+}
 
 // Called after every user message when Callum is active
 function checkCallumChoices(userMsg){
