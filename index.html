@@ -1402,8 +1402,8 @@
 
 <div id="page-chat" class="page" style="position:relative;">
   <!-- Callum chibi — lives here so it survives openChat re-renders -->
-  <div id="callum-chibi-wrap" style="display:none;position:fixed;bottom:90px;right:24px;width:110px;pointer-events:none;z-index:200;display:none;flex-direction:column;align-items:center;">
-    <img id="callum-chibi-img" src="" alt="" style="width:110px;height:110px;object-fit:contain;opacity:0.92;filter:drop-shadow(0 2px 8px rgba(180,90,110,0.22));transition:opacity 0.3s ease,transform 0.4s cubic-bezier(0.34,1.56,0.64,1);transform:translateY(0px);" />
+  <div id="callum-chibi-wrap" style="display:none;">
+    <img id="callum-chibi-img" src="" alt="" />
   </div>
   <div class="chat-layout">
     <div class="chat-sidebar">
@@ -6599,6 +6599,8 @@ function getCutOffReaction(bf, cutCount=1){
 
 // ── Generation state ─────────────────────────────────────────────────────────
 let _generationAborted = false;
+// Callum scripted reply flag — blocks callGemini when a choice branch handles the response
+let _callumScriptedReply = false;
 
 function setGenerating(on){
   _generationAborted = false;
@@ -6744,9 +6746,10 @@ async function sendMessage(){
   // Check if user is asking the character out — before the reply so character can respond naturally
   checkUserAsksOut();
   // If a Callum scripted branch is handling the reply, skip callGemini entirely
+  // The scripted branch calls hideTyping/setGenerating itself via its setTimeout
   if(_callumScriptedReply){
-    showTyping(); // typing indicator shown briefly, scripted reply hides it
-    return;
+    _callumScriptedReply = false; // reset for next message
+    return; // scripted branch handles everything — typing, message, setGenerating
   }
   showTyping();
   const cutOffPrefix = wasCutOff ? getCutOffReaction(currentBF, _cutCount) + '\n\n' : '';
@@ -6819,9 +6822,6 @@ function clearCallumChoiceFlags(bfId){
 }
 
 // Called after every user message when Callum is active
-// Flag: set to true when Callum's scripted branch should handle the reply instead of callGemini
-let _callumScriptedReply = false;
-
 function checkCallumChoices(userMsg){
   _callumScriptedReply = false; // reset every call
   if(!currentBF || currentBF.id !== CALLUM_ID) return;
@@ -6884,9 +6884,11 @@ function checkCallumChoices(userMsg){
       setTimeout(() => showBrokenHeartRain(), 400);
       setTimeout(() => {
         hideTyping();
-        setGenerating(false);
         addMessage('assistant', `He falls into step beside you without missing a beat — matching your pace with the easy practice of someone who has been following people for years. *Right. Yes. Of course.* A pause, long enough to feel it. *I have been invisible for a very long time. Two hundred years, give or take.* He says it lightly. But there is a quality underneath it that is not light at all. *I am not asking for much. Just — one minute. You can ignore me for the rest of your life after that if you want.* His voice drops just slightly. *I just need to know that you can actually see me.*`);
         renderMessages();
+        setGenerating(false);
+        const _allBfsIgnore = [...savedBFs].filter(b => (chatHistory[b.id]||[]).length > 0);
+        renderSidebar();
       }, 1000);
     } else {
       // Engaged, curious, warm, or even angry — they acknowledged him
