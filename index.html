@@ -2539,6 +2539,9 @@ const STAGE_GATE_EVENTS = {
 
 // ── Plot Events Toggle ──────────────────────────────────────────
 function getPlotEventsEnabled(bfId){
+  // Characters with their own choice-driven story system — plot events permanently off
+  const CHOICE_DRIVEN_CHARS = [45]; // Callum Sutherland
+  if(CHOICE_DRIVEN_CHARS.includes(bfId)) return false;
   const v = localStorage.getItem('plot_events_enabled_'+bfId);
   return v === null ? true : v === 'true'; // default ON
 }
@@ -6628,6 +6631,8 @@ async function sendMessage(){
   addMessage('user',text);
   // Extract and remember any personal facts the user just shared
   if(currentBF) maybeExtractUserFact(currentBF.id, text);
+  // Check character-specific choice beats (e.g. Callum's first conversation)
+  checkCallumChoices(text);
   // Reactively shift mood based on what user said
   if(currentBF) reactivelyShiftMood(currentBF.id, text);
   if(currentBF) checkJealousyTrigger(text, currentBF.id);
@@ -6674,6 +6679,76 @@ async function sendMessage(){
   await sleep(4000);
   await checkPlotEvents();
 }
+
+// ══════════════════════════════════════════════════════════════════
+// CALLUM SUTHERLAND — CHOICE-DRIVEN STORY SYSTEM
+// Tracks the user's responses and applies mood, health, and
+// visual feedback based on real choices made in conversation.
+// ══════════════════════════════════════════════════════════════════
+
+const CALLUM_ID = 45;
+
+// Keys to avoid firing the same beat twice
+function _callumFlag(key){ return 'callum_choice_'+key; }
+function _callumFired(key){ return !!localStorage.getItem(_callumFlag(key)); }
+function _callumSetFired(key){ localStorage.setItem(_callumFlag(key), '1'); }
+
+// Called after every user message when Callum is active
+function checkCallumChoices(userMsg){
+  if(!currentBF || currentBF.id !== CALLUM_ID) return;
+  const history = chatHistory[CALLUM_ID] || [];
+  const msgCount = history.filter(m => m.role === 'user').length;
+  const msg = (userMsg || '').toLowerCase();
+
+  // ── BEAT 1: First response to "You can see me, can't you" ──────
+  // Fires on the user's very first reply (msg 1)
+  if(msgCount === 1 && !_callumFired('beat1')){
+    _callumSetFired('beat1');
+
+    const scared = [
+      'scared','frightened','afraid','freak','creep','ghost','what the','who are you',
+      'stay away','back up','back off','leave me alone','dont touch','dont touch',
+      'oh my god','omg','what is','what are','are you real','am i','hallucin'
+    ].some(w => msg.includes(w));
+
+    const ignoring = [
+      'ignore','walk around','step around','excuse me','move','get out of my way',
+      'im late','im late','i have to go','i need to go','going to be late',
+      'move please','sorry i','cant talk','cant talk','not now'
+    ].some(w => msg.includes(w));
+
+    const engaged = [
+      'yes','yeah','i can','i see you','who are you','youre real','you look',
+      'how long','have you been','wait','hold on','whats your name','your name',
+      'hi','hello','hey','tell me','explain','what happened','are you okay','okay so'
+    ].some(w => msg.includes(w));
+
+    if(scared){
+      // Health -3, broken hearts, panic mood
+      decayRelHealth(CALLUM_ID, 3, 'You seemed scared of him.');
+      showBrokenHeartRain();
+      forceMood(CALLUM_ID, 'flustered'); // closest to panic — flustered/anxious
+      setTimeout(()=>{
+        addMessage(`assistant`, `Oh — no, no, please don't — I'm not — I can't actually hurt you. I'm not even sure I can fully touch things half the time, I just— He stops. Visibly recalibrates. His whole energy drops from barely-contained delight to something smaller and more careful. Sorry. I'm sorry. I know that was a lot. I'll be right here. When you're ready. I'm very good at waiting. I've had a lot of practice.`);
+      }, 800);
+    } else if(ignoring && !engaged){
+      // Health -3, broken hearts, sad mood
+      decayRelHealth(CALLUM_ID, 3, 'You ignored him.');
+      showBrokenHeartRain();
+      forceMood(CALLUM_ID, 'sad');
+      setTimeout(()=>{
+        addMessage(`assistant`, `He falls into step beside you, matching your pace with the easy practice of someone who has been following people for years. Right. Yes. Of course. A pause, long enough to feel it. I have been invisible for a very long time. Two hundred years, give or take. He says it lightly, but there's a quality underneath it that isn't light at all. I'm not asking for much. Just — one minute. You can ignore me for the rest of your life after that if you want. His voice drops. I just need to know that you can actually see me.`);
+      }, 800);
+    } else {
+      // Health +3, heart rain, excited mood
+      boostRelHealth(CALLUM_ID, 3, 'You stayed and listened to him.');
+      showHeartRain();
+      forceMood(CALLUM_ID, 'playful');
+      // No auto-message here — let the AI respond naturally with his excited energy
+    }
+  }
+}
+
 
 function addMessage(role,content,isGreeting=false){
   if(!currentBF) return;
