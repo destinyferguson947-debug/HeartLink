@@ -62,13 +62,12 @@
 
   /* ---- CALLUM CHIBI WIDGET ---- */
   #callum-chibi-wrap {
-    position: absolute;
-    bottom: 0;
-    right: 16px;
+    position: fixed;
+    bottom: 90px;
+    right: 24px;
     width: 110px;
     pointer-events: none;
-    z-index: 50;
-    display: flex;
+    z-index: 200;
     flex-direction: column;
     align-items: center;
   }
@@ -77,16 +76,16 @@
     height: 110px;
     object-fit: contain;
     opacity: 0.92;
-    filter: drop-shadow(0 2px 8px rgba(180,90,110,0.18));
-    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(.34,1.56,.64,1);
+    filter: drop-shadow(0 2px 8px rgba(180,90,110,0.22));
+    transition: opacity 0.3s ease, transform 0.4s cubic-bezier(.34,1.56,.64,1);
     transform: translateY(0px);
   }
   #callum-chibi-img.chibi-switching {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px);
   }
   @media(max-width:640px){
-    #callum-chibi-wrap { width: 80px; right: 8px; }
+    #callum-chibi-wrap { width: 80px; right: 10px; bottom: 80px; }
     #callum-chibi-img  { width: 80px; height: 80px; }
   }
 
@@ -1401,7 +1400,11 @@
   </div>
 </div>
 
-<div id="page-chat" class="page">
+<div id="page-chat" class="page" style="position:relative;">
+  <!-- Callum chibi — lives here so it survives openChat re-renders -->
+  <div id="callum-chibi-wrap" style="display:none;position:fixed;bottom:90px;right:24px;width:110px;pointer-events:none;z-index:200;display:none;flex-direction:column;align-items:center;">
+    <img id="callum-chibi-img" src="" alt="" style="width:110px;height:110px;object-fit:contain;opacity:0.92;filter:drop-shadow(0 2px 8px rgba(180,90,110,0.22));transition:opacity 0.3s ease,transform 0.4s cubic-bezier(0.34,1.56,0.64,1);transform:translateY(0px);" />
+  </div>
   <div class="chat-layout">
     <div class="chat-sidebar">
       <h3>💝 Your Chats</h3>
@@ -6063,7 +6066,6 @@ function openChat(id){
     </div>
     <div class="chat-messages" id="chat-msgs"></div>
     <div class="chat-input-area" style="position:relative;">
-      <div id="callum-chibi-wrap" style="display:none;"><img id="callum-chibi-img" src="" alt="" /></div>
       <textarea class="system-prompt-input" id="extra-system-prompt" rows="1"
         placeholder="💡 Custom instructions — add rules, set a scene, give directions... character MUST follow these (only you see this)"
         oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,70)+'px'"></textarea>
@@ -6084,6 +6086,7 @@ function openChat(id){
   // Init and display mood
   initMood(id);
   updateMoodBadge(id);
+  _callumChibiCurrent = null; // force re-render since DOM was replaced
   updateCallumChibi(id);
   // Start auto-message timer
   scheduleAutoMsg(id);
@@ -6740,6 +6743,11 @@ async function sendMessage(){
   setGenerating(true);
   // Check if user is asking the character out — before the reply so character can respond naturally
   checkUserAsksOut();
+  // If a Callum scripted branch is handling the reply, skip callGemini entirely
+  if(_callumScriptedReply){
+    showTyping(); // typing indicator shown briefly, scripted reply hides it
+    return;
+  }
   showTyping();
   const cutOffPrefix = wasCutOff ? getCutOffReaction(currentBF, _cutCount) + '\n\n' : '';
   await callGemini(text, cutOffPrefix);
@@ -6797,63 +6805,96 @@ function clearCallumChoiceFlags(bfId){
   Object.keys(localStorage)
     .filter(k => k.startsWith('callum_choice_'))
     .forEach(k => localStorage.removeItem(k));
-  // Also reset health snapshots so reroll starts clean
+  // Reset health snapshots so reroll starts clean
   localStorage.removeItem('health_snapshot_' + bfId);
   localStorage.removeItem('health_snapshots_' + bfId);
+  // Reset mood back to baseline so he doesn't carry a stale emotion into a fresh chat
+  localStorage.removeItem('mood_' + bfId);
+  localStorage.removeItem('mood_just_shifted_' + bfId);
+  localStorage.removeItem('prev_mood_label_' + bfId);
+  // Reset the scripted reply flag
+  _callumScriptedReply = false;
+  // Update the chibi back to neutral
+  setTimeout(() => updateCallumChibi(bfId), 100);
 }
 
 // Called after every user message when Callum is active
+// Flag: set to true when Callum's scripted branch should handle the reply instead of callGemini
+let _callumScriptedReply = false;
+
 function checkCallumChoices(userMsg){
+  _callumScriptedReply = false; // reset every call
   if(!currentBF || currentBF.id !== CALLUM_ID) return;
   const history = chatHistory[CALLUM_ID] || [];
   const msgCount = history.filter(m => m.role === 'user').length;
-  const msg = (userMsg || '').toLowerCase();
+  const msg = (userMsg || '').toLowerCase().trim();
 
   // ── BEAT 1: First response to "You can see me, can't you" ──────
-  // Fires on the user's very first reply (msg 1)
   if(msgCount === 1 && !_callumFired('beat1')){
     _callumSetFired('beat1');
 
-    const scared = [
-      'scared','frightened','afraid','freak','creep','ghost','what the','who are you',
-      'stay away','back up','back off','leave me alone','dont touch','dont touch',
-      'oh my god','omg','what is','what are','are you real','am i','hallucin'
-    ].some(w => msg.includes(w));
+    // SMARTER DETECTION — score each intent separately, pick the strongest
+    // Anger signals — should NOT trigger scared branch
+    const angerScore = [
+      'what the hell','what the f','wtf','are you serious','seriously','get away',
+      'leave me alone','get lost','piss off','back off','stop','dont','angry',
+      'annoyed','irritated','frustrated','mad','hell no','absolutely not'
+    ].filter(w => msg.includes(w)).length;
 
-    const ignoring = [
-      'ignore','walk around','step around','excuse me','move','get out of my way',
-      'im late','im late','i have to go','i need to go','going to be late',
-      'move please','sorry i','cant talk','cant talk','not now'
-    ].some(w => msg.includes(w));
+    // Genuine fear signals — specific to being startled by a ghost/stranger
+    const scaredScore = [
+      'scared','frightened','terrified','afraid','freak me out','freaking out',
+      'what are you','are you real','am i dreaming','hallucin','is this real',
+      'ghost','spirit','not real','oh god','oh my god','please dont hurt'
+    ].filter(w => msg.includes(w)).length;
 
-    const engaged = [
-      'yes','yeah','i can','i see you','who are you','youre real','you look',
-      'how long','have you been','wait','hold on','whats your name','your name',
-      'hi','hello','hey','tell me','explain','what happened','are you okay','okay so'
-    ].some(w => msg.includes(w));
+    // Ignoring / dismissing signals — trying to leave without engaging
+    const ignoringScore = [
+      'ignore','walk around','step around','excuse me','move please','get out of my way',
+      'im late','going to be late','i have to go','i need to go','cant talk',
+      'not now','no time','in a hurry','busy','move'
+    ].filter(w => msg.includes(w)).length;
 
-    if(scared){
-      // Health -3, broken hearts, panic mood
+    // Engaged / curious / warm signals
+    const engagedScore = [
+      'yes','yeah','i can','i see you','youre real','you look','how long',
+      'have you been here','wait','hold on','whats your name','your name',
+      'hi','hello','hey','tell me','explain','what happened','are you okay',
+      'okay so','who are you','what do you want','can i help','interesting',
+      'really','uh','um','oh'
+    ].filter(w => msg.includes(w)).length;
+
+    // Anger overrides scared — if more anger than fear, treat as engaged (they see him, just mad)
+    const isAngry = angerScore > 0 && angerScore >= scaredScore;
+    const isScared = scaredScore > 0 && !isAngry;
+    const isIgnoring = ignoringScore > 0 && engagedScore === 0 && !isAngry && !isScared;
+
+    if(isScared){
+      // Health -3, broken hearts, flustered mood — but DON'T block AI reply
+      // Let AI respond naturally to fear while we apply the effects
       decayRelHealth(CALLUM_ID, 3, 'You seemed scared of him.');
-      showBrokenHeartRain();
-      forceMood(CALLUM_ID, 'flustered'); // closest to panic — flustered/anxious
-      setTimeout(()=>{
-        addMessage(`assistant`, `Oh — no, no, please don't — I'm not — I can't actually hurt you. I'm not even sure I can fully touch things half the time, I just— He stops. Visibly recalibrates. His whole energy drops from barely-contained delight to something smaller and more careful. Sorry. I'm sorry. I know that was a lot. I'll be right here. When you're ready. I'm very good at waiting. I've had a lot of practice.`);
-      }, 800);
-    } else if(ignoring && !engaged){
-      // Health -3, broken hearts, sad mood
+      forceMood(CALLUM_ID, 'flustered');
+      setTimeout(() => showBrokenHeartRain(), 1200); // delay hearts until after AI reply starts
+      // Let callGemini handle the response naturally — mood is now flustered so it'll react right
+    } else if(isIgnoring){
+      // Health -3, broken hearts, sad mood — scripted reply blocks callGemini
+      _callumScriptedReply = true;
       decayRelHealth(CALLUM_ID, 3, 'You ignored him.');
-      showBrokenHeartRain();
       forceMood(CALLUM_ID, 'sad');
-      setTimeout(()=>{
-        addMessage(`assistant`, `He falls into step beside you, matching your pace with the easy practice of someone who has been following people for years. Right. Yes. Of course. A pause, long enough to feel it. I have been invisible for a very long time. Two hundred years, give or take. He says it lightly, but there's a quality underneath it that isn't light at all. I'm not asking for much. Just — one minute. You can ignore me for the rest of your life after that if you want. His voice drops. I just need to know that you can actually see me.`);
-      }, 800);
+      setTimeout(() => showBrokenHeartRain(), 400);
+      setTimeout(() => {
+        hideTyping();
+        setGenerating(false);
+        addMessage('assistant', `He falls into step beside you without missing a beat — matching your pace with the easy practice of someone who has been following people for years. *Right. Yes. Of course.* A pause, long enough to feel it. *I have been invisible for a very long time. Two hundred years, give or take.* He says it lightly. But there is a quality underneath it that is not light at all. *I am not asking for much. Just — one minute. You can ignore me for the rest of your life after that if you want.* His voice drops just slightly. *I just need to know that you can actually see me.*`);
+        renderMessages();
+      }, 1000);
     } else {
-      // Health +3, heart rain, excited mood
-      boostRelHealth(CALLUM_ID, 3, 'You stayed and listened to him.');
-      showHeartRain();
+      // Engaged, curious, warm, or even angry — they acknowledged him
+      // Health +3, hearts, excited mood — let AI respond naturally
+      boostRelHealth(CALLUM_ID, 3, 'You acknowledged him.');
       forceMood(CALLUM_ID, 'playful');
-      // No auto-message here — let the AI respond naturally with his excited energy
+      setTimeout(() => showHeartRain(), 1200);
+      // callGemini fires normally — mood is playful so he'll be excited
     }
   }
 }
