@@ -64,30 +64,45 @@
   /* ---- CALLUM CHIBI WIDGET ---- */
   #callum-chibi-wrap {
     position: fixed;
-    bottom: 90px;
-    right: 24px;
-    width: 110px;
+    bottom: 80px;
+    right: 20px;
+    width: 100px;
     pointer-events: none;
-    z-index: 200;
+    z-index: 500;
     flex-direction: column;
     align-items: center;
   }
   #callum-chibi-img {
-    width: 110px;
-    height: 110px;
+    width: 100px;
+    height: 100px;
     object-fit: contain;
-    opacity: 0.92;
-    filter: drop-shadow(0 2px 8px rgba(180,90,110,0.22));
+    opacity: 0.95;
+    filter: drop-shadow(0 2px 10px rgba(180,90,110,0.3));
+    mix-blend-mode: multiply;
     transition: opacity 0.3s ease, transform 0.4s cubic-bezier(.34,1.56,.64,1);
     transform: translateY(0px);
+  }
+  body.dark #callum-chibi-img {
+    mix-blend-mode: normal;
+    filter: drop-shadow(0 2px 10px rgba(180,90,110,0.4)) brightness(0.95);
   }
   #callum-chibi-img.chibi-switching {
     opacity: 0;
     transform: translateY(14px);
   }
+  /* Texts tab inline chibi next to name */
+  #callum-texts-chibi {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+    display: none;
+    flex-shrink: 0;
+  }
+  body.dark #callum-texts-chibi { mix-blend-mode: normal; }
   @media(max-width:640px){
-    #callum-chibi-wrap { width: 80px; right: 10px; bottom: 80px; }
-    #callum-chibi-img  { width: 80px; height: 80px; }
+    #callum-chibi-wrap { width: 76px; right: 8px; bottom: 72px; }
+    #callum-chibi-img  { width: 76px; height: 76px; }
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -4707,6 +4722,15 @@ function showPage(id){
   // Show dark mode FAB only on home page
   const fab = document.getElementById('dark-mode-fab');
   if(fab) fab.style.display = (id==='home') ? 'flex' : 'none';
+  // Chibi only visible on chat page (story tab) — hide everywhere else
+  const _chibWrap = document.getElementById('callum-chibi-wrap');
+  if(_chibWrap){
+    if(id === 'chat' && currentBF && currentBF.id === CALLUM_ID){
+      _chibWrap.style.display = 'flex';
+    } else {
+      _chibWrap.style.display = 'none';
+    }
+  }
 }
 
 // ---- API KEY ----
@@ -6064,7 +6088,13 @@ function updateCallumChibi(bfId) {
   const mood = moodData ? moodData.mood : null;
   const src  = getCallumChibiSrc(mood);
 
-  wrap.style.display = 'flex';
+  // Only show on chat page (story tab)
+  const onChatPage = document.getElementById('page-chat')?.classList.contains('active');
+  wrap.style.display = onChatPage ? 'flex' : 'none';
+
+  // Update the texts tab inline chibi too
+  const textsInline = document.getElementById('callum-texts-chibi');
+  if(textsInline) textsInline.src = src;
 
   if (src === _callumChibiCurrent && img.src && !img.classList.contains('chibi-switching')) return;
 
@@ -15126,7 +15156,10 @@ function openTextsChat(bfId){
     <div class="texts-chat-header">
       <div class="texts-chat-avatar">${img}</div>
       <div class="texts-chat-info">
-        <div class="texts-chat-name">${bf.name}</div>
+        <div class="texts-chat-name" style="display:flex;align-items:center;gap:6px;">
+          ${bfId === CALLUM_ID ? `<img id="callum-texts-chibi" src="${getCallumChibiSrc(getMood(bfId)?.mood)}" alt="" style="width:32px;height:32px;object-fit:contain;mix-blend-mode:multiply;flex-shrink:0;" />` : ''}
+          ${bf.name}
+        </div>
         <div class="texts-chat-status${unlocked?'':' offline'}">${unlocked ? (status + (moodLabel&&moodLabel!=='Himself'?' · '+moodLabel:'')) : 'Get closer to unlock texting'}</div>
       </div>
       <div class="texts-auto-toggle" onclick="textsToggleAuto(${bfId})" title="Auto-message: character texts you when you're away">
