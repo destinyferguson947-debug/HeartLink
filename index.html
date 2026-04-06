@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6001,6 +6002,85 @@ function openChatWithPersona(id){
   }
 }
 
+
+// CALLUM_ID = 45 (already declared above)
+
+const CALLUM_CHIBI_MAP = {
+  // Happy / excited / playful / restless / teasing
+  happy:         'https://i.imgur.com/oRqwzWs.jpeg',
+  excited:       'https://i.imgur.com/oRqwzWs.jpeg',
+  playful:       'https://i.imgur.com/oRqwzWs.jpeg',
+  restless:      'https://i.imgur.com/oRqwzWs.jpeg',
+  teasing:       'https://i.imgur.com/oRqwzWs.jpeg',
+  // Neutral / baseline / withdrawn / cold / quiet / avoidant
+  neutral:       'https://i.imgur.com/fTkL2gQ.png',
+  baseline:      'https://i.imgur.com/fTkL2gQ.png',
+  withdrawn:     'https://i.imgur.com/fTkL2gQ.png',
+  cold:          'https://i.imgur.com/fTkL2gQ.png',
+  quiet:         'https://i.imgur.com/fTkL2gQ.png',
+  avoidant:      'https://i.imgur.com/fTkL2gQ.png',
+  // Clingy / tender
+  clingy:        'https://i.imgur.com/T9Wd7to.png',
+  tender:        'https://i.imgur.com/T9Wd7to.png',
+  postclingy:    'https://i.imgur.com/T9Wd7to.png',
+  // Mischievous
+  mischievous:   'https://i.imgur.com/V3wX7Se.png',
+  // Argumentative / flustered / moody / angry / protective / jealous
+  argumentative: 'https://i.imgur.com/93pVBLp.jpeg',
+  flustered:     'https://i.imgur.com/93pVBLp.jpeg',
+  moody:         'https://i.imgur.com/93pVBLp.jpeg',
+  angry:         'https://i.imgur.com/93pVBLp.jpeg',
+  irritable:     'https://i.imgur.com/93pVBLp.jpeg',
+  protective:    'https://i.imgur.com/93pVBLp.jpeg',
+  jealous:       'https://i.imgur.com/93pVBLp.jpeg',
+  // Sad
+  sad:           'https://i.imgur.com/lhHWgPY.jpeg',
+  // Vulnerable / lonely / touch-starved
+  vulnerable:    'https://i.imgur.com/8bageEq.jpeg',
+  lonely:        'https://i.imgur.com/8bageEq.jpeg',
+  touch_starved: 'https://i.imgur.com/8bageEq.jpeg',
+  touchstarved:  'https://i.imgur.com/8bageEq.jpeg',
+  needy:         'https://i.imgur.com/8bageEq.jpeg',
+  rut:           'https://i.imgur.com/93pVBLp.jpeg',
+  postclingy:    'https://i.imgur.com/T9Wd7to.png',
+};
+
+const CALLUM_CHIBI_DEFAULT = 'https://i.imgur.com/fTkL2gQ.png';
+let _callumChibiCurrent = null;
+
+function getCallumChibiSrc(mood) {
+  if (!mood) return CALLUM_CHIBI_DEFAULT;
+  return CALLUM_CHIBI_MAP[mood] || CALLUM_CHIBI_DEFAULT;
+}
+
+function updateCallumChibi(bfId) {
+  const wrap = document.getElementById('callum-chibi-wrap');
+  const img  = document.getElementById('callum-chibi-img');
+  if (!wrap || !img) return;
+
+  if (bfId !== CALLUM_ID) { wrap.style.display = 'none'; return; }
+
+  const moodData = getMood(bfId);
+  const mood = moodData ? moodData.mood : null;
+  const src  = getCallumChibiSrc(mood);
+
+  wrap.style.display = 'flex';
+
+  if (src === _callumChibiCurrent && img.src && !img.classList.contains('chibi-switching')) return;
+
+  img.classList.add('chibi-switching');
+  setTimeout(() => {
+    img.src = src;
+    _callumChibiCurrent = src;
+    img.classList.remove('chibi-switching');
+  }, 350);
+}
+
+function hideCallumChibi() {
+  const wrap = document.getElementById('callum-chibi-wrap');
+  if (wrap) wrap.style.display = 'none';
+  _callumChibiCurrent = null;
+}
 function openChat(id){
   const bf=savedBFs.find(b=>b.id===id)||BF_DATA.find(b=>b.id===id);
   if(!bf) return;
@@ -17488,84 +17568,7 @@ function submitDailyAnswer(){ return; }
 // ============================================================
 // CALLUM CHIBI SYSTEM
 // ============================================================
-// CALLUM_ID = 45 (already declared above)
 
-const CALLUM_CHIBI_MAP = {
-  // Happy / excited / playful / restless / teasing
-  happy:         'https://i.imgur.com/oRqwzWs.jpeg',
-  excited:       'https://i.imgur.com/oRqwzWs.jpeg',
-  playful:       'https://i.imgur.com/oRqwzWs.jpeg',
-  restless:      'https://i.imgur.com/oRqwzWs.jpeg',
-  teasing:       'https://i.imgur.com/oRqwzWs.jpeg',
-  // Neutral / baseline / withdrawn / cold / quiet / avoidant
-  neutral:       'https://i.imgur.com/fTkL2gQ.png',
-  baseline:      'https://i.imgur.com/fTkL2gQ.png',
-  withdrawn:     'https://i.imgur.com/fTkL2gQ.png',
-  cold:          'https://i.imgur.com/fTkL2gQ.png',
-  quiet:         'https://i.imgur.com/fTkL2gQ.png',
-  avoidant:      'https://i.imgur.com/fTkL2gQ.png',
-  // Clingy / tender
-  clingy:        'https://i.imgur.com/T9Wd7to.png',
-  tender:        'https://i.imgur.com/T9Wd7to.png',
-  postclingy:    'https://i.imgur.com/T9Wd7to.png',
-  // Mischievous
-  mischievous:   'https://i.imgur.com/V3wX7Se.png',
-  // Argumentative / flustered / moody / angry / protective / jealous
-  argumentative: 'https://i.imgur.com/93pVBLp.jpeg',
-  flustered:     'https://i.imgur.com/93pVBLp.jpeg',
-  moody:         'https://i.imgur.com/93pVBLp.jpeg',
-  angry:         'https://i.imgur.com/93pVBLp.jpeg',
-  irritable:     'https://i.imgur.com/93pVBLp.jpeg',
-  protective:    'https://i.imgur.com/93pVBLp.jpeg',
-  jealous:       'https://i.imgur.com/93pVBLp.jpeg',
-  // Sad
-  sad:           'https://i.imgur.com/lhHWgPY.jpeg',
-  // Vulnerable / lonely / touch-starved
-  vulnerable:    'https://i.imgur.com/8bageEq.jpeg',
-  lonely:        'https://i.imgur.com/8bageEq.jpeg',
-  touch_starved: 'https://i.imgur.com/8bageEq.jpeg',
-  touchstarved:  'https://i.imgur.com/8bageEq.jpeg',
-  needy:         'https://i.imgur.com/8bageEq.jpeg',
-  rut:           'https://i.imgur.com/93pVBLp.jpeg',
-  postclingy:    'https://i.imgur.com/T9Wd7to.png',
-};
-
-const CALLUM_CHIBI_DEFAULT = 'https://i.imgur.com/fTkL2gQ.png';
-let _callumChibiCurrent = null;
-
-function getCallumChibiSrc(mood) {
-  if (!mood) return CALLUM_CHIBI_DEFAULT;
-  return CALLUM_CHIBI_MAP[mood] || CALLUM_CHIBI_DEFAULT;
-}
-
-function updateCallumChibi(bfId) {
-  const wrap = document.getElementById('callum-chibi-wrap');
-  const img  = document.getElementById('callum-chibi-img');
-  if (!wrap || !img) return;
-
-  if (bfId !== CALLUM_ID) { wrap.style.display = 'none'; return; }
-
-  const moodData = getMood(bfId);
-  const mood = moodData ? moodData.mood : null;
-  const src  = getCallumChibiSrc(mood);
-
-  wrap.style.display = 'flex';
-
-  if (src === _callumChibiCurrent && img.src && !img.classList.contains('chibi-switching')) return;
-
-  img.classList.add('chibi-switching');
-  setTimeout(() => {
-    img.src = src;
-    _callumChibiCurrent = src;
-    img.classList.remove('chibi-switching');
-  }, 350);
-}
-
-function hideCallumChibi() {
-  const wrap = document.getElementById('callum-chibi-wrap');
-  if (wrap) wrap.style.display = 'none';
-  _callumChibiCurrent = null;
-}
 // ============================================================
 
   // Always read fresh from localStorage so timing doesn't matter
