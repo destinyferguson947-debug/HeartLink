@@ -61,49 +61,6 @@
   .dark-mode-btn { background: var(--warm); border: 1.5px solid var(--border); border-radius: 2rem; padding: 0.35rem 0.9rem; font-size: 0.82rem; cursor: pointer; font-family: 'DM Sans',sans-serif; color: var(--text-muted); transition: all 0.2s; display: flex; align-items: center; gap: 0.4rem; }
   .dark-mode-btn:hover { border-color: var(--rose); color: var(--rose); }
 
-  /* ---- CALLUM CHIBI WIDGET ---- */
-  #callum-chibi-wrap {
-    position: fixed;
-    bottom: 80px;
-    right: 20px;
-    width: 100px;
-    pointer-events: none;
-    z-index: 500;
-    flex-direction: column;
-    align-items: center;
-  }
-  #callum-chibi-img {
-    width: 100px;
-    height: 100px;
-    object-fit: contain;
-    opacity: 0.95;
-    filter: drop-shadow(0 2px 10px rgba(180,90,110,0.3));
-    mix-blend-mode: multiply;
-    transition: opacity 0.3s ease, transform 0.4s cubic-bezier(.34,1.56,.64,1);
-    transform: translateY(0px);
-  }
-  body.dark #callum-chibi-img {
-    mix-blend-mode: normal;
-    filter: drop-shadow(0 2px 10px rgba(180,90,110,0.4)) brightness(0.95);
-  }
-  #callum-chibi-img.chibi-switching {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  /* Texts tab inline chibi next to name */
-  #callum-texts-chibi {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
-    mix-blend-mode: multiply;
-    display: none;
-    flex-shrink: 0;
-  }
-  body.dark #callum-texts-chibi { mix-blend-mode: normal; }
-  @media(max-width:640px){
-    #callum-chibi-wrap { width: 76px; right: 8px; bottom: 72px; }
-    #callum-chibi-img  { width: 76px; height: 76px; }
-  }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; }
@@ -2585,9 +2542,6 @@ const STAGE_GATE_EVENTS = {
 
 // ── Plot Events Toggle ──────────────────────────────────────────
 function getPlotEventsEnabled(bfId){
-  // Characters with their own choice-driven story system — plot events permanently off
-  const CHOICE_DRIVEN_CHARS = [45]; // Callum Sutherland
-  if(CHOICE_DRIVEN_CHARS.includes(bfId)) return false;
   const v = localStorage.getItem('plot_events_enabled_'+bfId);
   return v === null ? true : v === 'true'; // default ON
 }
@@ -4722,15 +4676,7 @@ function showPage(id){
   // Show dark mode FAB only on home page
   const fab = document.getElementById('dark-mode-fab');
   if(fab) fab.style.display = (id==='home') ? 'flex' : 'none';
-  // Chibi only visible on chat page (story tab) — hide everywhere else
-  const _chibWrap = document.getElementById('callum-chibi-wrap');
-  if(_chibWrap){
-    if(id === 'chat' && currentBF && currentBF.id === CALLUM_ID){
-      _chibWrap.style.display = 'flex';
-    } else {
-      _chibWrap.style.display = 'none';
-    }
-  }
+
 }
 
 // ---- API KEY ----
@@ -5938,7 +5884,6 @@ function confirmNewChat(bfId){
     const ev = PLOT_EVENTS.find(e => e.id === evId);
     if(ev && ev.bfId === bfId) localStorage.removeItem(k);
   });
-  clearCallumChoiceFlags(bfId);
   localStorage.setItem('force_fresh_greeting_'+bfId,'1');
   if(currentBF?.id === bfId){
     refreshRelMeter(bfId);
@@ -6026,95 +5971,9 @@ function openChatWithPersona(id){
   }
 }
 
-
-// CALLUM_ID = 45 (already declared above)
-
-const CALLUM_CHIBI_MAP = {
-  // Happy / excited / playful / restless / teasing
-  happy:         'https://i.imgur.com/oRqwzWs.jpeg',
-  excited:       'https://i.imgur.com/oRqwzWs.jpeg',
-  playful:       'https://i.imgur.com/oRqwzWs.jpeg',
-  restless:      'https://i.imgur.com/oRqwzWs.jpeg',
-  teasing:       'https://i.imgur.com/oRqwzWs.jpeg',
-  // Neutral / baseline / withdrawn / cold / quiet / avoidant
-  neutral:       'https://i.imgur.com/fTkL2gQ.png',
-  baseline:      'https://i.imgur.com/fTkL2gQ.png',
-  withdrawn:     'https://i.imgur.com/fTkL2gQ.png',
-  cold:          'https://i.imgur.com/fTkL2gQ.png',
-  quiet:         'https://i.imgur.com/fTkL2gQ.png',
-  avoidant:      'https://i.imgur.com/fTkL2gQ.png',
-  // Clingy / tender
-  clingy:        'https://i.imgur.com/T9Wd7to.png',
-  tender:        'https://i.imgur.com/T9Wd7to.png',
-  postclingy:    'https://i.imgur.com/T9Wd7to.png',
-  // Mischievous
-  mischievous:   'https://i.imgur.com/V3wX7Se.png',
-  // Argumentative / flustered / moody / angry / protective / jealous
-  argumentative: 'https://i.imgur.com/93pVBLp.jpeg',
-  flustered:     'https://i.imgur.com/93pVBLp.jpeg',
-  moody:         'https://i.imgur.com/93pVBLp.jpeg',
-  angry:         'https://i.imgur.com/93pVBLp.jpeg',
-  irritable:     'https://i.imgur.com/93pVBLp.jpeg',
-  protective:    'https://i.imgur.com/93pVBLp.jpeg',
-  jealous:       'https://i.imgur.com/93pVBLp.jpeg',
-  // Sad
-  sad:           'https://i.imgur.com/lhHWgPY.jpeg',
-  // Vulnerable / lonely / touch-starved
-  vulnerable:    'https://i.imgur.com/8bageEq.jpeg',
-  lonely:        'https://i.imgur.com/8bageEq.jpeg',
-  touch_starved: 'https://i.imgur.com/8bageEq.jpeg',
-  touchstarved:  'https://i.imgur.com/8bageEq.jpeg',
-  needy:         'https://i.imgur.com/8bageEq.jpeg',
-  rut:           'https://i.imgur.com/93pVBLp.jpeg',
-  postclingy:    'https://i.imgur.com/T9Wd7to.png',
-};
-
-const CALLUM_CHIBI_DEFAULT = 'https://i.imgur.com/fTkL2gQ.png';
-let _callumChibiCurrent = null;
-
-function getCallumChibiSrc(mood) {
-  if (!mood) return CALLUM_CHIBI_DEFAULT;
-  return CALLUM_CHIBI_MAP[mood] || CALLUM_CHIBI_DEFAULT;
-}
-
-function updateCallumChibi(bfId) {
-  const wrap = document.getElementById('callum-chibi-wrap');
-  const img  = document.getElementById('callum-chibi-img');
-  if (!wrap || !img) return;
-
-  if (bfId !== CALLUM_ID) { wrap.style.display = 'none'; return; }
-
-  const moodData = getMood(bfId);
-  const mood = moodData ? moodData.mood : null;
-  const src  = getCallumChibiSrc(mood);
-
-  // Only show on chat page (story tab)
-  const onChatPage = document.getElementById('page-chat')?.classList.contains('active');
-  wrap.style.display = onChatPage ? 'flex' : 'none';
-
-  // Update the texts tab inline chibi too
-  const textsInline = document.getElementById('callum-texts-chibi');
-  if(textsInline) textsInline.src = src;
-
-  if (src === _callumChibiCurrent && img.src && !img.classList.contains('chibi-switching')) return;
-
-  img.classList.add('chibi-switching');
-  setTimeout(() => {
-    img.src = src;
-    _callumChibiCurrent = src;
-    img.classList.remove('chibi-switching');
-  }, 350);
-}
-
-function hideCallumChibi() {
-  const wrap = document.getElementById('callum-chibi-wrap');
-  if (wrap) wrap.style.display = 'none';
-  _callumChibiCurrent = null;
-}
 function openChat(id){
   const bf=savedBFs.find(b=>b.id===id)||BF_DATA.find(b=>b.id===id);
   if(!bf) return;
-  if(id !== CALLUM_ID) hideCallumChibi();
   currentBF=bf;
   // Mark as together in scene when story chat opens
   setScenePresenceTogether(id, true);
@@ -6167,6 +6026,10 @@ function openChat(id){
           <div class="rel-meter-tooltip">${relData.tooltipMsg||'Your relationship is healthy.'}</div>
         </div>
         <button onclick="showPage('texts')" style="font-size:0.72rem;background:none;border:1px solid var(--border);border-radius:1rem;padding:3px 10px;cursor:pointer;color:var(--text-muted);font-family:'DM Sans',sans-serif;transition:all .2s" title="Open texting">💬 Texts</button>
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+          <button id="plot-toggle-btn-${bf.id}" class="plot-toggle-btn ${getPlotEventsEnabled(bf.id)?'active':''}" onclick="togglePlotEvents(${bf.id})" title="Toggle automatic plot events">⚡ Events: ${getPlotEventsEnabled(bf.id)?'On':'Off'}</button>
+          <button id="plot-manual-btn-${bf.id}" class="plot-manual-btn" style="display:${getPlotEventsEnabled(bf.id)?'none':'inline-block'}" onclick="triggerNextPlotEvent(${bf.id})" title="Manually fire the next story event">📖 Trigger Event</button>
+        </div>
 
       </div>
     </div>
@@ -6192,8 +6055,6 @@ function openChat(id){
   // Init and display mood
   initMood(id);
   updateMoodBadge(id);
-  _callumChibiCurrent = null; // force re-render since DOM was replaced
-  updateCallumChibi(id);
   // Start auto-message timer
   scheduleAutoMsg(id);
   // Start relationship decay checker
@@ -6392,7 +6253,6 @@ function deleteMessage(idx){
       restoreHealthToSnapshot(bfId, idx);
       // If deleting from (or before) the first user message, reset Callum's choice flags
       const _firstUserIdx = (chatHistory[bfId]||[]).findIndex(m => m.role === 'user');
-      if(idx <= _firstUserIdx || _firstUserIdx === -1) clearCallumChoiceFlags(bfId);
       chatHistory[bfId].splice(idx, removeCount);
       saveHistory();
       if(msgAlts[bfId]){
@@ -6447,7 +6307,6 @@ function deleteFromHere(idx){
       restoreHealthToSnapshot(bfId, idx);
       // If deleting from (or before) the first user message, reset Callum's choice flags
       const _firstUserIdx2 = (chatHistory[bfId]||[]).findIndex(m => m.role === 'user');
-      if(idx <= _firstUserIdx2 || _firstUserIdx2 === -1) clearCallumChoiceFlags(bfId);
       chatHistory[bfId].splice(idx,removeCount);
       saveHistory();
       if(msgAlts[bfId]){
@@ -6706,8 +6565,6 @@ function getCutOffReaction(bf, cutCount=1){
 // ── Generation state ─────────────────────────────────────────────────────────
 let _generationAborted = false;
 // Callum scripted reply flag — blocks callGemini when a choice branch handles the response
-let _callumScriptedReply = false;
-
 function setGenerating(on){
   _generationAborted = false;
   const sendBtn = document.getElementById('send-btn');
@@ -6755,11 +6612,6 @@ async function rerollLastUserMsg(){
   for(let i = history.length-1; i >= 0; i--){ if(history[i].role==='user'){ lastUserIdx=i; break; } }
   if(lastUserIdx === -1) return;
   const lastUserMsg = history[lastUserIdx].content;
-
-  // If rerolling the first user message, reset Callum's choice flags so Beat 1 fires again
-  if(lastUserIdx === 0 && currentBF.id === CALLUM_ID){
-    clearCallumChoiceFlags(currentBF.id);
-  }
 
   // Restore health to what it was BEFORE this message was sent
   const _snap = localStorage.getItem('health_snapshot_'+currentBF.id);
@@ -6839,8 +6691,6 @@ async function sendMessage(){
   addMessage('user',text);
   // Extract and remember any personal facts the user just shared
   if(currentBF) maybeExtractUserFact(currentBF.id, text);
-  // Check character-specific choice beats (e.g. Callum's first conversation)
-  try { checkCallumChoices(text); } catch(e) { console.error('checkCallumChoices error:', e); _callumScriptedReply = false; }
   // Reactively shift mood based on what user said
   if(currentBF) reactivelyShiftMood(currentBF.id, text);
   if(currentBF) checkJealousyTrigger(text, currentBF.id);
@@ -6851,12 +6701,6 @@ async function sendMessage(){
   setGenerating(true);
   // Check if user is asking the character out — before the reply so character can respond naturally
   checkUserAsksOut();
-  // If a Callum scripted branch is handling the reply, skip callGemini entirely
-  // The scripted branch calls hideTyping/setGenerating itself via its setTimeout
-  if(_callumScriptedReply){
-    _callumScriptedReply = false; // reset for next message
-    return; // scripted branch handles everything — typing, message, setGenerating
-  }
   showTyping();
   const cutOffPrefix = wasCutOff ? getCutOffReaction(currentBF, _cutCount) + '\n\n' : '';
   try {
@@ -6900,118 +6744,8 @@ async function sendMessage(){
   await checkPlotEvents();
 }
 
-// ══════════════════════════════════════════════════════════════════
-// CALLUM SUTHERLAND — CHOICE-DRIVEN STORY SYSTEM
-// Tracks the user's responses and applies mood, health, and
-// visual feedback based on real choices made in conversation.
-// ══════════════════════════════════════════════════════════════════
-
 const CALLUM_ID = 45;
 
-// Keys to avoid firing the same beat twice
-function _callumFlag(key){ return 'callum_choice_'+key; }
-function _callumFired(key){ return !!localStorage.getItem(_callumFlag(key)); }
-function _callumSetFired(key){ localStorage.setItem(_callumFlag(key), '1'); }
-
-// Wipes all choice flags for a character — called on new chat, delete, remove, reroll
-function clearCallumChoiceFlags(bfId){
-  if(bfId !== CALLUM_ID) return;
-  // Remove every callum_choice_* key from localStorage
-  Object.keys(localStorage)
-    .filter(k => k.startsWith('callum_choice_'))
-    .forEach(k => localStorage.removeItem(k));
-  // Reset health snapshots so reroll starts clean
-  localStorage.removeItem('health_snapshot_' + bfId);
-  localStorage.removeItem('health_snapshots_' + bfId);
-  // Reset mood back to baseline so he doesn't carry a stale emotion into a fresh chat
-  localStorage.removeItem('mood_' + bfId);
-  localStorage.removeItem('mood_just_shifted_' + bfId);
-  localStorage.removeItem('prev_mood_label_' + bfId);
-  // Reset the scripted reply flag
-  _callumScriptedReply = false;
-  // Update the chibi back to neutral
-  setTimeout(() => updateCallumChibi(bfId), 100);
-}
-
-// Called after every user message when Callum is active
-function checkCallumChoices(userMsg){
-  _callumScriptedReply = false; // reset every call
-  if(!currentBF || currentBF.id !== CALLUM_ID) return;
-  const history = chatHistory[CALLUM_ID] || [];
-  const msgCount = history.filter(m => m.role === 'user').length;
-  const msg = (userMsg || '').toLowerCase().trim();
-
-  // ── BEAT 1: First response to "You can see me, can't you" ──────
-  if(msgCount === 1 && !_callumFired('beat1')){
-    _callumSetFired('beat1');
-
-    // SMARTER DETECTION — score each intent separately, pick the strongest
-    // Anger signals — should NOT trigger scared branch
-    const angerScore = [
-      'what the hell','what the f','wtf','are you serious','seriously','get away',
-      'leave me alone','get lost','piss off','back off','stop','dont','angry',
-      'annoyed','irritated','frustrated','mad','hell no','absolutely not'
-    ].filter(w => msg.includes(w)).length;
-
-    // Genuine fear signals — specific to being startled by a ghost/stranger
-    const scaredScore = [
-      'scared','frightened','terrified','afraid','freak me out','freaking out',
-      'what are you','are you real','am i dreaming','hallucin','is this real',
-      'ghost','spirit','not real','oh god','oh my god','please dont hurt'
-    ].filter(w => msg.includes(w)).length;
-
-    // Ignoring / dismissing signals — trying to leave without engaging
-    const ignoringScore = [
-      'ignore','walk around','step around','excuse me','move please','get out of my way',
-      'im late','going to be late','i have to go','i need to go','cant talk',
-      'not now','no time','in a hurry','busy','move'
-    ].filter(w => msg.includes(w)).length;
-
-    // Engaged / curious / warm signals
-    const engagedScore = [
-      'yes','yeah','i can','i see you','youre real','you look','how long',
-      'have you been here','wait','hold on','whats your name','your name',
-      'hi','hello','hey','tell me','explain','what happened','are you okay',
-      'okay so','who are you','what do you want','can i help','interesting',
-      'really','uh','um','oh'
-    ].filter(w => msg.includes(w)).length;
-
-    // Anger overrides scared — if more anger than fear, treat as engaged (they see him, just mad)
-    const isAngry = angerScore > 0 && angerScore >= scaredScore;
-    const isScared = scaredScore > 0 && !isAngry;
-    const isIgnoring = ignoringScore > 0 && engagedScore === 0 && !isAngry && !isScared;
-
-    if(isScared){
-      // Health -3, broken hearts, flustered mood — but DON'T block AI reply
-      // Let AI respond naturally to fear while we apply the effects
-      decayRelHealth(CALLUM_ID, 3, 'You seemed scared of him.');
-      forceMood(CALLUM_ID, 'flustered');
-      setTimeout(() => showBrokenHeartRain(), 1200); // delay hearts until after AI reply starts
-      // Let callGemini handle the response naturally — mood is now flustered so it'll react right
-    } else if(isIgnoring){
-      // Health -3, broken hearts, sad mood — scripted reply blocks callGemini
-      _callumScriptedReply = true;
-      decayRelHealth(CALLUM_ID, 3, 'You ignored him.');
-      forceMood(CALLUM_ID, 'sad');
-      setTimeout(() => showBrokenHeartRain(), 400);
-      setTimeout(() => {
-        hideTyping();
-        addMessage('assistant', `He falls into step beside you without missing a beat — matching your pace with the easy practice of someone who has been following people for years. *Right. Yes. Of course.* A pause, long enough to feel it. *I have been invisible for a very long time. Two hundred years, give or take.* He says it lightly. But there is a quality underneath it that is not light at all. *I am not asking for much. Just — one minute. You can ignore me for the rest of your life after that if you want.* His voice drops just slightly. *I just need to know that you can actually see me.*`);
-        renderMessages();
-        setGenerating(false);
-        const _allBfsIgnore = [...savedBFs].filter(b => (chatHistory[b.id]||[]).length > 0);
-        renderSidebar();
-      }, 1000);
-    } else {
-      // Engaged, curious, warm, or even angry — they acknowledged him
-      // Health +3, hearts, excited mood — let AI respond naturally
-      boostRelHealth(CALLUM_ID, 3, 'You acknowledged him.');
-      forceMood(CALLUM_ID, 'playful');
-      setTimeout(() => showHeartRain(), 1200);
-      // callGemini fires normally — mood is playful so he'll be excited
-    }
-  }
-}
 
 
 function addMessage(role,content,isGreeting=false){
@@ -11723,7 +11457,6 @@ function updateMoodBadge(bfId){
   const data = MOOD_DATA[mood] || MOOD_DATA.baseline;
   badge.textContent = data.emoji + ' ' + data.label;
   badge.className = 'mood-badge ' + data.cls;
-  if(currentBF && currentBF.id === bfId) updateCallumChibi(bfId);
 }
 
 // Allow plot events to force a specific mood
@@ -15157,7 +14890,6 @@ function openTextsChat(bfId){
       <div class="texts-chat-avatar">${img}</div>
       <div class="texts-chat-info">
         <div class="texts-chat-name" style="display:flex;align-items:center;gap:6px;">
-          ${bfId === CALLUM_ID ? `<img id="callum-texts-chibi" src="${getCallumChibiSrc(getMood(bfId)?.mood)}" alt="" style="width:32px;height:32px;object-fit:contain;mix-blend-mode:multiply;flex-shrink:0;" />` : ''}
           ${bf.name}
         </div>
         <div class="texts-chat-status${unlocked?'':' offline'}">${unlocked ? (status + (moodLabel&&moodLabel!=='Himself'?' · '+moodLabel:'')) : 'Get closer to unlock texting'}</div>
@@ -17599,7 +17331,6 @@ function submitDailyAnswer(){ return; }
 
 
 // ============================================================
-// CALLUM CHIBI SYSTEM
 // ============================================================
 
 // ============================================================
@@ -17732,10 +17463,6 @@ function submitDailyAnswer(){ return; }
         <button class="ppbtn-confirm" onclick="confirmPersonaPicker()">Start Chat ✨</button>
       </div>
     </div>
-  </div>
-  <!-- Callum chibi — body level so position:fixed always works -->
-  <div id="callum-chibi-wrap" style="display:none;">
-    <img id="callum-chibi-img" src="" alt="" />
   </div>
 </body>
 </html>
