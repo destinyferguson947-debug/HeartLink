@@ -5905,7 +5905,6 @@ function confirmDeleteBF(bfId){
   const _wipeKeys = ['summary_','memories_','rel_health_','mood_','mood_just_shifted_','dating_since_time_','dating_since_msgs_','pending_plot_','first_chat_ts_','bday_fired_','bday_waiting_','bday_wait_start_msgs_','cal_dates_','msg_alts_','last_plot_msg_','stag_thresh_','asked_out_','askout_pending_','confessed_','confession_pending_','proposed_','proposal_pending_','married_','engaged_since_msgs_','anti_repetition_','npc_trust_','known_npcs_','user_paranoia_','unresolved_moments_','conflict_state_','jealousy_active_','char_goals_','anniv_day_','pending_scheduled_date_'];
   _wipeKeys.forEach(k => localStorage.removeItem(k+bfId));
   Object.keys(localStorage).forEach(k => { if(k.endsWith('_'+bfId)) localStorage.removeItem(k); });
-  clearCallumChoiceFlags(bfId);
   if(msgAlts&&msgAlts[bfId]){msgAlts[bfId]={};} if(msgAltIdx&&msgAltIdx[bfId]){msgAltIdx[bfId]={};}
   const allPlotKeys2 = Object.keys(localStorage).filter(k => k.startsWith('plot_'));
   allPlotKeys2.forEach(k => {
@@ -6996,7 +6995,7 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   const _calIG = getInGameDate(currentBF.id);
   const _calMonthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const _calDayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  // Compute day of week from the pseudo-random firstDayOfWeek formula used in renderCalendar
+  // Compute day of week using same absolute-month formula as renderCalendar
   const _calFirstDow = ((_calIG.year*12+_calIG.month)*2) % 7;
   const _calDow = (_calFirstDow + _calIG.day - 1) % 7;
   const _calDowName = _calDayNames[_calDow];
@@ -7024,14 +7023,17 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
     try {
       const _anniv = JSON.parse(_annivRaw);
       const _annivMName = _calMonthNames[_anniv.month];
-      _calSection += `\nYour anniversary (the day you became a couple): ${_annivMName} ${_anniv.day}, Year ${_anniv.year}. This date is circled on your calendar. You know it by heart.`;
+      _calSection += `\nYour anniversary (the day you became a couple): ${_annivMName} ${_anniv.day}, ${_anniv.year}. This date is circled on your calendar. You know it by heart.`;
       // Compute days until next anniversary (same month+day, any future year)
-      const _annivThisYearAbs = _calIG.year*12*30 + _anniv.month*30 + _anniv.day;
-      const _todayAbs2 = _calIG.year*12*30 + _calIG.month*30 + _calIG.day;
-      let _daysUntilAnniv = _annivThisYearAbs - _todayAbs2;
-      if(_daysUntilAnniv < 0) _daysUntilAnniv += 12*30; // next year
-      const _isAnnivToday = _anniv.month === _calIG.month && _anniv.day === _calIG.day && _calIG.year > _anniv.year;
-      const _annivSoon = _daysUntilAnniv > 0 && _daysUntilAnniv <= 5 && _calIG.year > _anniv.year;
+      const _now2 = new Date();
+      const _todayMid = new Date(_now2.getFullYear(), _now2.getMonth(), _now2.getDate());
+      let _annivTargetYear = _now2.getFullYear();
+      const _annivThisYear = new Date(_now2.getFullYear(), _anniv.month, _anniv.day);
+      if(_annivThisYear < _todayMid) _annivTargetYear++;
+      const _annivNext = new Date(_annivTargetYear, _anniv.month, _anniv.day);
+      let _daysUntilAnniv = Math.round((_annivNext - _todayMid) / (1000*60*60*24));
+      const _isAnnivToday = _anniv.month === _now2.getMonth() && _anniv.day === _now2.getDate() && _now2.getFullYear() > _anniv.year;
+      const _annivSoon = _daysUntilAnniv > 0 && _daysUntilAnniv <= 5 && _now2.getFullYear() > _anniv.year;
       if(_isAnnivToday){
         _calSection += ` TODAY IS YOUR ANNIVERSARY.`;
       } else if(_annivSoon){
@@ -7044,15 +7046,16 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   const _allCalDates = getCalDates(currentBF.id);
   if(_allCalDates.length){
     // Compute days from today for each event
-    const _todayAbsDay = _calIG.year * 12 * 30 + _calIG.month * 30 + _calIG.day;
+    const _evNow = new Date();
+    const _evTodayMid = new Date(_evNow.getFullYear(), _evNow.getMonth(), _evNow.getDate()).getTime();
     const _upcoming = _allCalDates
       .filter(e => e.type !== 'anniversary') // handled above
       .map(e => {
-        const _absDay = (e.year || _calIG.year) * 12 * 30 + e.month * 30 + e.day;
-        const _diff = _absDay - _todayAbsDay;
+        const _evDate = new Date(e.year || _evNow.getFullYear(), e.month, e.day).getTime();
+        const _diff = Math.round((_evDate - _evTodayMid) / (1000*60*60*24));
         return { ...e, diff: _diff };
       })
-      .filter(e => e.diff >= 0 && e.diff <= 30) // only show events within 30 in-game days
+      .filter(e => e.diff >= 0 && e.diff <= 60) // show events within 60 real days
       .sort((a,b) => a.diff - b.diff);
 
     if(_upcoming.length){
@@ -7061,12 +7064,10 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
         const _evMonthName = _calMonthNames[e.month];
         const _evYear = e.year || _calIG.year;
         // Compute day of week for this event
-        const _evFirstDow = ((_evYear*12+e.month)*2) % 7;
-        const _evDow = (_evFirstDow + e.day - 1) % 7;
-        const _evDowName = _calDayNames[_evDow];
+        const _evDowName = _calDayNames[new Date(_evYear, e.month, e.day).getDay()];
         const _diffLabel = e.diff === 0 ? 'TODAY' : e.diff === 1 ? 'tomorrow' : `in ${e.diff} day${e.diff===1?'':'s'} (${_evDowName})`;
         const _label = e.type === 'date' ? 'Date planned' : e.type === 'birthday' ? 'Birthday' : e.type === 'anniversary' ? 'Anniversary' : 'Event';
-        _calSection += `\n• ${_label} on ${_evDowName} ${_evMonthName} ${e.day}${_evYear !== _calIG.year ? ', Year '+_evYear : ''} — ${_diffLabel}${e.note ? ': '+e.note : ''}.`;
+        _calSection += `\n• ${_label} on ${_evDowName} ${_evMonthName} ${e.day}${_evYear !== _evNow.getFullYear() ? ', '+_evYear : ''} — ${_diffLabel}${e.note ? ': '+e.note : ''}.`;
       });
       _calSection += `\nWhen discussing plans, always use the correct day name and distance based on the above. Never contradict these dates.`;
     }
@@ -7095,10 +7096,10 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
     try {
       const _ps = JSON.parse(_pendSchedRaw);
       const _psMonthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-      const _psToday = getInGameDate(currentBF.id);
-      const _psTodayAbs = _psToday.year*12*30 + _psToday.month*30 + _psToday.day;
-      const _psSchedAbs = _ps.year*12*30 + _ps.month*30 + _ps.day;
-      const _psDaysLeft = _psSchedAbs - _psTodayAbs;
+      const _psNow = new Date();
+      const _psTodayMid = new Date(_psNow.getFullYear(), _psNow.getMonth(), _psNow.getDate()).getTime();
+      const _psSchedMid = new Date(_ps.year, _ps.month, _ps.day).getTime();
+      const _psDaysLeft = Math.round((_psSchedMid - _psTodayMid) / (1000*60*60*24));
       if(_psDaysLeft > 0){
         fullSystem += `
 
@@ -7847,20 +7848,19 @@ function showDatingTooltip(e, bfId){
   const bf = savedBFs.find(b=>b.id===bfId) || BF_DATA.find(b=>b.id===bfId);
   const name = bf ? bf.name.split(' ')[0] : 'them';
   const realMs = Date.now() - startTime;
-  const realDays = realMs / (1000*60*60*24);
-  const totalInGameMonths = Math.floor(realDays);
-  const realHours = realMs / (1000*60*60);
-  const inGameDays = Math.floor(realHours * (30/24));
+  const realDays = Math.floor(realMs / (1000*60*60*24));
   let durationStr;
-  if(totalInGameMonths < 1){
-    durationStr = inGameDays < 1 ? 'just 1 day' : inGameDays === 1 ? '1 day' : inGameDays + ' days';
+  if(realDays < 1) durationStr = 'just 1 day';
+  else if(realDays < 7) durationStr = realDays === 1 ? '1 day' : realDays + ' days';
+  else if(realDays < 30){
+    const w = Math.floor(realDays/7), d = realDays%7;
+    durationStr = (w===1?'1 week':w+' weeks') + (d>0?' and '+(d===1?'1 day':d+' days'):'');
+  } else if(realDays < 365){
+    const m = Math.floor(realDays/30), d = realDays%30;
+    durationStr = (m===1?'1 month':m+' months') + (d>0?' and '+(d===1?'1 day':d+' days'):'');
   } else {
-    const years = Math.floor(totalInGameMonths/12);
-    const months = totalInGameMonths % 12;
-    const parts = [];
-    if(years > 0) parts.push(years === 1 ? '1 year' : years + ' years');
-    if(months > 0) parts.push(months === 1 ? '1 month' : months + ' months');
-    durationStr = parts.join(' and ');
+    const y = Math.floor(realDays/365), m = Math.floor((realDays%365)/30);
+    durationStr = (y===1?'1 year':y+' years') + (m>0?' and '+(m===1?'1 month':m+' months'):'');
   }
   tooltip.innerHTML = `<strong>💗 You & ${name}</strong>You've been dating for<br><span style="font-size:1rem;font-weight:600;color:var(--rose)">${durationStr}</span>`;
   // Position near the badge
@@ -7879,21 +7879,25 @@ function getDatingDuration(bfId){
   const startTime = parseInt(localStorage.getItem('dating_since_time_'+bfId)||'0');
   if(!startTime) return '';
   const realMs = Date.now() - startTime;
-  const realDays = realMs / (1000*60*60*24);
-  // 1 real day = 1 in-game month; 1 real hour ≈ 1.25 in-game days
-  const totalMonths = Math.floor(realDays);
-  if(totalMonths < 1){
-    // Show in-game days: 1 real day has 30 in-game days, so scale hours → days
-    const realHours = realMs / (1000*60*60);
-    const inGameDays = Math.floor(realHours * (30/24));
-    if(inGameDays < 1) return 'day 1';
-    return inGameDays === 1 ? '1 day' : inGameDays + ' days';
+  const realDays = Math.floor(realMs / (1000*60*60*24));
+  if(realDays < 1) return 'day 1';
+  if(realDays < 7) return realDays === 1 ? '1 day' : realDays + ' days';
+  const realWeeks = Math.floor(realDays / 7);
+  const remDays = realDays % 7;
+  if(realDays < 30){
+    if(remDays === 0) return realWeeks === 1 ? '1 week' : realWeeks + ' weeks';
+    return realWeeks + (realWeeks===1?' week':' weeks') + ' ' + remDays + (remDays===1?' day':' days');
   }
-  const years = Math.floor(totalMonths/12);
-  const months = totalMonths % 12;
-  if(years === 0) return totalMonths === 1 ? '1 month' : totalMonths+' months';
-  if(months === 0) return years === 1 ? '1 year' : years+' years';
-  return years+(years===1?' year':' years')+' '+months+(months===1?' month':' months');
+  const realMonths = Math.floor(realDays / 30);
+  const remDays2 = realDays % 30;
+  if(realDays < 365){
+    if(remDays2 === 0) return realMonths === 1 ? '1 month' : realMonths + ' months';
+    return realMonths + (realMonths===1?' month':' months') + ' ' + remDays2 + (remDays2===1?' day':' days');
+  }
+  const realYears = Math.floor(realDays / 365);
+  const remMonths = Math.floor((realDays % 365) / 30);
+  if(remMonths === 0) return realYears === 1 ? '1 year' : realYears + ' years';
+  return realYears+(realYears===1?' year':' years')+' '+remMonths+(remMonths===1?' month':' months');
 }
 
 
@@ -7901,14 +7905,9 @@ function getDatingDuration(bfId){
 let calViewOffset = 0; // months offset from current in-game month
 
 function getInGameDate(bfId){
-  // 1 real day = 1 in-game month
-  const firstTs = parseInt(localStorage.getItem('first_chat_ts_'+bfId)||Date.now().toString());
-  const realDays = (Date.now()-firstTs)/(1000*60*60*24);
-  const totalMonths = Math.floor(realDays); // months since start
-  const year = 1 + Math.floor(totalMonths/12);
-  const month = (totalMonths % 12); // 0-indexed
-  const day = Math.floor(((Date.now()-firstTs) % (1000*60*60*24)) / (1000*60*60*24/30)) + 1;
-  return { year, month, day: Math.min(day,28) };
+  // Real-time calendar — uses actual system date
+  const now = new Date();
+  return { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
 }
 
 function getCalDates(bfId){
@@ -7965,16 +7964,14 @@ function getBirthdayThisYear(bfId){
 }
 
 function getDaysUntilEvent(bfId, eventMonth, eventDay){
-  const today = getInGameDate(bfId);
-  if(!today) return null;
-  const todayAbs = today.year * 360 + today.month * 30 + today.day;
-  let eventYear = today.year;
-  let eventAbs = eventYear * 360 + eventMonth * 30 + eventDay;
-  if(eventAbs < todayAbs){
-    eventYear += 1;
-    eventAbs = eventYear * 360 + eventMonth * 30 + eventDay;
-  }
-  return eventAbs - todayAbs;
+  // Real-calendar days until the next occurrence of this month+day
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  let target = new Date(thisYear, eventMonth, eventDay);
+  const todayMidnight = new Date(thisYear, now.getMonth(), now.getDate());
+  if(target < todayMidnight) target = new Date(thisYear + 1, eventMonth, eventDay);
+  const diffMs = target - todayMidnight;
+  return Math.round(diffMs / (1000*60*60*24));
 }
 
 function _ordinal(n){
@@ -8214,12 +8211,13 @@ function renderCalendar(bfId){
   if(!panel) return;
   const today = getInGameDate(bfId);
   // Auto-clean past 'date' type entries (not birthdays or anniversaries)
-  const _todayAbs = today.year*12*30 + today.month*30 + today.day;
+  const _cleanNow = new Date();
+  const _todayMidClean = new Date(_cleanNow.getFullYear(), _cleanNow.getMonth(), _cleanNow.getDate()).getTime();
   const _allDates = getCalDates(bfId);
   const _cleaned = _allDates.filter(e => {
     if(e.type !== 'date') return true; // keep birthdays, anniversaries, custom events
-    const _eAbs = (e.year||today.year)*12*30 + e.month*30 + e.day;
-    return _eAbs >= _todayAbs; // keep today and future dates, remove past
+    const _eDate = new Date(e.year||_cleanNow.getFullYear(), e.month, e.day).getTime();
+    return _eDate >= _todayMidClean; // keep today and future, remove past
   });
   if(_cleaned.length !== _allDates.length) saveCalDates(bfId, _cleaned);
   const viewMonth = ((today.month + calViewOffset) % 12 + 12) % 12;
@@ -8230,7 +8228,10 @@ function renderCalendar(bfId){
   
   // Days in month (simplified: all months 30 days in-game)
   const daysInMonth = 30;
-  const firstDayOfWeek = ((viewYear*12+viewMonth)*2) % 7; // pseudo-random start day
+  // Real day-of-week: treat year/month as Gregorian-style, each in-game month = 30 days
+  const _absMonth = (viewYear - 1) * 12 + viewMonth; // months since game start
+  const _absDay = _absMonth * 30; // total days since game start
+  const firstDayOfWeek = _absDay % 7; // 0=Sun consistent progression
   
   let gridHTML = '<div class="cal-grid">';
   ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d=>{
@@ -8262,9 +8263,28 @@ function renderCalendar(bfId){
   }
   gridHTML += '</div>';
   
+  // Determine year label — use character's era if historical
+  const _calBf = (typeof currentBF !== 'undefined' && currentBF) ? (BF_DATA.find(b=>b.id===currentBF.id)||currentBF) : null;
+  const _calTag = _calBf ? (_calBf.tag||'') : '';
+  const _isHistorical = _calTag.includes('historical') || _calTag.includes('fantasy') || _calTag.includes('regency') || _calTag.includes('period');
+  // For historical/fantasy chars: try to extract a base year from their personality/scenario
+  // Otherwise fall back to "Year N" labeling
+  function _getEraYear(bf, relYear){
+    if(!bf) return 'Year '+relYear;
+    // Check for explicit era year in personality or tag (e.g. "1840", "309", "1965")
+    const _searchText = (bf.personality||'') + ' ' + (bf.scenario||'') + ' ' + (bf.tag||'');
+    const _eraMatch = _searchText.match(/\b(1[0-9]{3}|[2-9][0-9]{2}|[1-9][0-9]{1})\b/);
+    if(_eraMatch){
+      const _baseEraYear = parseInt(_eraMatch[1]);
+      return String(_baseEraYear + relYear - 1);
+    }
+    return 'Year '+relYear;
+  }
+  const _yearLabel = String(viewYear); // real year now — show directly
+
   panel.innerHTML = `
     <div class="chat-calendar">
-      <h4>${monthNames[viewMonth]} Y${viewYear}
+      <h4>${monthNames[viewMonth]} ${_yearLabel}
         <div class="cal-nav">
           <button onclick="calNav(-1)">‹</button>
           <button onclick="calNav(0)">•</button>
@@ -8306,7 +8326,7 @@ function calScheduleDate(){
     renderCalendar(currentBF.id);
     showToast('💗 Date scheduled!');
     // Tell the character via a subtle system nudge (injected into next callGemini)
-    localStorage.setItem('pending_date_note_'+currentBF.id, `(A date has been planned for ${['January','February','March','April','May','June','July','August','September','October','November','December'][viewMonth]} Y${viewYear}, day ${day}. React naturally — excited, casual, or nervous depending on your personality. Keep it brief.)`);
+    localStorage.setItem('pending_date_note_'+currentBF.id, `(A date has been planned for ${['January','February','March','April','May','June','July','August','September','October','November','December'][viewMonth]} ${viewYear}, day ${day}. React naturally — excited, casual, or nervous depending on your personality. Keep it brief.)`);
   }
 }
 
@@ -8326,7 +8346,8 @@ function checkAnniversaryForgotten(){
   let _anniv;
   try { _anniv = JSON.parse(_annivRaw); } catch(e){ return; }
 
-  const today = getInGameDate(bfId);
+  const now = new Date();
+  const today = { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
   // Only runs on anniversary day (not the original dating year)
   const isAnnivToday = _anniv.month === today.month && _anniv.day === today.day && today.year > _anniv.year;
   if(!isAnnivToday) return;
@@ -8383,21 +8404,16 @@ function checkAnniversaryForgotten(){
 // to the calendar, and blocks time-skipping until that day arrives.
 
 function _dayNameToInGameDate(dayName, bfId){
-  const today = getInGameDate(bfId);
+  // Use real calendar — find next occurrence of the named day
   const dowNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-  const todayAbsDay = today.year*12*30 + today.month*30 + today.day;
-  const firstDow = ((today.year*12+today.month)*2) % 7;
-  const todayDow = (firstDow + today.day - 1) % 7;
   const targetDow = dowNames.indexOf(dayName.toLowerCase());
   if(targetDow === -1) return null;
+  const now = new Date();
+  const todayDow = now.getDay();
   let daysUntil = (targetDow - todayDow + 7) % 7;
-  if(daysUntil === 0) daysUntil = 7;
-  const targetAbsDay = todayAbsDay + daysUntil;
-  const targetYear = Math.floor(targetAbsDay / (12*30));
-  const remainder = targetAbsDay % (12*30);
-  const targetMonth = Math.floor(remainder / 30);
-  const targetDay = Math.max(1, Math.min(30, remainder % 30 || 30));
-  return { year: targetYear, month: targetMonth, day: targetDay, daysUntil };
+  if(daysUntil === 0) daysUntil = 7; // always future
+  const target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntil);
+  return { year: target.getFullYear(), month: target.getMonth(), day: target.getDate(), daysUntil };
 }
 
 function detectAndScheduleDateProposal(bfId, replyText){
@@ -8405,9 +8421,13 @@ function detectAndScheduleDateProposal(bfId, replyText){
   if(localStorage.getItem('pending_scheduled_date_'+bfId)) return;
   const lower = replyText.toLowerCase();
   const dowNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-  const hasDateContext = ['date','meet','free','see you','come over','dinner','lunch','coffee',
-    'walk','show','movie','plans','together','pick you up','i will pick'].some(w=>lower.includes(w));
-  if(!hasDateContext) return;
+  // Only auto-schedule on explicit date-asking phrases, not casual mentions of dinner/meeting
+  const hasExplicitDateIntent = [
+    'go on a date','plan a date','take you out','pick you up','shall we go out',
+    "let's go out",'would you like to go out','want to go out with me',
+    'take you on a date','are you free for a date'
+  ].some(w=>lower.includes(w));
+  if(!hasExplicitDateIntent) return;
   let foundDay = null;
   for(const dow of dowNames){
     if(lower.includes(dow)){
@@ -8419,14 +8439,10 @@ function detectAndScheduleDateProposal(bfId, replyText){
     }
   }
   if(!foundDay && /this weekend|next weekend/.test(lower)) foundDay = 'saturday';
-  if(!foundDay && lower.includes('tomorrow') && hasDateContext){
-    const today = getInGameDate(bfId);
-    const absDay = today.year*12*30 + today.month*30 + today.day + 1;
-    const yr = Math.floor(absDay/(12*30));
-    const rem = absDay%(12*30);
-    const mo = Math.floor(rem/30);
-    const dy = Math.max(1, rem%30||30);
-    _autoScheduleDate(bfId, {year:yr, month:mo, day:dy, daysUntil:1});
+  if(!foundDay && lower.includes('tomorrow') && hasExplicitDateIntent){
+    const _now = new Date();
+    const _tmw = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate() + 1);
+    _autoScheduleDate(bfId, {year:_tmw.getFullYear(), month:_tmw.getMonth(), day:_tmw.getDate(), daysUntil:1});
     return;
   }
   if(!foundDay) return;
@@ -8443,9 +8459,9 @@ function _autoScheduleDate(bfId, target){
   existing.push({day:target.day, month:target.month, year:target.year, type:'date', autoScheduled:true});
   saveCalDates(bfId, existing);
   if(typeof renderCalendar === 'function') renderCalendar(bfId);
-  const firstDow = ((target.year*12+target.month)*2) % 7;
-  const dow = (firstDow + target.day - 1) % 7;
-  const dowName = dowNames[dow];
+  // Calculate real day-of-week from actual date
+  const _schedDate = new Date(target.year, target.month, target.day);
+  const dowName = dowNames[_schedDate.getDay()];
   const rule = JSON.stringify({year:target.year, month:target.month, day:target.day, dowName, daysUntil:target.daysUntil});
   localStorage.setItem('pending_scheduled_date_'+bfId, rule);
   showToast(`💗 Date auto-scheduled for ${dowName}, ${monthNames[target.month]} ${target.day}!`);
@@ -8456,10 +8472,10 @@ function checkDateArrival(bfId){
   if(!raw) return;
   try {
     const sched = JSON.parse(raw);
-    const today = getInGameDate(bfId);
-    const todayAbs = today.year*12*30 + today.month*30 + today.day;
-    const schedAbs = sched.year*12*30 + sched.month*30 + sched.day;
-    if(todayAbs >= schedAbs){
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const schedMidnight = new Date(sched.year, sched.month, sched.day).getTime();
+    if(todayMidnight >= schedMidnight){
       localStorage.removeItem('pending_scheduled_date_'+bfId);
       // Remove the circled date from the calendar — it has passed/arrived
       const _calDates = getCalDates(bfId);
@@ -8470,7 +8486,7 @@ function checkDateArrival(bfId){
       if(typeof renderCalendar === 'function') renderCalendar(bfId);
       const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
       localStorage.setItem('pending_date_note_'+bfId,
-        `(TODAY is the day of your planned date — ${sched.dowName}, ${monthNames[sched.month]} ${sched.day}. The day has finally arrived. React as your character naturally would: excited, nervous, casual — whatever fits you. You can now write the date scene.)`);
+        `(TODAY is the day of your planned date — ${sched.dowName}, ${monthNames[sched.month]} ${sched.day}, ${sched.year}. The day has finally arrived. React as your character naturally would: excited, nervous, casual — whatever fits you. You can now write the date scene.)`);
     }
   } catch(e){ localStorage.removeItem('pending_scheduled_date_'+bfId); }
 }
@@ -8826,18 +8842,21 @@ function grantDatingStatus(bfId, milestoneText){
   if(!localStorage.getItem('dating_since_time_'+bfId)){
     localStorage.setItem('dating_since_time_'+bfId, Date.now().toString());
   }
-  // Mark anniversary on in-game calendar — store as source of truth
+  // Mark anniversary on real calendar — store actual date as source of truth
   (()=>{
-    const _igStart = getInGameDate(bfId);
+    const _realNow = new Date();
+    const _realDay = _realNow.getDate();
+    const _realMonth = _realNow.getMonth(); // 0-indexed
+    const _realYear = _realNow.getFullYear();
     const _calDates = getCalDates(bfId);
     const _filtered = _calDates.filter(e=>e.type!=='anniversary');
-    _filtered.push({day:_igStart.day, month:_igStart.month, year:_igStart.year, type:'anniversary'});
+    _filtered.push({day:_realDay, month:_realMonth, year:_realYear, type:'anniversary'});
     saveCalDates(bfId, _filtered);
-    // Also store as a dedicated key so it's always readable without re-deriving
-    localStorage.setItem('anniv_day_'+bfId, JSON.stringify({day:_igStart.day, month:_igStart.month, year:_igStart.year}));
+    // Store as dedicated key so it's always readable
+    localStorage.setItem('anniv_day_'+bfId, JSON.stringify({day:_realDay, month:_realMonth, year:_realYear}));
     const _mNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     localStorage.setItem('pending_date_note_'+bfId,
-      `(Today — ${_mNames[_igStart.month]} ${_igStart.day}, Year ${_igStart.year} — is the day you officially became a couple. This date is now circled on your calendar. You hold onto it. React as your character naturally would — this is a moment that matters.)`);
+      `(Today — ${_mNames[_realMonth]} ${_realDay}, ${_realYear} — is the day you officially became a couple. This date is now circled on your calendar. You hold onto it. React as your character naturally would — this is a moment that matters.)`);
   })();
   refreshRelMeter();
   showHeartRain();
@@ -11572,26 +11591,30 @@ const BIRTHDAY_OFFSETS = {
   26:16,27:11,28:14,29:13,30:12,31:17,32:10,33:15,34:11,35:13,
   36:14,37:16,38:11,39:17,40:12,41:15,42:13,43:10,44:16,45:12
 };
-const BIRTHDAY_CYCLE_DAYS = 12; // 1 in-game year = 12 real days
+// Birthday now uses real calendar date from the character's birthday field
 
 function getBirthdayInfo(bfId){
-  const firstChat = parseInt(localStorage.getItem('first_chat_ts_'+bfId)||'0');
-  if(!firstChat) return null;
-  const offset = BIRTHDAY_OFFSETS[bfId] || 14;
-  const firstBirthday = firstChat + offset * 24*60*60*1000;
-  const now = Date.now();
-  if(now < firstBirthday) {
-    // Not yet had first birthday
-    return { next: firstBirthday, isToday: false, daysUntil: (firstBirthday-now)/(24*60*60*1000) };
-  }
-  // Find the most recent birthday occurrence
-  const elapsed = now - firstBirthday;
-  const cyclePassed = Math.floor(elapsed / (BIRTHDAY_CYCLE_DAYS*24*60*60*1000));
-  const lastBirthday = firstBirthday + cyclePassed * BIRTHDAY_CYCLE_DAYS*24*60*60*1000;
-  const nextBirthday = lastBirthday + BIRTHDAY_CYCLE_DAYS*24*60*60*1000;
-  const msSinceLast = now - lastBirthday;
-  const isToday = msSinceLast < 24*60*60*1000; // within 24 real hours
-  return { next: nextBirthday, last: lastBirthday, isToday, daysUntil: (nextBirthday-now)/(24*60*60*1000) };
+  const bf = savedBFs.find(b=>b.id===bfId) || BF_DATA.find(b=>b.id===bfId);
+  if(!bf || !bf.birthday) return null;
+  const now = new Date();
+  const todayY = now.getFullYear();
+  const todayM = now.getMonth();  // 0-indexed
+  const todayD = now.getDate();
+  const bdayMonth = bf.birthday.month - 1; // stored 1-indexed, convert to 0-indexed
+  const bdayDay   = bf.birthday.day;
+
+  const isToday = todayM === bdayMonth && todayD === bdayDay;
+
+  // Next birthday date
+  let nextYear = todayY;
+  const thisYearBday = new Date(todayY, bdayMonth, bdayDay);
+  const todayMidnight = new Date(todayY, todayM, todayD);
+  if(thisYearBday < todayMidnight) nextYear = todayY + 1;
+  const nextBirthday = new Date(nextYear, bdayMonth, bdayDay).getTime();
+  const lastBirthday = new Date(isToday ? todayY : todayY - 1, bdayMonth, bdayDay).getTime();
+  const daysUntil = (nextBirthday - todayMidnight.getTime()) / (24*60*60*1000);
+
+  return { next: nextBirthday, last: lastBirthday, isToday, daysUntil };
 }
 
 function checkBirthdayEvent(){
@@ -11599,10 +11622,12 @@ function checkBirthdayEvent(){
   const bfId = currentBF.id;
   const info = getBirthdayInfo(bfId);
   if(!info || !info.isToday) return;
-  // Only fire once per birthday cycle
-  const lastFired = parseInt(localStorage.getItem('bday_fired_'+bfId)||'0');
-  if(info.last && lastFired >= info.last) return;
-  localStorage.setItem('bday_fired_'+bfId, info.last||Date.now());
+  // Only fire once per real calendar year
+  const now2 = new Date();
+  const firedYearKey = 'bday_fired_yr_'+bfId;
+  const lastFiredYear = parseInt(localStorage.getItem(firedYearKey)||'0');
+  if(lastFiredYear === now2.getFullYear()) return;
+  localStorage.setItem(firedYearKey, String(now2.getFullYear()));
   // 50% chance the character mentions it (the other 50% they wait for user to notice)
   const willMention = Math.random() > 0.5;
   if(willMention){
@@ -14466,7 +14491,10 @@ function checkMissedDate(){
     const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
     localStorage.setItem('stood_up_'+bfId,JSON.stringify({dateLabel:watch.dateLabel||'your date',apologyStart:history.length}));
     showToast(`💔 You stood up ${bf?bf.name.split(' ')[0]:'them'}. They waited.`);
-    localStorage.setItem('pending_date_note_'+bfId,`(STOOD UP: The date was today and they never came. You waited. React as your character — hurt, cold, or quietly devastated. Let them know, in your way, that you waited.)`);
+    // Fire immediately — don't wait for user's next message
+    localStorage.setItem('pending_date_note_'+bfId,`(STOOD UP — THIS IS URGENT: The date was today. You got ready. You waited. They never came. You are not going to gloss over this or move on. React as your character right now — hurt, cold, shut down, quietly furious, or devastated. You can send them a message, or you can go quiet. But you are NOT pretending this didn't happen. The user needs to know that you waited.)`);
+    // Trigger an immediate auto-message so the character reacts without needing user input
+    if(typeof scheduleAutoMsg === 'function') scheduleAutoMsg(bfId, 800);
   }
 }
 
