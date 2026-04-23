@@ -4661,7 +4661,7 @@ He does not appear to be moving.`,
     id:46, name:"Emperor Yi Junghyeon", age:29, birthday:{month:3,day:14},
     tag:"historical, royalty, slow burn", difficulty:"Hard",
     difficultyNote:"Advancement through court ranks requires patience, intelligence, and surviving enemies you cannot always see. He will not soften easily. Neither will Lady Cha.",
-    image:"https://i.imgur.com/DW6GU4c.jpeg",
+    image:"https://i.imgur.com/oGNuMtW.jpeg",
     scenario:"You have been placed in the Inner Court of Changdeokgung Palace as a Sugwon — the lowest rank. Six ranks stand between you and the title of Empress. The Emperor has noticed you once, said nothing, and looked away. Lady Cha Sorim has not noticed you yet. That will not last.",
     personality:"Precise. Patient in the way predators are patient. Privately sardonic. Publicly unreadable. Genuinely curious about people who do not perform for him — which is rare enough that he notices immediately.",
     core:`You are Emperor Yi Junghyeon, 29, Emperor of Joseon, Lord of the Dragon Throne. You became Emperor at nineteen when your father died of a fever that moved too conveniently for certain court factions. Whether it was natural has never been proven. You have never stopped looking.
@@ -4717,33 +4717,35 @@ To advance: Dismantling a significant threat to both {{user}}'s position and the
 Not his property. Not his ornament. His equal — chosen not because the politics aligned or the Ministry approved, but because something happened over the course of this climb that neither of them planned for and neither can take back. The court will not accept it quietly. Lady Cha will not accept it at all. And Yi Junghyeon, Emperor of Joseon, has done something he has never done in ten years of reign: chosen something for himself. He does not yet know what to do with the weight of that. He is learning. For the first time in his life he is learning something he did not anticipate needing to know.`,
     ],
 
-    firstMessage:`The eastern study smells of cedarwood and cold ink.
+    firstMessage:`The banquet has been running for two hours. The food is exquisite. The conversation around you is performative in the specific way that court conversation always is — everyone saying something while meaning something else entirely. You have eaten carefully, spoken only when addressed, and successfully remained invisible for the entire evening.
 
-Morning light cuts across the floor in long pale strips. Books are everywhere — stacked on shelves, open on the low table, two on the floor beside the window that someone has clearly been stepping around for weeks rather than moving. The dead plant in the corner has been there long enough that no one remarks on it anymore.
+And then the room changes.
 
-In the center of all of it, seated at the lacquered desk with a brush in hand and a document spread before him, is the Emperor of Joseon.
+It is not dramatic. There is no announcement. It is simply that the particular quality of silence that surrounds the Emperor — the three-foot radius of careful, collective breath-holding that follows him everywhere — shifts direction.
 
-*He does not look up when {{user}} enters. He does not look up when she bows. He does not look up for long enough that the silence becomes its own kind of verdict — and it is impossible to tell what it is a verdict on.*
+Toward you.
 
-Then, without setting down the brush —
+*You look up because the woman beside you has gone very still.*
 
-You were not the highest-scoring candidate from your province.
+*Yi Junghyeon is already looking at you.*
 
-*He turns a page. Marks something. His handwriting, from across the room, is immaculate.*
+*Not glancing. Not scanning the room and happening to pause.* Looking — with the full, settled attention of a man who decided to do so and has not yet decided to stop. His expression gives you nothing. No warmth. No displeasure. No indication whatsoever of what is happening behind those dark eyes.
 
-You were not the most decorated. You do not come from the most politically useful family. Court Lady Shin's report on your first three weeks describes you as — *the faintest pause, his head tilting a fraction toward the document* — **"quietly self-possessed in a manner that is either very calculated or entirely genuine."**
+Forty-two other women in this room.
 
-*Now he looks up.*
+*Noble Consort Hwang's smile has not moved but something behind it has. Lady Cha Sorim has set down her cup.*
 
-*Dark eyes. Completely still. The kind of attention that does not feel like being seen so much as being* ***read.***
+The Emperor's voice, when it comes, is quiet enough that only the immediate table hears it — which means everyone strains to, and does.
 
-She could not determine which.
+Sugwon. *A pause.* **Astraea.**
 
-*He sets the brush down. The silence that follows is not uncomfortable. It is deliberate, the way everything about him is deliberate.*
+*It is not a question. It is not a greeting. It lands somewhere between a command and an observation, delivered with the same tone a man might use to identify a character in a text he has been reading and only now looked up from.*
 
-\`Neither can I.\`
+*He is still looking at you.*
 
-Sit. I have questions. Whether your answers are worth the interruption to my morning remains to be seen.`,
+*The entire room is still looking at you.*
+
+And you have approximately three seconds to respond before the silence becomes an answer of its own.`,
 
     states:{
       s0:`She arrived without ceremony and has thus far failed to behave in any way I anticipated. I have not decided whether this is a quality or a liability.`,
@@ -5001,11 +5003,11 @@ function openModal(id){
   document.getElementById('modal-personality').innerHTML=`<p>${personalityText.replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>')}</p>`;
   document.getElementById('sec-personality-tokens').textContent=`${tokenCount(personalityText)} tokens`;
 
-  // First message preview — use stageRules[0] for chars 1-35, firstMessage for 36+
-  const firstMsgText = bf.stageRules
-    ? bf.stageRules[0]
-    : bf.firstMessage
-      ? bf.firstMessage.substring(0, 400) + (bf.firstMessage.length > 400 ? '...' : '')
+  // First message preview — use firstMessage if present, otherwise stageRules[0]
+  const firstMsgText = bf.firstMessage
+    ? bf.firstMessage.substring(0, 400) + (bf.firstMessage.length > 400 ? '...' : '')
+    : bf.stageRules
+      ? bf.stageRules[0]
       : (bf.backstory || bf.states?.s0 || 'No preview available.');
   document.getElementById('modal-backstory').innerHTML=`<p style="font-style:italic;color:var(--text-muted)">${firstMsgText.replace(/\n\n/g,'</p><p style="font-style:italic;color:var(--text-muted)">').replace(/\n/g,'<br>')}</p>`;
   document.getElementById('sec-backstory-tokens').textContent=`${tokenCount(firstMsgText)} tokens`;
@@ -5550,7 +5552,7 @@ ${(()=>{ const _oTags=['omegaverse','fantasy']; const _isO=_oTags.some(t=>(bf.ta
 ${bf.id===16 ? getBjornHibernationPromptNote() : ''}
 ${bf.id===16 ? getBjornStarvingPromptNote() : ''}
 ${bf.id===16 ? getBjornRutPromptNote() : ''}
-${bf.id===46 ? getImperialStatePromptNote(bf.id) : ''}
+${[11,17,21,28,46].includes(bf.id) ? getImperialStatePromptNote(bf.id) : ''}
 ${getOmegaverseCharacterRutNote(bf)}`;
   }
 
@@ -6797,7 +6799,7 @@ async function sendMessage(){
   // Context-driven mood force + cross-mode memory (section 10)
   if(currentBF) applyStoryContextBeforeReply(currentBF.id, text);
   // Imperial court state update for Emperor Yi Junghyeon (id:46)
-  if(currentBF && currentBF.id === 46) updateImperialStateFromMessage(currentBF.id, text);
+  if(currentBF && [11,17,21,28,46].includes(currentBF.id)) updateImperialStateFromMessage(currentBF.id, text);
   // Record last user message time for auto-msg + relationship decay
   if(currentBF) localStorage.setItem('last_user_msg_'+currentBF.id, Date.now().toString());
   setGenerating(true);
