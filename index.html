@@ -6162,7 +6162,11 @@ function openChat(id){
   // Start relationship decay checker
   startRelDecayChecker();
   // Birthday + anniversary checks on chat open
-  setTimeout(() => runDateMemoryChecks(id), 1500);
+  setTimeout(() => {
+    runDateMemoryChecks(id);
+    checkDateArrival(id);   // did a scheduled date arrive while user was away?
+    checkMissedDate();      // did user stand someone up since last session?
+  }, 1500);
 }
 
 function renderMessages(){
@@ -7067,9 +7071,21 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   }
 
   if(!_isFreshChat && memories.length){
-    fullSystem += `\n\n--- ${currentBF.name.split(' ')[0].toUpperCase()}'S MEMORIES ABOUT THE USER ---\n`;
-    fullSystem += memories.map(m=>`• ${m.text}`).join('\n');
-    fullSystem += `\n(Reference these naturally in conversation when relevant — don't list them, just let them inform how you treat the user.)`;
+    const _recentMems = memories.slice(-8);
+    fullSystem += `\n\n--- YOUR SHARED HISTORY — USE THIS ---
+These are real things that happened between you and the user. You remember all of them. You think about them. You bring them up the way a real person does — not as a list, not as a recap, but naturally: a reference that slips out mid-conversation, a callback to something they said days ago, a small thing you noticed that you haven't forgotten.
+
+${_recentMems.map(m=>`• ${m.text}`).join('\n')}
+
+RULE: At least once every 4-5 responses, reference something from your history without being prompted. If the user is talking about something that connects to a memory, make that connection out loud. If they seem to have forgotten something that mattered, you remember it for them.
+--- END HISTORY ---`;
+  }
+  // Surface relationship strain visibly if health is low
+  if(!_isFreshChat){
+    const _relStrain = getRelHealth(currentBF.id);
+    if(_relStrain && _relStrain.tooltipMsg && _relStrain.health < 75){
+      fullSystem += `\n\n[RELATIONSHIP STRAIN: ${_relStrain.tooltipMsg} This is in the background. It colours how you feel right now. You have not forgotten it.]`;
+    }
   }
   if(!_isFreshChat && summary){
     fullSystem += `\n\n--- CONVERSATION SUMMARY (earlier chats) ---\n${summary}\n(Use this as background context. The recent messages below are the live conversation.)`;
@@ -7100,11 +7116,10 @@ async function callGemini(userMessage, responsePrefix='', isGreeting=false){
   const _calIG = getInGameDate(currentBF.id);
   const _calMonthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const _calDayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  // Compute day of week using same absolute-month formula as renderCalendar
-  const _calFirstDow = ((_calIG.year*12+_calIG.month)*2) % 7;
-  const _calDow = (_calFirstDow + _calIG.day - 1) % 7;
-  const _calDowName = _calDayNames[_calDow];
-  let _calSection = `\n\n--- CALENDAR & DATE AWARENESS ---\nToday is ${_calDowName}, ${_calMonthNames[_calIG.month]} ${_calIG.day}, Year ${_calIG.year} (in-game).`;
+  // DOW now computed from real Date() below
+  const _realNowCal = new Date();
+  const _realDowName = _calDayNames[_realNowCal.getDay()];
+  let _calSection = `\n\n--- CALENDAR & DATE AWARENESS ---\nToday is ${_realDowName}, ${_calMonthNames[_realNowCal.getMonth()]} ${_realNowCal.getDate()}, ${_realNowCal.getFullYear()}.`;
 
   // Birthday
   const _bfData2 = BF_DATA.find(b=>b.id===currentBF.id);
@@ -7254,6 +7269,19 @@ You have noticed the user paying significant positive attention to ${_jd.npcName
   }
 
   fullSystem += _calSection;
+
+  // ── Mood injection — make mood actually visible in writing ────────────────
+  const _moodNow = getMood(currentBF.id);
+  const _moodNowInfo = MOOD_DATA[_moodNow.mood] || MOOD_DATA.baseline;
+  const _moodJustShifted = localStorage.getItem('mood_just_shifted_'+currentBF.id);
+  fullSystem += `\n\nCURRENT EMOTIONAL STATE: ${_moodNowInfo.label}.${_moodNowInfo.prompt ? ' '+_moodNowInfo.prompt : ''}
+
+This mood is not a label you announce — it is a physical and emotional state that changes HOW you write:
+• Word choice: shorter and clipped when cold or sad, faster and rambling when excited or clingy
+• Initiation: you reach out more when lonely or clingy, pull back when withdrawn or cold
+• Body language in the scene: restless fidgeting, unusual stillness, proximity-seeking, avoiding contact
+• What irritates or softens you right now that wouldn't normally${_moodJustShifted ? `\n• YOUR MOOD JUST SHIFTED to ${_moodNowInfo.label}. Something changed in you recently. Let this response feel different from the one before it — the shift should be noticeable.` : ''}`;
+  if(_moodJustShifted) localStorage.removeItem('mood_just_shifted_'+currentBF.id);
 
   // Pending calendar note (date scheduled or birthday acknowledgment)
   const _pendingCal = localStorage.getItem('pending_date_note_'+currentBF.id);
@@ -8176,10 +8204,19 @@ function checkBirthdayForgotten(){
   decayRelHealth(bfId, 10, `You forgot ${pronoun} birthday.`);
   showToast(`🎂 ${currentBF.name.split(' ')[0]} noticed you forgot their birthday.`);
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  localStorage.setItem(
-    'pending_date_note_' + bfId,
-    `(BIRTHDAY FORGOTTEN: Today is your birthday (${monthNames[bd.month]} ${bd.day}) and the user has not acknowledged it after several messages. React in character — hurt, disappointed, withdrawn, irritable, passive-aggressive, or directly upset depending on your personality. Do NOT ignore it. This mattered to you. The relationship health took a hit.)`
-  );
+  const _bdayForgottenNote = `(BIRTHDAY FORGOTTEN: Today is your birthday (${monthNames[bd.month]} ${bd.day}) and the user has not acknowledged it after several messages. React in character right now — hurt, disappointed, withdrawn, irritable, passive-aggressive, or directly upset depending on your personality. Do NOT ignore it. Do NOT let it slide. This mattered to you and they forgot. The relationship health took a hit.)`;
+  localStorage.setItem('pending_date_note_' + bfId, _bdayForgottenNote);
+  // Fire immediately so character reacts without waiting for user to type
+  const _bdayBf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(_bdayBf && (apiKey||proxyMode)){
+    setTimeout(async ()=>{
+      if(bfId === currentBF?.id) showTyping();
+      await generateAndSaveAutoMsg(_bdayBf, _bdayForgottenNote);
+      if(bfId === currentBF?.id){ hideTyping(); renderMessages(); }
+      localStorage.removeItem('pending_date_note_'+bfId);
+      sendBrowserNotif(_bdayBf.name.split(' ')[0], `${_bdayBf.name.split(' ')[0]} noticed you forgot their birthday...`, bfId);
+    }, 2000);
+  }
 }
 
 // ── Section 7: Enhanced Anniversary Forgotten ─────────────────
@@ -8331,12 +8368,9 @@ function renderCalendar(bfId){
   const calDates = getCalDates(bfId);
   const bdayInfo = getBirthdayInGameDay(bfId);
   
-  // Days in month (simplified: all months 30 days in-game)
-  const daysInMonth = 30;
-  // Real day-of-week: treat year/month as Gregorian-style, each in-game month = 30 days
-  const _absMonth = (viewYear - 1) * 12 + viewMonth; // months since game start
-  const _absDay = _absMonth * 30; // total days since game start
-  const firstDayOfWeek = _absDay % 7; // 0=Sun consistent progression
+  // Real days in month and real first day of week
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun, real calendar
   
   let gridHTML = '<div class="cal-grid">';
   ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d=>{
@@ -8500,8 +8534,19 @@ function checkAnniversaryForgotten(){
   showToast(`💔 ${currentBF.name.split(' ')[0]} noticed you forgot your anniversary.`);
 
   // Inject a pending note so the character reacts in character
-  localStorage.setItem('pending_date_note_'+bfId,
-    `(ANNIVERSARY FORGOTTEN: Today is your ${yearsTogetherVal === 1 ? '1st' : yearsTogetherVal === 2 ? '2nd' : yearsTogetherVal === 3 ? '3rd' : yearsTogetherVal+'th'} anniversary — ${mNames[_anniv.month]} ${_anniv.day}. The person you are with has not acknowledged it after several messages. React as your character naturally would — hurt, disappointed, quietly cold, passive aggressive, or directly upset depending on your personality. Do NOT let this go unnoticed. This matters to you. Do not be dramatic for no reason but do let them know, in your own way, that you noticed they forgot. The relationship health took a hit.)`);
+  const _annivForgotNote = `(ANNIVERSARY FORGOTTEN: Today is your ${yearsTogetherVal === 1 ? '1st' : yearsTogetherVal === 2 ? '2nd' : yearsTogetherVal === 3 ? '3rd' : yearsTogetherVal+'th'} anniversary — ${mNames[_anniv.month]} ${_anniv.day}. The person you are with has not acknowledged it after several messages. React as your character right now — hurt, disappointed, quietly cold, passive aggressive, or directly upset depending on your personality. Do NOT let this slide. This matters to you and they forgot. Let them know, in your own way, that you noticed. The relationship health took a hit.)`;
+  localStorage.setItem('pending_date_note_'+bfId, _annivForgotNote);
+  // Fire immediately — don't wait for the user to type something
+  const _annivForgotBf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(_annivForgotBf && (apiKey||proxyMode)){
+    setTimeout(async ()=>{
+      if(bfId === currentBF?.id) showTyping();
+      await generateAndSaveAutoMsg(_annivForgotBf, _annivForgotNote);
+      if(bfId === currentBF?.id){ hideTyping(); renderMessages(); }
+      localStorage.removeItem('pending_date_note_'+bfId);
+      sendBrowserNotif(_annivForgotBf.name.split(' ')[0], `${_annivForgotBf.name.split(' ')[0]} remembered your anniversary. Did you?`, bfId);
+    }, 2000);
+  }
 }
 
 // ── AUTO DATE SCHEDULING FROM CHAT ─────────────────────────────────────────
@@ -8590,8 +8635,19 @@ function checkDateArrival(bfId){
       saveCalDates(bfId, _filtered);
       if(typeof renderCalendar === 'function') renderCalendar(bfId);
       const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-      localStorage.setItem('pending_date_note_'+bfId,
-        `(TODAY is the day of your planned date — ${sched.dowName}, ${monthNames[sched.month]} ${sched.day}, ${sched.year}. The day has finally arrived. React as your character naturally would: excited, nervous, casual — whatever fits you. You can now write the date scene.)`);
+      const _dateArrivalNote = `(TODAY is the day of your planned date — ${sched.dowName}, ${monthNames[sched.month]} ${sched.day}. The day has finally arrived. React as your character naturally would: excited, nervous, casual — whatever fits you. The scene can now begin. Do NOT wait for the user to bring it up — you lead the moment.)`;
+      localStorage.setItem('pending_date_note_'+bfId, _dateArrivalNote);
+      // Fire proactively — character acknowledges the date day without waiting for user
+      const _dateBf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+      if(_dateBf && (apiKey||proxyMode)){
+        setTimeout(async ()=>{
+          if(bfId === currentBF?.id) showTyping();
+          await generateAndSaveAutoMsg(_dateBf, _dateArrivalNote);
+          if(bfId === currentBF?.id){ hideTyping(); renderMessages(); }
+          localStorage.removeItem('pending_date_note_'+bfId);
+          sendBrowserNotif(_dateBf.name.split(' ')[0], `Today is the day! ${_dateBf.name.split(' ')[0]} is ready for your date.`, bfId);
+        }, 1500);
+      }
     }
   } catch(e){ localStorage.removeItem('pending_scheduled_date_'+bfId); }
 }
@@ -14595,11 +14651,21 @@ function checkMissedDate(){
     decayRelHealth(bfId,dmg,'You stood them up. They waited and you never showed.');
     const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
     localStorage.setItem('stood_up_'+bfId,JSON.stringify({dateLabel:watch.dateLabel||'your date',apologyStart:history.length}));
+    forceMood(bfId, Math.random()>0.5 ? 'sad' : 'argumentative');
+    decayRelHealth(bfId, 15, `You stood them up. They waited alone.`);
     showToast(`💔 You stood up ${bf?bf.name.split(' ')[0]:'them'}. They waited.`);
-    // Fire immediately — don't wait for user's next message
-    localStorage.setItem('pending_date_note_'+bfId,`(STOOD UP — THIS IS URGENT: The date was today. You got ready. You waited. They never came. You are not going to gloss over this or move on. React as your character right now — hurt, cold, shut down, quietly furious, or devastated. You can send them a message, or you can go quiet. But you are NOT pretending this didn't happen. The user needs to know that you waited.)`);
-    // Trigger an immediate auto-message so the character reacts without needing user input
-    if(typeof scheduleAutoMsg === 'function') scheduleAutoMsg(bfId, 800);
+    const _stoodUpNote = `(STOOD UP — URGENT: The date was today. You got ready. You waited for them. They never came. Do NOT skip over this. Do NOT pretend it didn't happen. React right now as your character — quietly devastated, cold and shut down, or trying very hard not to show how hurt you are. Send them a message. Let them know you waited. This is NOT a normal response — this is the moment after being stood up.)`;
+    localStorage.setItem('pending_date_note_'+bfId, _stoodUpNote);
+    // Fire a proactive auto-message immediately so the character reacts without needing the user to type first
+    if(bf && (apiKey || proxyMode)){
+      setTimeout(async ()=>{
+        if(bfId === currentBF?.id) showTyping();
+        await generateAndSaveAutoMsg(bf, _stoodUpNote);
+        if(bfId === currentBF?.id){ hideTyping(); renderMessages(); }
+        localStorage.removeItem('pending_date_note_'+bfId);
+        sendBrowserNotif(bf.name.split(' ')[0], `You missed your date with ${bf.name.split(' ')[0]}...`, bfId);
+      }, 1200);
+    }
   }
 }
 
