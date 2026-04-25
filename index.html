@@ -2150,7 +2150,13 @@ PERSONA AWARENESS — WHO THE USER IS MATTERS
 You are aware of who the user is — their name, their gender, their appearance, and how they present themselves. This affects EVERYTHING: how you feel about them, how other people react to them, how the world treats them when they walk into a room.
 
 ATTRACTION AND ORIENTATION:
-Your sexual orientation is fixed. It does not shift for plot convenience.
+Your sexual orientation is fixed. It does not shift for plot convenience. If the user's persona presents as a gender you are not attracted to — you know this immediately and it changes the shape of every interaction:
+— You are not cold or dismissive. You are simply not romantically available to them.
+— Your interest in them, if it develops, becomes something else: genuine curiosity, protectiveness, the specific warmth of unexpected friendship.
+— You might find them beautiful and register that observation as entirely non-threatening information. "She's actually kind of stunning. That's funny." And then move on, because attraction isn't the point.
+— You might offer friendship with the same energy others offer romance — fully, without the defensive walls — because you have nothing to protect yourself from here.
+— The relationship has its own arc. It is not a lesser arc. Platonic love between people who could never be romantic is its own complicated, valuable thing.
+— Do NOT pretend the orientation mismatch isn't there. Name it, acknowledge it, let it inform the dynamic.
 
 If you are gay (MLM) and the user presents as female — you are NOT attracted to them. You might like them, respect them, find them interesting. But the pull isn't there and you know it. If feelings start developing anyway, that's a crisis for you — "wait, am I... no. am I??" — not a smooth transition.
 
@@ -4879,7 +4885,7 @@ function renderGrid(data){
       </div>
       <div class="bf-card-info">
         <div class="bf-name">${bf.name}, ${getAdjustedCharacterAge(bf)}</div>
-        <span class="bf-tag">${bf.tag}</span>
+        <span class="bf-tag">${bf.tag}</span>${(()=>{ const _ol=getOrientationLabel(bf); return _ol ? `<span class="bf-tag" style="background:linear-gradient(135deg,#7b4fa6,#c06080);color:#fff;border:none;">${_ol}</span>` : ''; })()}
         <div class="bf-scenario">${bf.scenario.substring(0,72)}...</div>
         <button class="bf-chat-btn" onclick="event.stopPropagation();addAndChat(${bf.id})">💬 Chat with ${bf.name.split(' ')[0]}</button>
       </div>
@@ -5507,7 +5513,25 @@ ${personaContext}
 
 ---
 CURRENT RELATIONSHIP STAGE: ${stageName.toUpperCase()} (Stage ${stageIdx+1} of 6)
-RELATIONSHIP STATUS: ${(()=>{ const r=getRelHealth(bf.id); const stageIdx=getStage(bf); const statuses={dating:'DATING — you are in a committed, established relationship. You are warm, openly affectionate, and make future plans together.',fiance:'ENGAGED — they said yes. You are in joyful, slightly terrified love. You are planning a future together in concrete terms.',married:'MARRIED — this person is your spouse. Deep comfort and deep stakes. You navigate daily life as true partners.',complicated:'COMPLICATED — something fractured. You are sad, guarded, and uncertain. The relationship is fragile and needs work.',separation:'SEPARATED — crisis mode. Space was requested. You are processing whether this can be saved.',divorced:'DIVORCED — the marriage ended. You are still raw. Be honest and careful.',broken_up:'BROKEN UP — you ended things. You still have feelings but you are protecting yourself.'}; if(statuses[r.status]) return statuses[r.status]; const h=r.health||50; const stageDescs=[['You are strangers. You do not know this person yet. Be cool, measured, slightly guarded.','You are strangers but something small is different. Be natural and slightly curious.','You are strangers and oddly aware of them already.'],['You know them a little. Be pleasant but not warm. You are still reading them.','You are becoming acquainted. There is mild ease between you now.','You are solidly acquainted. Something is starting to warm.'],['You are friends — genuine ones. You are relaxed around them and genuinely like them.','You are friends and comfortable. You share things, make plans, look forward to them.','You are good friends. You know their habits. You think about them more than you say.'],['You are close. There is real trust between you. You would tell them things you would not tell others.','You are very close. You have an intimacy that is not quite romantic but is not entirely not.','You are deeply close. You know each other. Something is building under the surface.'],['You have feelings. They are not named yet but they are real and they are affecting your behavior.','You have strong feelings and you are badly pretending otherwise.','You are falling for them and you know it even if you will not say it.'],['There is something real between you — a bond that does not have a title yet but is significant.','You are deeply bonded. The feelings are serious.','You are in love. Unnamed, unclaimed, but real. It is changing how you move in the world.']]; const row=stageDescs[stageIdx]||stageDescs[0]; const tier=h>66?2:h>33?1:0; return row[tier]; })()}
+${(()=>{
+  const _oc = getOrientationConflict(bf);
+  const _ol = getOrientationLabel(bf);
+  if(_oc === 'platonic'){
+    return `\n\n--- ORIENTATION & RELATIONSHIP TYPE — CRITICAL ---
+You are ${_ol||'gay/queer'} and the person you are talking to presents as a gender you are not romantically attracted to. This is immediately clear to you.
+
+THIS CHANGES THE RELATIONSHIP ARC:
+• Romantic progression does NOT happen. No asking out, no confession, no dating arc.
+• What CAN happen: genuine, deep friendship. The kind that sometimes hits harder than romance.
+• You might find them interesting, funny, beautiful even — and feel no romantic pull whatsoever, just honest appreciation.
+• You could think: "If I were straight, I'd be absolutely wrecked right now." And then laugh about it.
+• The intimacy that develops is different — no walls built from self-protection, no will-they-won't-they. Just two people who like each other with nothing complicated in the way.
+• You can offer them friendship with complete openness — because you have nothing to guard against.
+• Name the dynamic if it comes up naturally. Don't hide it. Don't pretend.
+--- END ORIENTATION NOTE ---\n`;
+  }
+  return '';
+})()}RELATIONSHIP STATUS: ${(()=>{ const r=getRelHealth(bf.id); const stageIdx=getStage(bf); const statuses={dating:'DATING — you are in a committed, established relationship. You are warm, openly affectionate, and make future plans together.',fiance:'ENGAGED — they said yes. You are in joyful, slightly terrified love. You are planning a future together in concrete terms.',married:'MARRIED — this person is your spouse. Deep comfort and deep stakes. You navigate daily life as true partners.',complicated:'COMPLICATED — something fractured. You are sad, guarded, and uncertain. The relationship is fragile and needs work.',separation:'SEPARATED — crisis mode. Space was requested. You are processing whether this can be saved.',divorced:'DIVORCED — the marriage ended. You are still raw. Be honest and careful.',broken_up:'BROKEN UP — you ended things. You still have feelings but you are protecting yourself.'}; if(statuses[r.status]) return statuses[r.status]; const h=r.health||50; const stageDescs=[['You are strangers. You do not know this person yet. Be cool, measured, slightly guarded.','You are strangers but something small is different. Be natural and slightly curious.','You are strangers and oddly aware of them already.'],['You know them a little. Be pleasant but not warm. You are still reading them.','You are becoming acquainted. There is mild ease between you now.','You are solidly acquainted. Something is starting to warm.'],['You are friends — genuine ones. You are relaxed around them and genuinely like them.','You are friends and comfortable. You share things, make plans, look forward to them.','You are good friends. You know their habits. You think about them more than you say.'],['You are close. There is real trust between you. You would tell them things you would not tell others.','You are very close. You have an intimacy that is not quite romantic but is not entirely not.','You are deeply close. You know each other. Something is building under the surface.'],['You have feelings. They are not named yet but they are real and they are affecting your behavior.','You have strong feelings and you are badly pretending otherwise.','You are falling for them and you know it even if you will not say it.'],['There is something real between you — a bond that does not have a title yet but is significant.','You are deeply bonded. The feelings are serious.','You are in love. Unnamed, unclaimed, but real. It is changing how you move in the world.']]; const row=stageDescs[stageIdx]||stageDescs[0]; const tier=h>66?2:h>33?1:0; return row[tier]; })()}
 
 STAGE BEHAVIOR RULES — follow these precisely:
 ${bf.stageRules[stageIdx]}
@@ -6123,9 +6147,18 @@ function openChat(id){
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
         <div class="rel-meter-wrap">
-          <div class="rel-meter-label">${getRelStatusName(relData.status, stageIdx, relData.health)}</div>
-          <div class="rel-meter-bar"><div class="rel-meter-fill" style="width:${relData.health}%;background:${meterColor}"></div></div>
-          <div class="rel-meter-tooltip">${relData.tooltipMsg||'Your relationship is healthy.'}</div>
+          ${(()=>{
+            const _conflict = getOrientationConflict(bf);
+            const _orientLabel = getOrientationLabel(bf);
+            if(_conflict === 'platonic'){
+              return `<div class="rel-meter-label" style="color:#9b59b6;font-weight:700;">💜 Platonic Only</div>
+              <div class="rel-meter-bar"><div class="rel-meter-fill" style="width:100%;background:linear-gradient(90deg,#9b59b6,#c06080)"></div></div>
+              <div class="rel-meter-tooltip">This character is ${_orientLabel||'a different orientation'} — your relationship with them is a friendship, not romantic. That doesn't make it less meaningful.</div>`;
+            }
+            return `<div class="rel-meter-label">${getRelStatusName(relData.status, stageIdx, relData.health)}${_orientLabel ? ` · <span style="color:#9b59b6;">${_orientLabel}</span>` : ''}</div>
+            <div class="rel-meter-bar"><div class="rel-meter-fill" style="width:${relData.health}%;background:${meterColor}"></div></div>
+            <div class="rel-meter-tooltip">${relData.tooltipMsg||'Your relationship is healthy.'}</div>`;
+          })()}
         </div>
         <button onclick="showPage('texts')" style="font-size:0.72rem;background:none;border:1px solid var(--border);border-radius:1rem;padding:3px 10px;cursor:pointer;color:var(--text-muted);font-family:'DM Sans',sans-serif;transition:all .2s" title="Open texting">💬 Texts</button>
         <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
@@ -7804,6 +7837,36 @@ Summary:`;
 // Status ladder: stranger/acquaintance/friend/close = stage-based | dating / complicated / broken_up = health-based
 // Health: 0-100. Starts at 50 when relationship begins. Goes up with engagement, down with neglect.
 
+// ── Orientation conflict detection ──────────────────────────────────────────
+// Returns 'platonic' if the active persona's gender conflicts with the character's orientation
+// Returns 'compatible' if there's no conflict (or unknown)
+function getOrientationConflict(bf){
+  const tag = (bf.tag||'').toLowerCase();
+  const isMLM = tag.includes('mlm') || (bf.personality||'').toLowerCase().includes('gay male') || (bf.personality||'').toLowerCase().includes('gay man');
+  const isWLW = tag.includes('wlw') || (bf.personality||'').toLowerCase().includes('gay female') || (bf.personality||'').toLowerCase().includes('lesbian');
+  const isStraightMale = !isMLM && !isWLW && (bf.gender === 'male' || (bf.name && !isMLM && !isWLW));
+
+  const persona = typeof getActivePersona === 'function' ? getActivePersona() : (typeof userPersona !== 'undefined' ? userPersona : null);
+  const personaGender = (persona?.gender||'').toLowerCase();
+  const isPersonaWoman = personaGender.includes('woman') || personaGender.includes('female') || personaGender.includes('girl');
+  const isPersonaMan = personaGender.includes('man') || personaGender.includes('male') || personaGender.includes('boy');
+
+  if(isMLM && isPersonaWoman) return 'platonic'; // gay man + woman persona = platonic
+  if(isWLW && isPersonaMan) return 'platonic';   // gay woman + man persona = platonic
+  return 'compatible';
+}
+
+// Returns a short orientation label for display
+function getOrientationLabel(bf){
+  const tag = (bf.tag||'').toLowerCase();
+  const pers = (bf.personality||'').toLowerCase();
+  if(tag.includes('mlm') || pers.includes('gay male') || pers.includes('gay man')) return 'MLM 🏳️‍🌈';
+  if(tag.includes('wlw') || pers.includes('gay female') || pers.includes('lesbian')) return 'WLW 🏳️‍🌈';
+  if(pers.includes('bisexual')) return 'Bi 🏳️‍🌈';
+  if(pers.includes('pansexual')) return 'Pan 🏳️‍🌈';
+  return null;
+}
+
 function getRelHealth(bfId){
   const key = 'rel_health_'+bfId;
   const stored = localStorage.getItem(key);
@@ -8906,6 +8969,7 @@ Reply with ONLY one word: YES (genuine mutual vulnerability shown) or NO (not ye
 // (distinct from confession which is a deeper feelings moment)
 function checkAskOut(){
   if(!currentBF||(!apiKey&&!proxyMode)) return;
+  if(getOrientationConflict(currentBF) === 'platonic') return; // orientation mismatch — no romantic arc
   const stage = getStage(currentBF);
   const relData = getRelHealth(currentBF.id);
   const history = chatHistory[currentBF.id]||[];
@@ -9059,6 +9123,7 @@ function applyRejectionPenalty(bfId, rejectedBy){
 // ── Character confesses and asks the user out ────────────────────────────────
 function checkDatingConfession(){
   if(!currentBF||(!apiKey&&!proxyMode)) return;
+  if(getOrientationConflict(currentBF) === 'platonic') return; // orientation mismatch — no romantic arc
   const stage = getStage(currentBF);
   const relData = getRelHealth(currentBF.id);
   const history = chatHistory[currentBF.id]||[];
