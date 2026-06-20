@@ -1557,6 +1557,20 @@ const TAGS_LIST = ["hard to get","slow burn","protective","intellectual","broody
 // RELATIONSHIP STAGES — used to shape AI behavior over time
 const STAGES = ["stranger","acquaintance","friend","close","romantic interest","partner"];
 
+// Returns the relationship stage index (0-5) for a character, based on total
+// message count in their chat history. This was missing entirely, which broke
+// every function that depends on it — including opening a chat at all.
+function getStage(bf){
+  if(!bf) return 0;
+  const stageThresholds = [0,6,15,30,50,70];
+  const totalMsgs = (chatHistory[bf.id]||[]).length;
+  let idx = 0;
+  for(let i=stageThresholds.length-1; i>=0; i--){
+    if(totalMsgs >= stageThresholds[i]){ idx = i; break; }
+  }
+  return Math.max(0, Math.min(STAGES.length-1, idx));
+}
+
 // IMMERSION ENGINE — baked into every character's system prompt
 const WRITING_RULES = `
 HOW YOU WRITE:
@@ -4371,6 +4385,17 @@ function buildFilterPills(){
 }
 
 function filterByTag(tag,el){
+  // Clicking the already-active tag again deselects it and resets to "All"
+  if(activeTag === tag && tag !== 'all'){
+    activeTag = 'all';
+    document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+    const allPillEl = document.querySelector('.pill'); // "All" is always first
+    if(allPillEl) allPillEl.classList.add('active');
+    const title=document.getElementById('grid-title');
+    if(title) title.textContent = 'All Boyfriends';
+    renderGrid();
+    return;
+  }
   activeTag=tag;
   document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
