@@ -1571,6 +1571,62 @@ function getStage(bf){
   return Math.max(0, Math.min(STAGES.length-1, idx));
 }
 
+// Plot events on/off toggle per character — defaults to ON
+function getPlotEventsEnabled(bfId){
+  const v = localStorage.getItem('plot_events_enabled_'+bfId);
+  return v === null ? true : v === '1';
+}
+function togglePlotEvents(bfId){
+  const current = getPlotEventsEnabled(bfId);
+  localStorage.setItem('plot_events_enabled_'+bfId, current ? '0' : '1');
+  const btn = document.getElementById('plot-toggle-btn-'+bfId);
+  const mbtn = document.getElementById('plot-manual-btn-'+bfId);
+  const newState = !current;
+  if(btn){
+    btn.classList.toggle('active', newState);
+    btn.textContent = newState ? '⚡ Events: On' : '⚡ Events: Off';
+  }
+  if(mbtn) mbtn.style.display = newState ? 'none' : 'inline-block';
+  showToast(newState ? 'Plot events turned on 📖' : 'Plot events turned off — you\'re in control now ✨');
+}
+// Manually fire the next eligible plot event for this character right now,
+// bypassing the per-character enabled toggle (this IS the manual override button)
+async function triggerNextPlotEvent(bfId){
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf || bfId !== currentBF?.id) return;
+  if(typeof checkPlotEvents !== 'function'){ showToast('No story events available right now.'); return; }
+  // Temporarily force-enable so checkPlotEvents' internal guard doesn't block this manual call
+  const wasEnabled = getPlotEventsEnabled(bfId);
+  if(!wasEnabled) localStorage.setItem('plot_events_enabled_'+bfId, '1');
+  await checkPlotEvents();
+  if(!wasEnabled) localStorage.setItem('plot_events_enabled_'+bfId, '0');
+}
+
+// Detects when relationship stage has just advanced and surfaces it once
+function checkStageTransition(bfId){
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  const stage = getStage(bf);
+  const lastNotified = parseInt(localStorage.getItem('last_stage_notified_'+bfId) ?? '-1');
+  if(stage > lastNotified){
+    localStorage.setItem('last_stage_notified_'+bfId, String(stage));
+    if(lastNotified >= 0){ // don't fire on very first message
+      localStorage.setItem('stage_just_advanced_'+bfId, '1');
+    }
+  }
+}
+// Returns a one-time system prompt note if the stage just advanced
+function getStageTransitionNote(bfId){
+  const justAdvanced = localStorage.getItem('stage_just_advanced_'+bfId);
+  if(!justAdvanced) return '';
+  localStorage.removeItem('stage_just_advanced_'+bfId);
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  const stage = bf ? getStage(bf) : 0;
+  const stageName = STAGES[stage] || 'stranger';
+  return `\n\nSTAGE SHIFT: Your relationship with this person has just deepened into "${stageName}". This isn't announced directly — but it can subtly inform your tone right now. Something has shifted, even if neither of you would put a name to it yet.`;
+}
+
+
 // IMMERSION ENGINE — baked into every character's system prompt
 const WRITING_RULES = `
 HOW YOU WRITE:
