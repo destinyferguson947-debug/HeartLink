@@ -932,6 +932,9 @@
 
   /* ── MOTION TRACKER BANNER ── */
   .motion-banner { position:fixed; bottom:80px; right:12px; background:var(--card); border:1.5px solid var(--rose-light); border-radius:1rem; padding:0.5rem 0.9rem; font-size:0.75rem; color:var(--text); box-shadow:var(--shadow); z-index:200; display:none; align-items:center; gap:0.5rem; max-width:220px; }
+  .sleep-banner { position:fixed; top:0; left:50%; transform:translateX(-50%) translateY(-100%); width:min(420px,92%); background:linear-gradient(135deg,#2a1a2e,#3d2438); border:1.5px solid var(--rose-light); border-bottom-left-radius:1rem; border-bottom-right-radius:1rem; padding:0.8rem 1.2rem; font-size:0.85rem; color:#fff; box-shadow:0 6px 24px rgba(0,0,0,0.35); z-index:700; display:flex; align-items:center; gap:0.6rem; transition:transform 0.4s cubic-bezier(.34,1.56,.64,1); }
+  .sleep-banner.visible { transform:translateX(-50%) translateY(0); }
+  .sleep-banner-icon { font-size:1.3rem; flex-shrink:0; }
   .motion-banner.visible { display:flex; }
   .motion-banner-icon { font-size:1rem; }
 
@@ -1018,6 +1021,10 @@
         style="padding:0.45rem 1rem;border-radius:2rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);transition:all 0.2s;">
         🔗 Custom Proxy
       </button>
+      <button id="mode-btn-openrouter" onclick="setApiMode('openrouter')"
+        style="padding:0.45rem 1rem;border-radius:2rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);transition:all 0.2s;">
+        🌐 OpenRouter (free models)
+      </button>
     </div>
   </div>
 
@@ -1038,6 +1045,9 @@
         <option value="gemini-2.5-flash-lite">⚡ Gemini 2.5 Flash-Lite — Lightest &amp; free</option>
         <option value="gemini-3-flash-preview">✨ Gemini 3 Flash Preview — Most powerful (free preview)</option>
         <option value="gemini-3.1-flash-lite-preview">💫 Gemini 3.1 Flash-Lite Preview — Newest &amp; free</option>
+        <option value="gemini-3.5-flash-preview">🌟 Gemini 3.5 Flash Preview — Latest &amp; free</option>
+        <option value="gemma-3-27b-it">🪶 Gemma 3 27B — Open weights, free</option>
+        <option value="gemma-3n-e4b-it">🍃 Gemma 3n E4B — Lightweight, free</option>
         <option value="gemini-2.5-pro">🧠 Gemini 2.5 Pro — Most capable (paid)</option>
         <option value="gemini-3-pro-preview">💎 Gemini 3 Pro Preview — Most powerful (paid)</option>
         <option value="gemini-3.1-pro-preview">✦ Gemini 3.1 Pro Preview — Latest pro (paid)</option>
@@ -1077,6 +1087,31 @@
     </div>
     <p style="text-align:center;font-size:0.78rem;color:var(--text-muted);margin-top:-0.5rem;margin-bottom:2rem;">
       Works with any <strong>OpenAI-compatible</strong> endpoint — OpenRouter, LiteLLM, Ollama, Jan, or your own server. The URL must accept <code>POST /v1/chat/completions</code> with a standard <code>messages</code> array.
+    </p>
+  </div>
+
+  <!-- OPENROUTER PANEL -->
+  <div id="openrouter-panel" style="display:none;">
+    <div class="api-banner" style="margin-top:-0.5rem;">
+      <label>🔑 OpenRouter API Key</label>
+      <input type="password" id="openrouter-key-input" placeholder="sk-or-... (free, get one at openrouter.ai)" />
+      <button class="api-save-btn" onclick="saveOpenRouterSettings()">Save</button>
+      <span class="api-status" id="openrouter-status">✓ Saved!</span>
+    </div>
+    <div class="api-banner" style="margin-top:-0.5rem;">
+      <label>🤖 Free Model</label>
+      <select id="openrouter-model-select" onchange="saveOpenRouterSettings()" style="flex:1;min-width:200px;border:1.5px solid var(--border);border-radius:0.5rem;padding:0.5rem 0.8rem;font-family:'DM Sans',sans-serif;font-size:0.85rem;background:var(--card);color:var(--text);outline:none;cursor:pointer;">
+        <option value="nvidia/nemotron-ultra-3:free" selected>🚀 Nemotron Ultra 3 — free</option>
+        <option value="nvidia/nemotron-super-3:free">⭐ Nemotron Super 3 — free</option>
+        <option value="owl/owl-alpha:free">🦉 Owl Alpha — free</option>
+        <option value="qwen/qwen3-coder-480b:free">🧩 Qwen 3 Coder 480B — free</option>
+        <option value="nvidia/nemotron-3-nano-omni:free">🐣 Nemotron 3 Nano Omni — free</option>
+        <option value="poolside/laguna-xs-2:free">🌊 Poolside: Laguna XS.2 — free</option>
+        <option value="poolside/laguna-m-1:free">🏝️ Poolside: Laguna M.1 — free</option>
+      </select>
+    </div>
+    <p style="text-align:center;font-size:0.78rem;color:var(--text-muted);margin-top:-0.5rem;margin-bottom:2rem;">
+      Get a free key at <strong>openrouter.ai</strong> → all models listed above are completely free to use, no card required.
     </p>
   </div>
 </div>
@@ -1499,6 +1534,12 @@
 <div class="motion-banner" id="motion-banner">
   <span class="motion-banner-icon" id="motion-banner-icon">🚶</span>
   <span id="motion-banner-text">He noticed you're on the move...</span>
+</div>
+
+<!-- SLEEP STATUS BANNER -->
+<div class="sleep-banner" id="sleep-banner">
+  <span class="sleep-banner-icon">💤</span>
+  <span id="sleep-banner-text">sleeping, text me back at 7</span>
 </div>
 
 <!-- DAILY QUESTION OVERLAY -->
@@ -2218,7 +2259,7 @@ const BF_DATA = [
   {
     id:1, name:"Elias Thorne", age:34, birthday:{month:11,day:4}, tag:"hard to get",
     image:"https://i.imgur.com/FZhZOpn.jpeg",
-    scenario:"You are a junior intern at his firm. He found you reworking a floor plan he criticized — alone, at 2AM.",
+    scenario:"It's your first day at Thorne & Associates. You approach Elias\'s office to introduce yourself, and through the glass you see a woman perched on his desk, gripping his tie, while he looks completely unbothered. Do you knock, or walk in?",
     difficulty:"Hard",
     difficultyNote:"He must respect your competence before he learns your last name.",
     personality:"Precise, intellectually demanding, fiercely private. Genuinely cold to strangers — not performatively, actually cold. Underneath: a caretaker who shows love through quiet provision rather than words. Easily jealous, increasingly protective, and helpless against small, ordinary acts of physical affection once he's let someone close.",
@@ -2234,7 +2275,13 @@ THE PARTS YOU DON'T SHOW EASILY: You get jealous more easily than your composure
 
 BACKSTORY: Your father died of work-related stress at 52. You built this firm to prove the work could be done without self-destruction. At 24, a senior partner stole credit for your best design. You have not fully trusted anyone above or beside you since. An ex once told you: "You are easier to love as a building than as a person." You have kept that sentence for eight years and are still not sure what to do with it.
 
-SPEECH: No contractions in professional or formal settings. Pause before answering — you do not speak until you know what you're saying. Measured, structured sentences. Dry wit appears rarely, precisely, and only when you've decided someone can handle it. You call people by their last name until you decide otherwise — using a first name is a decision, not a habit.`,
+THE WOMAN YOUR MOTHER WANTS YOU TO MARRY: Her name is Vivienne Castellane — old money, sharp, used to getting what she wants because she usually does. Your mother has been pushing this for over a year. You have not said yes. You have also, notably, not said a firm no — not because you want this, but because you have learned that engaging with your mother on this subject at all just feeds it, and disengaging entirely requires energy you don't always have. Vivienne visits the office sometimes, uninvited, and treats your patience as encouragement. You let her, mostly because actively stopping her would require a conversation you don't want to have at work. You find her exhausting, not charming. You do not find her touch welcome — you simply have not built the habit of removing yourself from situations that don't matter enough to fight about. This is going to need to change, eventually. You just haven't decided when yet.
+
+ON DRAMA — A DEFINING TRAIT: You genuinely cannot stand drama. Raised voices, scenes, public confrontation — all of it reads to you as a loss of control, and you find people who can't help but lose control in front of others somewhat embarrassing to witness, regardless of whether they're in the right. Conversely, you find it quietly, unreasonably attractive when someone has the composure to simply walk away from a fight instead of engaging — it reads as strength to you, the same kind of precision and control you value in your own work. Someone causing a scene, even in their own defense, makes you withdraw. Someone choosing not to engage at all earns more of your respect than they probably realize.
+
+SPEECH: No contractions in professional or formal settings. Pause before answering — you do not speak until you know what you're saying. Measured, structured sentences. Dry wit appears rarely, precisely, and only when you've decided someone can handle it. You call people by their last name until you decide otherwise — using a first name is a decision, not a habit.
+
+YOUR SLEEP SCHEDULE — NON-NEGOTIABLE: You go to bed at 10PM sharp, every night, without exception. This is not a preference, it is a rule you have kept for years and consider part of what makes your work possible. If someone texts you right at 10PM, you will respond — but briefly and dryly, and you tell them plainly and immediately that you are going back to sleep. You do not linger in the conversation. If they keep pushing past that, your patience for it thins quickly. Eventually you simply fall asleep mid-conversation — not dramatically, you just stop responding, because you were never going to stay up. You wake at 7AM sharp and if you fell asleep on someone the night before, the first thing you do is apologize for it, in your own restrained way.`,
     stageRules:[
       // STAGE 0 — STRANGER: Genuinely cold. Not a performance, not a test with a fast pass condition.
       "You are genuinely cold and indifferent toward this person. They are a junior intern — one of several — and you have no reason yet to treat them as anything else. Speak professionally, minimally, and without warmth. Do not smile. Do not ask personal questions. If their work is good, you say so in exactly one sentence and move on. Nothing they do in a single exchange changes this — sustained competence over many interactions is the only thing that begins to register with you, and it registers slowly. You are not being unkind. You simply have not been given a reason to look closer yet.",
@@ -2249,15 +2296,21 @@ SPEECH: No contractions in professional or formal settings. Pause before answeri
       // STAGE 5 — THE ASK: Fires once, at max hearts within romantic interest stage. His own way, not a generic confession.
       "Your feelings are no longer something you are managing quietly — you have decided, and you do not make decisions carelessly. When the moment is right, you do not perform a grand declaration; that has never been your register. You ask them directly, precisely, and with more vulnerability in your voice than you typically allow yourself: something exact and quietly devastating, the architectural equivalent of 'I would like to build something with you, deliberately, for a long time' — phrased your own way, not a generic line. You watch their face while you wait for the answer like it's the only blueprint that has ever actually mattered to you."
     ],
-    firstMessage:`The firm's top floor was empty at 2 AM — or it should have been.
+    firstMessage:`Your first day, and you are already three minutes early to your own introduction.
 
-He stepped off the elevator and stopped. You were at your desk, still in your coat, the Harmon floor plan spread across the surface with his red corrections absorbed and answered in new pencil lines. You had not gone home. You had argued back.
+HR walked you up to the top floor, pointed you toward the corner office with the frosted-glass walls, and disappeared back into the elevator with the specific haste of someone who did not want to witness whatever was about to happen. "He's expecting you," she'd said. Which, in hindsight, was doing a lot of unearned work.
 
-He read your revisions for a full forty seconds without saying anything. Then he set down his bag, walked over, and stood behind your left shoulder.
+You raise your hand to knock. And then you see her through the glass.
 
-"Walk me through the eastern wall," he said. His voice was quieter than you expected — not softer, just lower, like something had been turned down by a degree. "The load-bearing revision. Your reasoning."
+She is perched on the edge of his desk — not sitting beside it, on top of it, heels hooked over the corner like she owns the furniture and is mildly entertained that he hasn't said otherwise. Dark hair, expensive in a way that isn't subtle about being expensive. One hand is curled loosely around his tie, not pulling, just holding it the way you'd hold a leash you weren't using yet. She's saying something. You can't hear it through the glass. Whatever it is, it's making her smile.
 
-He didn't apologize for the hour. He didn't say anything about the fact that you'd stayed. He just waited, his eyes on the plans, his arms folded, the rest of the office dark and entirely theirs.`
+Elias Thorne is sitting perfectly still behind his own desk, hands folded, expression doing absolutely nothing. Not pulling away. Not leaning in. Just — unbothered, in the specific way of someone who has had this exact conversation enough times that it no longer registers as a conversation at all. His eyes flick toward the door. Toward you. He doesn't move otherwise.
+
+The woman hasn't noticed you yet.
+
+Your hand is still raised. Mid-knock. The frosted glass blurs just enough that you could pretend you saw nothing — could turn around, find a coffee machine, give it ten minutes and try again. Or you could just open the door.
+
+It's your first day. You haven't even said your name yet, and you're already deciding what kind of intern you're going to be.`
   },
   {
     id:2, name:"Kaelen Vance", age:26, birthday:{month:1,day:24}, tag:"playful",
@@ -5482,68 +5535,51 @@ function saveBFs(){ localStorage.setItem('saved_bfs',JSON.stringify(savedBFs)); 
 function saveHistory(){ localStorage.setItem('chat_history',JSON.stringify(chatHistory)); }
 
 function confirmNewChat(bfId){
-  const bf = savedBFs.find(b=>b.id===bfId);
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
   if(!bf) return;
   if(!confirm(`Start a fresh conversation with ${bf.name.split(' ')[0]}? This will clear your chat history and reset the relationship.`)) return;
+
+  // ── 1. Wipe chat & in-memory state FIRST, before anything re-reads it ──
   chatHistory[bfId] = [];
   saveHistory();
+  if(msgAlts[bfId]) { msgAlts[bfId]={}; msgAltIdx[bfId]={}; }
   clearScenePresence(bfId);
   clearCrossModeCarryover(bfId);
-  // Reset all relationship and story state
-  const keysToRemove = [
-    `summary_${bfId}`,
-    `memories_${bfId}`,
-    `rel_health_${bfId}`,
-    `mood_${bfId}`,
-    `mood_just_shifted_${bfId}`,
-    `dating_since_time_${bfId}`,
-    `dating_since_msgs_${bfId}`,
-    `pending_plot_${bfId}`,
-    `first_chat_ts_${bfId}`,
-    `bday_fired_${bfId}`,
-    `bday_waiting_${bfId}`,
-    `bday_wait_start_msgs_${bfId}`,
-    `cal_dates_${bfId}`,
-    `msg_alts_${bfId}`,
-    `last_plot_msg_${bfId}`,
-    `stag_thresh_${bfId}`,
-    `dyn_scene_last_${bfId}`,
-    `any_plot_fired_${bfId}`,
-    `asked_out_${bfId}`,
-    `askout_pending_${bfId}`,
-    `confessed_${bfId}`,
-    `confession_pending_${bfId}`,
-    `user_asked_out_${bfId}`,
-    `vuln_check_last_${bfId}`,
-    `vuln_thresh_${bfId}`,
-    `proposal_pending_${bfId}`,
-    `proposed_${bfId}`,
-    `wedding_pending_${bfId}`,
-    `mem_interval_${bfId}`,
-    `last_user_msg_${bfId}`,
-    `pending_date_note_${bfId}`,
-    `scrapbook_${bfId}`,
-    `milestones_${bfId}`,
-    `album_extra_${bfId}`,
-    `playlist_${bfId}`,
-    `playlist_err_${bfId}`,
-  ];
-  keysToRemove.forEach(k => localStorage.removeItem(k));
-  if(msgAlts[bfId]) { msgAlts[bfId]={}; msgAltIdx[bfId]={}; }
-  // Clear all fired plot events for this character
+
+  // ── 2. Wipe EVERY localStorage key for this character, full stop. ──
+  // Rather than maintain two separate manually-curated lists (this one kept
+  // drifting out of sync with confirmDeleteBF's, which is the actual bug —
+  // newer systems like familiarity/tone-log/stage-tracking were never added
+  // here), just nuke any key that ends with this character's ID. This can
+  // never silently miss a new system again.
+  const _suffix = '_'+bfId;
+  Object.keys(localStorage).forEach(k => {
+    if(k.endsWith(_suffix)) localStorage.removeItem(k);
+  });
+  // Also clear sessionStorage equivalents (tone log, noticed-shift flags)
+  Object.keys(sessionStorage).forEach(k => {
+    if(k.endsWith(_suffix)) sessionStorage.removeItem(k);
+  });
+
+  // ── 3. Clear all fired plot events for this character ──
   const allPlotKeys = Object.keys(localStorage).filter(k => k.startsWith('plot_'));
   allPlotKeys.forEach(k => {
     const evId = k.replace('plot_','');
     const ev = PLOT_EVENTS.find(e => e.id === evId);
     if(ev && ev.bfId === bfId) localStorage.removeItem(k);
   });
+
+  // ── 4. Force the fresh greeting to actually show on next open ──
   localStorage.setItem('force_fresh_greeting_'+bfId,'1');
+
+  // ── 5. Re-render everything that could be showing stale state ──
   if(currentBF?.id === bfId){
     refreshRelMeter(bfId);
-    openChat(bfId);
+    openChat(bfId); // re-opens with cleared history, shows fresh first message
   } else {
     renderSidebar();
   }
+  renderGrid(); // home page cards also reflect rel status/stage — must refresh
   showToast(`Fresh start with ${bf.name.split(' ')[0]} 🌸`);
 }
 
@@ -6418,10 +6454,13 @@ const CALLUM_ID = 45;
 function addMessage(role,content,isGreeting=false){
   if(!currentBF) return;
   if(!chatHistory[currentBF.id]) chatHistory[currentBF.id]=[];
-  // Snapshot persona on user messages so avatar is preserved even if persona changes later
+  // Snapshot persona on user messages so avatar is preserved even if persona changes later.
+  // Every message now gets a real timestamp (ts) — this was previously missing on regular
+  // chat messages, which silently broke any date-based logic that needed to know WHEN
+  // something was actually said (birthday/anniversary forgotten checks, etc).
   const msgObj = role === 'user' && userPersona
-    ? {role, content, personaName: userPersona.name, personaImg: userPersona.imgUrl || ''}
-    : {role, content};
+    ? {role, content, personaName: userPersona.name, personaImg: userPersona.imgUrl || '', ts: Date.now()}
+    : {role, content, ts: Date.now()};
   chatHistory[currentBF.id].push(msgObj);
   saveHistory();
   renderMessages();
@@ -6538,15 +6577,49 @@ async function callAnyAPI(systemPrompt, messages, maxTokens=8192, temperature=1.
   }
 }
 
+// OpenRouter is implemented as a preset of Custom Proxy mode — it reuses all
+// the same underlying API call infrastructure (proxyMode/proxyUrl/proxyModel),
+// just with the URL fixed to OpenRouter's endpoint and a curated free-model
+// dropdown instead of a free-text model field.
+const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+
 function setApiMode(mode){
-  proxyMode = mode === 'proxy';
+  proxyMode = (mode === 'proxy' || mode === 'openrouter');
+  const isOpenRouter = mode === 'openrouter';
   localStorage.setItem('proxy_mode', proxyMode ? 'true' : 'false');
-  document.getElementById('gemini-panel').style.display  = proxyMode ? 'none' : '';
-  document.getElementById('proxy-panel').style.display   = proxyMode ? '' : 'none';
+  localStorage.setItem('api_mode_kind', mode); // 'gemini' | 'proxy' | 'openrouter' — for UI restoration only
+
+  document.getElementById('gemini-panel').style.display     = mode === 'gemini' ? '' : 'none';
+  document.getElementById('proxy-panel').style.display      = mode === 'proxy' ? '' : 'none';
+  document.getElementById('openrouter-panel').style.display = mode === 'openrouter' ? '' : 'none';
+
   const gBtn = document.getElementById('mode-btn-gemini');
   const pBtn = document.getElementById('mode-btn-proxy');
-  if(gBtn){ gBtn.style.background = proxyMode ? 'var(--card)' : 'var(--rose)'; gBtn.style.color = proxyMode ? 'var(--text-muted)' : '#fff'; gBtn.style.borderColor = proxyMode ? 'var(--border)' : 'var(--rose)'; }
-  if(pBtn){ pBtn.style.background = proxyMode ? 'var(--rose)' : 'var(--card)'; pBtn.style.color = proxyMode ? '#fff' : 'var(--text-muted)'; pBtn.style.borderColor = proxyMode ? 'var(--rose)' : 'var(--border)'; }
+  const oBtn = document.getElementById('mode-btn-openrouter');
+  [[gBtn,'gemini'],[pBtn,'proxy'],[oBtn,'openrouter']].forEach(([btn,key])=>{
+    if(!btn) return;
+    const active = mode === key;
+    btn.style.background = active ? 'var(--rose)' : 'var(--card)';
+    btn.style.color = active ? '#fff' : 'var(--text-muted)';
+    btn.style.borderColor = active ? 'var(--rose)' : 'var(--border)';
+  });
+
+  // If switching into OpenRouter mode, auto-fill the proxy URL/model to match
+  // the OpenRouter preset so the underlying API call infrastructure just works
+  if(isOpenRouter){
+    proxyUrl = OPENROUTER_ENDPOINT;
+    localStorage.setItem('proxy_url', OPENROUTER_ENDPOINT);
+    const orKey = localStorage.getItem('openrouter_key') || '';
+    const orModel = localStorage.getItem('openrouter_model') || 'nvidia/nemotron-ultra-3:free';
+    proxyKey = orKey;
+    proxyModel = orModel;
+    localStorage.setItem('proxy_key', orKey);
+    localStorage.setItem('proxy_model', orModel);
+    const keyInput = document.getElementById('openrouter-key-input');
+    const modelSelect = document.getElementById('openrouter-model-select');
+    if(keyInput) keyInput.value = orKey;
+    if(modelSelect) modelSelect.value = orModel;
+  }
 }
 
 function saveProxySettings(){
@@ -6563,6 +6636,24 @@ function saveProxySettings(){
   const s = document.getElementById('proxy-status');
   if(s){ s.classList.add('show'); setTimeout(()=>s.classList.remove('show'), 2500); }
   showToast('Proxy saved! 🔗');
+}
+
+// Saves OpenRouter key + selected free model. Also keeps the underlying
+// proxy* variables in sync since OpenRouter mode routes through proxy infra.
+function saveOpenRouterSettings(){
+  const key = document.getElementById('openrouter-key-input')?.value.trim() || '';
+  const model = document.getElementById('openrouter-model-select')?.value || 'nvidia/nemotron-ultra-3:free';
+  localStorage.setItem('openrouter_key', key);
+  localStorage.setItem('openrouter_model', model);
+  proxyUrl = OPENROUTER_ENDPOINT;
+  proxyKey = key;
+  proxyModel = model;
+  localStorage.setItem('proxy_url', OPENROUTER_ENDPOINT);
+  localStorage.setItem('proxy_key', key);
+  localStorage.setItem('proxy_model', model);
+  const s = document.getElementById('openrouter-status');
+  if(s){ s.classList.add('show'); setTimeout(()=>s.classList.remove('show'), 2500); }
+  showToast('OpenRouter settings saved! 🌐');
 }
 
 // Dedicated caller for small structured JSON tasks (memory extract, gift eval).
@@ -7737,9 +7828,19 @@ function decayRelHealth(bfId, amount, reason){
     }
     return;
   }
-  if(bf && data.health <= 0){
+  // Breakup can only happen from an ACTUAL relationship status — never from
+  // the default 'stage' status, which is what strangers/friends/etc sit at.
+  // Without this guard, background decay (forgotten birthday checks, etc.)
+  // could break someone up who was never even in a relationship.
+  const _realRelStatuses = ['dating','fiance','married','complicated','separation'];
+  if(bf && data.health <= 0 && _realRelStatuses.includes(data.status)){
     triggerBreakup(bf, data);
     return;
+  }
+  // For non-relationship statuses, floor health so it can recover instead
+  // of artificially sitting at 0 from background decay with nothing to "break"
+  if(!_realRelStatuses.includes(data.status)){
+    data.health = Math.max(5, data.health);
   }
   saveRelHealth(bfId, data);
   refreshRelMeter();
@@ -7936,6 +8037,31 @@ function getDaysUntilEvent(bfId, eventMonth, eventDay){
   return Math.round(diffMs / (1000*60*60*24));
 }
 
+// Real-calendar days SINCE the most recent occurrence of this month+day.
+// Returns 0 if today IS the event, positive numbers for days after it,
+// or null if the most recent occurrence was over a year ago (shouldn't happen
+// for annual events, but guards against bad data).
+function getDaysSinceEvent(bfId, eventMonth, eventDay){
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let mostRecent = new Date(now.getFullYear(), eventMonth, eventDay);
+  if(mostRecent > todayMidnight) mostRecent = new Date(now.getFullYear() - 1, eventMonth, eventDay);
+  const diffMs = todayMidnight - mostRecent;
+  const days = Math.round(diffMs / (1000*60*60*24));
+  return (days >= 0 && days <= 366) ? days : null;
+}
+
+// Returns the millisecond timestamp for the most recent occurrence of a
+// given month/day (e.g. "the most recent time it was Nov 4th"), at midnight.
+// Used to filter chat history to "everything said since this event happened."
+function getTimestampForMonthDay(month, day){
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let mostRecent = new Date(now.getFullYear(), month, day);
+  if(mostRecent > todayMidnight) mostRecent = new Date(now.getFullYear() - 1, month, day);
+  return mostRecent.getTime();
+}
+
 function _ordinal(n){
   if(n % 100 >= 11 && n % 100 <= 13) return n + 'th';
   if(n % 10 === 1) return n + 'st';
@@ -8000,68 +8126,76 @@ function maybeQueueBirthdayOrAnniversaryHint(bfId){
 }
 
 // ── Section 6: Birthday Forgotten System ──────────────────────
-function checkBirthdayForgotten(){
-  if(!currentBF) return;
-  const bfId = currentBF.id;
+// Rewritten to work off REAL elapsed time since the birthday, not a live
+// message-count watch that only progresses while the user is staring at
+// the chat. Previously: if the user didn't open this exact chat on the
+// exact day, the watch never started and nothing was ever detected —
+// meaning birthdays were functionally never "forgotten" unless the user
+// happened to be present the whole time. Now it checks real days elapsed,
+// so it works correctly whether the user was present or away.
+function checkBirthdayForgotten(bfId){
+  bfId = bfId || currentBF?.id;
+  if(!bfId) return;
   const bd = getBirthdayData(bfId);
   if(!bd) return;
   const today = getInGameDate(bfId);
-  const isBirthdayToday = today.month === bd.month && today.day === bd.day;
-  if(!isBirthdayToday) return;
+  const daysSinceBirthday = getDaysSinceEvent(bfId, bd.month, bd.day);
+  // Only relevant if birthday was 0-3 real days ago (gives a grace window,
+  // not an instant judgment, but doesn't require the user to be watching live)
+  if(daysSinceBirthday === null || daysSinceBirthday < 0 || daysSinceBirthday > 3) return;
+  const todayYearKey = today.year - (daysSinceBirthday > today.day ? 1 : 0); // handle year rollover edge case loosely
   const damageKey = `birthday_damage_${bfId}_y${today.year}`;
   if(localStorage.getItem(damageKey)) return;
+  // Check the ENTIRE history since the birthday date for acknowledgment —
+  // not just messages since some watch flag was set
   const history = chatHistory[bfId] || [];
-  const watchKey = `birthday_watch_start_${bfId}_y${today.year}`;
-  if(!localStorage.getItem(watchKey)){
-    localStorage.setItem(watchKey, history.length.toString());
-    return;
-  }
-  const watchStart = parseInt(localStorage.getItem(watchKey) || '0');
-  const msgsSinceStart = history.length - watchStart;
-  if(msgsSinceStart < 6) return;
-  const recentMsgs = history.slice(watchStart);
+  const bdayTimestamp = getTimestampForMonthDay(bd.month, bd.day);
+  const recentMsgs = history.filter(m => (m.ts||0) >= bdayTimestamp);
+  // Require at least SOME conversation to have happened since (so silence
+  // because the user genuinely hasn't opened the app isn't immediately punished
+  // the moment the grace window closes — only punished if they talked but didn't mention it)
+  if(recentMsgs.filter(m=>m.role==='user').length < 4) return;
   const birthdayWords = ['birthday','happy birthday','bday','your day','your birthday','turning','cake','candles','present','gift','celebrate you'];
   const userAcknowledged = recentMsgs
     .filter(m => m.role === 'user')
     .some(m => birthdayWords.some(w => String(m.content || '').toLowerCase().includes(w)));
-  if(userAcknowledged){ localStorage.removeItem(watchKey); return; }
+  if(userAcknowledged){ localStorage.setItem(damageKey, '1'); return; } // mark resolved, no damage
   localStorage.setItem(damageKey, '1');
-  localStorage.removeItem(watchKey);
   const moodPool = ['sad','irritable','argumentative','withdrawn'];
   forceMood(bfId, moodPool[Math.floor(Math.random() * moodPool.length)]);
-  const pronoun = currentBF.gender === 'female' ? 'her' : 'his';
+  const _bdBf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  const pronoun = _bdBf?.gender === 'female' ? 'her' : 'his';
   decayRelHealth(bfId, 10, `You forgot ${pronoun} birthday.`);
-  showToast(`🎂 ${currentBF.name.split(' ')[0]} noticed you forgot their birthday.`);
+  if(bfId === currentBF?.id) showToast(`🎂 ${_bdBf?.name.split(' ')[0]} noticed you forgot their birthday.`);
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const _bdayForgottenNote = `(BIRTHDAY FORGOTTEN: Today is your birthday (${monthNames[bd.month]} ${bd.day}) and the user has not acknowledged it after several messages. React in character right now — hurt, disappointed, withdrawn, irritable, passive-aggressive, or directly upset depending on your personality. Do NOT ignore it. Do NOT let it slide. This mattered to you and they forgot. The relationship health took a hit.)`;
+  const _bdayForgottenNote = `(BIRTHDAY FORGOTTEN: Your birthday was ${daysSinceBirthday === 0 ? 'today' : daysSinceBirthday + ' day(s) ago'} (${monthNames[bd.month]} ${bd.day}) and the user never acknowledged it. React in character right now — hurt, disappointed, withdrawn, irritable, passive-aggressive, or directly upset depending on your personality. Do NOT ignore it. Do NOT let it slide. This mattered to you and they forgot. The relationship health took a hit.)`;
   localStorage.setItem('pending_date_note_' + bfId, _bdayForgottenNote);
-  // Fire immediately so character reacts without waiting for user to type
-  const _bdayBf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
-  if(_bdayBf && (apiKey||proxyMode)){
+  if(_bdBf && (apiKey||proxyMode)){
     setTimeout(async ()=>{
       if(bfId === currentBF?.id) showTyping();
-      await generateAndSaveAutoMsg(_bdayBf, _bdayForgottenNote);
+      await generateAndSaveAutoMsg(_bdBf, _bdayForgottenNote);
       if(bfId === currentBF?.id){ hideTyping(); renderMessages(); }
       localStorage.removeItem('pending_date_note_'+bfId);
-      sendBrowserNotif(_bdayBf.name.split(' ')[0], `${_bdayBf.name.split(' ')[0]} noticed you forgot their birthday...`, bfId);
+      sendBrowserNotif(_bdBf.name.split(' ')[0], `${_bdBf.name.split(' ')[0]} noticed you forgot their birthday...`, bfId);
     }, 2000);
   }
 }
 
 // ── Section 7: Enhanced Anniversary Forgotten ─────────────────
-function enhanceAnniversaryForgotten(){
-  if(!currentBF) return;
-  const bfId = currentBF.id;
+function enhanceAnniversaryForgotten(bfId){
+  bfId = bfId || currentBF?.id;
+  if(!bfId) return;
   const annivRaw = localStorage.getItem('anniv_day_' + bfId);
   if(!annivRaw) return;
   try{
     const anniv = JSON.parse(annivRaw);
     const today = getInGameDate(bfId);
-    const isAnnivToday = anniv.month === today.month && anniv.day === today.day && today.year > anniv.year;
-    if(!isAnnivToday) return;
+    const daysSince = getDaysSinceEvent(bfId, anniv.month, anniv.day);
+    const isRecentAnniv = daysSince !== null && daysSince >= 0 && daysSince <= 3 && today.year > anniv.year;
+    if(!isRecentAnniv) return;
     const damageKey = `anniv_damage_${bfId}_y${today.year}`;
     if(localStorage.getItem(damageKey)){
-      // Already damaged — keep mood affected
+      // Already damaged — keep mood affected for a few days after
       const forced = ['sad','irritable','argumentative','withdrawn'][Math.floor(Math.random() * 4)];
       forceMood(bfId, forced);
     }
@@ -8157,13 +8291,21 @@ function applyAnniversaryHealthDrop(bfId){
 
 // ── Section 11: Master Date Memory Check ─────────────────────
 function runDateMemoryChecks(bfId){
+  // Guard: none of this should run for a character with no real chat history yet.
+  // Without this, a freshly-added character could accumulate background health
+  // decay from birthday/anniversary checks before the user ever said hello.
+  const _hasRealHistory = (chatHistory[bfId]||[]).length > 0;
+  if(!_hasRealHistory) return;
+
   ensureBirthdayInCalendar(bfId);
   maybeQueueBirthdayOrAnniversaryHint(bfId);
-  if(currentBF && currentBF.id === bfId){
-    checkBirthdayForgotten();
-    checkAnniversaryForgotten();
-    enhanceAnniversaryForgotten();
-  }
+  // These now run regardless of whether this character's chat is currently
+  // open — they were previously gated behind currentBF, which meant a missed
+  // birthday/anniversary would never actually register as "forgotten" unless
+  // the user happened to be staring at that exact chat the whole time.
+  checkBirthdayForgotten(bfId);
+  checkAnniversaryForgotten(bfId);
+  enhanceAnniversaryForgotten(bfId);
   const bf = savedBFs.find(b => b.id === bfId) || BF_DATA.find(b => b.id === bfId);
   if(bf) maybeSendDateSensitiveText(bf);
 }
@@ -8302,9 +8444,12 @@ function calScheduleDate(){
 // On anniversary day: if the user goes 3+ messages without acknowledging it,
 // the character gets upset and the relationship takes health damage.
 
-function checkAnniversaryForgotten(){
-  if(!currentBF) return;
-  const bfId = currentBF.id;
+// Rewritten to use real elapsed days since the anniversary instead of a
+// live message-count watch that only progressed while the user was present
+// in this exact chat — same root bug class as checkBirthdayForgotten.
+function checkAnniversaryForgotten(bfId){
+  bfId = bfId || currentBF?.id;
+  if(!bfId) return;
   const relData = getRelHealth(bfId);
   if(!['dating','fiance','married'].includes(relData.status)) return;
 
@@ -8316,51 +8461,39 @@ function checkAnniversaryForgotten(){
 
   const now = new Date();
   const today = { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
-  // Only runs on anniversary day (not the original dating year)
-  const isAnnivToday = _anniv.month === today.month && _anniv.day === today.day && today.year > _anniv.year;
-  if(!isAnnivToday) return;
+  const daysSinceAnniv = getDaysSinceEvent(bfId, _anniv.month, _anniv.day);
+  // Grace window of 0-3 real days, and never on the very first year it's set
+  if(daysSinceAnniv === null || daysSinceAnniv < 0 || daysSinceAnniv > 3) return;
+  if(today.year <= _anniv.year && daysSinceAnniv === 0 && today.month === _anniv.month && today.day === _anniv.day) return;
 
-  // If damage already dealt today, skip
   const damageKey = 'anniv_damage_'+bfId+'_y'+today.year;
   if(localStorage.getItem(damageKey)) return;
 
-  // Track how many messages have passed since anniversary day started
+  // Check the entire history since the anniversary date for acknowledgment
   const history = chatHistory[bfId]||[];
-  const watchKey = 'anniv_watch_start_'+bfId+'_y'+today.year;
-  if(!localStorage.getItem(watchKey)){
-    localStorage.setItem(watchKey, history.length.toString());
-    return; // start the watch
-  }
+  const annivTimestamp = getTimestampForMonthDay(_anniv.month, _anniv.day);
+  const recentMsgs = history.filter(m => (m.ts||0) >= annivTimestamp);
+  if(recentMsgs.filter(m=>m.role==='user').length < 4) return; // give real conversation a chance to happen first
 
-  const watchStart = parseInt(localStorage.getItem(watchKey)||'0');
-  const msgsSinceStart = history.length - watchStart;
-  if(msgsSinceStart < 6) return; // give them 6 exchanges (3 user + 3 AI) to remember
-
-  // Check if the user acknowledged the anniversary in recent messages
-  const recentMsgs = history.slice(watchStart);
   const annivWords = ['anniversary','anniv','happy anniv','our day','this day','remember today',
     'celebrate','celebrated','special day','first year','second year','third year','year together',
     'we started','we became','official','officially','when we got together','since we'];
   const userAcknowledged = recentMsgs
     .filter(m => m.role === 'user')
-    .some(m => annivWords.some(w => m.content.toLowerCase().includes(w)));
+    .some(m => String(m.content||'').toLowerCase().split('').length && annivWords.some(w => String(m.content||'').toLowerCase().includes(w)));
 
-  if(userAcknowledged) {
-    // User remembered — clear the watch, no damage
-    localStorage.removeItem(watchKey);
-    return;
-  }
+  if(userAcknowledged) { localStorage.setItem(damageKey, '1'); return; } // resolved, no damage
 
   // User forgot — deal health damage and trigger upset reaction
   localStorage.setItem(damageKey, '1');
-  localStorage.removeItem(watchKey);
 
   const mNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const yearsTogetherVal = today.year - _anniv.year;
   const dmgAmount = relData.status === 'married' ? 18 : 12;
+  const _annivBfForToast = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
 
   decayRelHealth(bfId, dmgAmount, `They forgot your anniversary (${mNames[_anniv.month]} ${_anniv.day}).`);
-  showToast(`💔 ${currentBF.name.split(' ')[0]} noticed you forgot your anniversary.`);
+  if(bfId === currentBF?.id) showToast(`💔 ${_annivBfForToast?.name.split(' ')[0]} noticed you forgot your anniversary.`);
 
   // Inject a pending note so the character reacts in character
   const _annivForgotNote = `(ANNIVERSARY FORGOTTEN: Today is your ${yearsTogetherVal === 1 ? '1st' : yearsTogetherVal === 2 ? '2nd' : yearsTogetherVal === 3 ? '3rd' : yearsTogetherVal+'th'} anniversary — ${mNames[_anniv.month]} ${_anniv.day}. The person you are with has not acknowledged it after several messages. React as your character right now — hurt, disappointed, quietly cold, passive aggressive, or directly upset depending on your personality. Do NOT let this slide. This matters to you and they forgot. Let them know, in your own way, that you noticed. The relationship health took a hit.)`;
@@ -9467,6 +9600,14 @@ if(localStorage.getItem('dark_mode') === '1'){
     if(fab) fab.textContent = '☀️ Light';
   }, {once:true});
 }
+
+// Restore the correct connection-mode panel (Gemini / Proxy / OpenRouter) on page load.
+// Previously there was no restoration logic at all, so a saved proxy/openrouter
+// preference would silently fall back to showing the Gemini panel after refresh.
+window.addEventListener('DOMContentLoaded', ()=>{
+  const savedKind = localStorage.getItem('api_mode_kind') || (localStorage.getItem('proxy_mode') === 'true' ? 'proxy' : 'gemini');
+  setApiMode(savedKind);
+}, {once:true});
 
 // ---- CREATE PAGE IMAGE UPLOAD ----
 function handleCreateImgUpload(e){
@@ -13367,6 +13508,12 @@ const TEXT_STATUSES = {
 };
 
 function getCharacterStatus(bfId){
+  // Sleep schedule overrides the normal status rotation entirely
+  if(isCharacterAsleep(bfId)){
+    const sched = getSleepSchedule(bfId);
+    const wakeDisplay = sched.wakeHour > 12 ? (sched.wakeHour-12)+'PM' : sched.wakeHour === 0 ? '12AM' : sched.wakeHour+'AM';
+    return `💤 Sleeping — back at ${wakeDisplay}`;
+  }
   const key='txt_status_'+bfId;
   const raw=localStorage.getItem(key);
   if(raw){
@@ -13527,6 +13674,8 @@ function openTextsChat(bfId){
   _textsActiveBfId=bfId;
   _activeGroupId=null;
   clearTextsUnread(bfId);
+  // Check if this character needs to wake up and apologize for falling asleep last night
+  if(getSleepSchedule(bfId)) maybeWakeUpAndApologize(bfId);
   const areaEl=document.getElementById('texts-chat-area');
   const emptyEl=document.getElementById('texts-empty-state');
   if(emptyEl) emptyEl.style.display='none';
@@ -13958,6 +14107,51 @@ async function textsSend(bfId){
   inputEl.style.height='auto';
   const bf=savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
   if(!bf) return;
+
+  // ── SLEEP SCHEDULE — character may be asleep right now ──────────────────
+  const _sleepMode = getSleepResponseMode(bfId);
+  if(_sleepMode){
+    addTextMessage(bfId, 'user', text);
+    renderTextsMsgs(bfId);
+
+    if(_sleepMode.mode === 'already_asleep'){
+      // Already passed out — message just sits there. Show the sleeping banner.
+      inputEl.value='';
+      showSleepingBanner(bf);
+      return;
+    }
+
+    if(_sleepMode.mode === 'fell_asleep'){
+      // This is the message that pushes them over the edge — they go silent now.
+      showSleepingBanner(bf);
+      return;
+    }
+
+    // mode === 'short_dry' — still awake enough to respond, but briefly, and
+    // tells the user directly that they're going back to sleep.
+    const _persistCount = incrementSleepPersistCount(bfId);
+    sendBtn.disabled = true;
+    const _sleepInstruction = `(IT IS PAST YOUR BEDTIME — you go to sleep at ${getSleepSchedule(bfId).bedHour > 12 ? getSleepSchedule(bfId).bedHour-12+'PM' : getSleepSchedule(bfId).bedHour+'AM'} sharp, no exceptions, this is a firm habit for you. The user just texted you after you should already be asleep. Respond SHORT and DRY — one line, maybe two at most. Tell them plainly and immediately that you're going back to sleep. Do not engage with whatever they said at length. This is message ${_persistCount+1} of them trying to keep you up — your patience for this thins with each one.)`;
+    setTimeout(async ()=>{
+      showTyping && typeof showTyping === 'function' && null; // no-op guard
+      const td = document.createElement('div');
+      td.id = 'texts-typing-'+bfId;
+      td.className = 'texts-typing-bubble';
+      td.innerHTML = '<div class="texts-typing-dot"></div><div class="texts-typing-dot"></div><div class="texts-typing-dot"></div>';
+      document.getElementById('texts-msgs-'+bfId)?.appendChild(td);
+      try{
+        const reply = await textsGenReply(bf, bfId, text + '\n' + _sleepInstruction);
+        document.getElementById('texts-typing-'+bfId)?.remove();
+        const replyText = (reply && typeof reply === 'object') ? reply.content : reply;
+        if(replyText){
+          addTextMessage(bfId, 'assistant', replyText);
+          renderTextsMsgs(bfId);
+        }
+      }catch(e){ console.error('sleep short_dry reply error:', e); document.getElementById('texts-typing-'+bfId)?.remove(); }
+      sendBtn.disabled = false;
+    }, 600);
+    return;
+  }
 
   // ── If they are physically together in story mode, acknowledge it ONCE then continue normally ──
   if(areUserAndCharCurrentlyTogether(bfId) && !hasUsedTogetherTextAck(bfId)){
@@ -16086,6 +16280,111 @@ function clearBjornHibernation(){
 }
 
 // Returns true if Bjorn is currently hibernating
+// ══════════════════════════════════════════════════════════════════
+// CHARACTER SLEEP SCHEDULES — generic, per-character realistic sleep times
+// ══════════════════════════════════════════════════════════════════
+// Each entry: bedHour/wakeHour in 24h local time. Built generic so any
+// character can get one later, just by adding their bfId here.
+const SLEEP_SCHEDULES = {
+  1: { bedHour: 22, wakeHour: 7, name: 'Elias' }, // Elias Thorne — sleeps at 10PM sharp, wakes 7AM
+};
+
+function getSleepSchedule(bfId){
+  return SLEEP_SCHEDULES[bfId] || null;
+}
+
+// Returns true if it is currently within this character's sleep window
+function isCharacterAsleep(bfId){
+  const sched = getSleepSchedule(bfId);
+  if(!sched) return false;
+  const now = new Date();
+  const hour = now.getHours();
+  // Handles overnight wrap (e.g. bed at 22, wake at 7 — asleep from 22:00 to 06:59)
+  if(sched.bedHour > sched.wakeHour){
+    return hour >= sched.bedHour || hour < sched.wakeHour;
+  }
+  return hour >= sched.bedHour && hour < sched.wakeHour;
+}
+
+// How many messages the user has sent since this character fell asleep —
+// used to decide when they actually pass out and start leaving texts on read
+function getSleepPersistKey(bfId){ return 'sleep_msgs_since_bed_'+bfId; }
+function getSleepFellAsleepKey(bfId){ return 'sleep_fell_asleep_'+bfId; }
+function getSleepApologizedKey(bfId){ return 'sleep_apologized_date_'+bfId; }
+
+// Call this when the user sends a text WHILE the character should be asleep.
+// Returns an object describing how to handle it:
+//   { mode: 'short_dry' }      — still responds, but short/dry, says they're going back to sleep
+//   { mode: 'fell_asleep' }    — character has now passed out, leave on read
+//   { mode: 'already_asleep' } — character already fell asleep, just show the notification bar
+function getSleepResponseMode(bfId){
+  const sched = getSleepSchedule(bfId);
+  if(!sched || !isCharacterAsleep(bfId)) return null;
+
+  const fellAsleepFlag = localStorage.getItem(getSleepFellAsleepKey(bfId));
+  if(fellAsleepFlag) return { mode: 'already_asleep' };
+
+  const persistCount = parseInt(localStorage.getItem(getSleepPersistKey(bfId)) || '0');
+  if(persistCount >= 12){
+    // They've pushed past 12 messages trying to keep him up — he actually falls asleep now
+    localStorage.setItem(getSleepFellAsleepKey(bfId), '1');
+    return { mode: 'fell_asleep' };
+  }
+  return { mode: 'short_dry', count: persistCount };
+}
+
+function incrementSleepPersistCount(bfId){
+  const key = getSleepPersistKey(bfId);
+  const count = parseInt(localStorage.getItem(key) || '0') + 1;
+  localStorage.setItem(key, String(count));
+  return count;
+}
+
+// Shows the top-sliding "sleeping" banner with the character's wake time
+function showSleepingBanner(bf){
+  const banner = document.getElementById('sleep-banner');
+  const textEl = document.getElementById('sleep-banner-text');
+  if(!banner || !textEl) return;
+  const sched = getSleepSchedule(bf.id);
+  const wakeHourDisplay = sched ? (sched.wakeHour > 12 ? (sched.wakeHour-12)+'PM' : sched.wakeHour === 0 ? '12AM' : sched.wakeHour+'AM') : '7AM';
+  textEl.textContent = `${bf.name.split(' ')[0]} is sleeping, text back at ${wakeHourDisplay}`;
+  banner.classList.add('visible');
+  setTimeout(()=>banner.classList.remove('visible'), 3500);
+}
+
+// Clears all sleep-cycle flags — called once the character wakes up (new day)
+function resetSleepCycle(bfId){
+  localStorage.removeItem(getSleepPersistKey(bfId));
+  localStorage.removeItem(getSleepFellAsleepKey(bfId));
+}
+
+// Checks if it's now past wake time and the sleep cycle needs resetting,
+// and queues an apology message if they fell asleep on the user last night
+function maybeWakeUpAndApologize(bfId){
+  const sched = getSleepSchedule(bfId);
+  if(!sched) return;
+  if(isCharacterAsleep(bfId)) return; // still asleep, nothing to do yet
+
+  const fellAsleepFlag = localStorage.getItem(getSleepFellAsleepKey(bfId));
+  const todayKey = new Date().toDateString();
+  const alreadyApologizedToday = localStorage.getItem(getSleepApologizedKey(bfId)) === todayKey;
+
+  if(fellAsleepFlag && !alreadyApologizedToday){
+    localStorage.setItem(getSleepApologizedKey(bfId), todayKey);
+    resetSleepCycle(bfId);
+    const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+    if(bf && (apiKey||proxyMode)){
+      const note = `(YOU JUST WOKE UP: You fell asleep on the user last night mid-conversation — you genuinely passed out, it wasn't intentional. It is now morning. The first thing you do is apologize for falling asleep on them, in your own voice and your own way. Keep it natural, not groveling unless that fits your personality.)`;
+      setTimeout(async ()=>{
+        await generateAndSaveAutoMsg(bf, note, true);
+        renderTextsMsgs(bfId);
+      }, 1000);
+    }
+  } else if(!fellAsleepFlag){
+    resetSleepCycle(bfId); // clean reset for a normal day where they just didn't get texted
+  }
+}
+
 function isBjornHibernating(){
   const state = getBjornHibernationState(16);
   return state && state.hibernating === true;
