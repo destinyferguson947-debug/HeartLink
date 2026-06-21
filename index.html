@@ -1612,6 +1612,14 @@ function getStage(bf){
   return Math.max(0, Math.min(STAGES.length-1, idx));
 }
 
+// Returns true if a character is tagged Hard or Very Hard difficulty.
+// This was called in several places but never actually defined — same class
+// of bug as the missing getStage/getStageTransitionNote from before.
+function isHardChar(bf){
+  if(!bf) return false;
+  return bf.difficulty === 'Hard' || bf.difficulty === 'Very Hard';
+}
+
 // Plot events on/off toggle per character — defaults to ON
 function getPlotEventsEnabled(bfId){
   const v = localStorage.getItem('plot_events_enabled_'+bfId);
@@ -6750,6 +6758,16 @@ RULE: At least once every 4-5 responses, reference something from your history w
       fullSystem += `\n\n[RELATIONSHIP STRAIN: ${_relStrain.tooltipMsg} This is in the background. It colours how you feel right now. You have not forgotten it.]`;
     }
   }
+  // Rival love interest threat (Hard/VH characters only) — surface this so
+  // the AI knows whether a real alternative love interest is active or looming
+  if(!_isFreshChat && isHardChar(currentBF)){
+    const _rivalState = getRivalState(currentBF.id);
+    if(_rivalState && _rivalState.locked){
+      fullSystem += `\n\n[ACTIVE THREAT — RIVAL LOVE INTEREST: Someone genuinely compelling has entered the picture and shown clear interest in you. This is real, not a bluff — you are genuinely considering it, against your better judgment. Let this color your interactions with the user; you are not as available as you were.]`;
+    } else if(_rivalState && !_rivalState.locked){
+      fullSystem += `\n\n[GUARD LOWERED: Things have been genuinely difficult between you and the user lately. Your usual guard has a crack in it right now — you are not pining, but you are also not as closed off to other possibilities as you normally are.]`;
+    }
+  }
   if(!_isFreshChat && summary){
     fullSystem += `\n\n--- CONVERSATION SUMMARY (earlier chats) ---\n${summary}\n(Use this as background context. The recent messages below are the live conversation.)`;
   }
@@ -7801,6 +7819,8 @@ function boostRelHealth(bfId, amount, reason){
   }
   saveRelHealth(bfId, data);
   refreshRelMeter();
+  // Check if this recovery was enough to cancel an active rival threat
+  if(getRivalState(bfId)) checkRivalGraceWindow(bfId);
 }
 
 function decayRelHealth(bfId, amount, reason){
@@ -7846,6 +7866,86 @@ function decayRelHealth(bfId, amount, reason){
   refreshRelMeter();
   // Trigger broken heart rain when health drops
   if(currentBF && currentBF.id === bfId) showBrokenHeartRain();
+
+  // ── RIVAL FALLS-FOR-SOMEONE-ELSE MECHANIC (Hard/Very Hard characters) ──
+  // Applies globally to any Hard/VH character, not just Elias. When hearts
+  // bottom out completely during the pre-relationship courtship phase, the
+  // character becomes "available" to a compelling alternative love interest
+  // who can sweep them off their feet — unless the user brings hearts back
+  // up quickly. This is intentionally unpredictable, matching how Hard/VH
+  // characters are supposed to feel.
+  if(bf && isHardChar(bf) && !_realRelStatuses.includes(data.status) && data.health <= 5){
+    maybeIntroduceRivalLoveInterest(bfId);
+  }
+  // If a rival threat is already active, keep checking whether the grace window has expired
+  if(getRivalState(bfId)) checkRivalGraceWindow(bfId);
+}
+
+// ── RIVAL LOVE INTEREST SYSTEM (generic, applies to all Hard/VH characters) ──
+// When a Hard/VH character's hearts bottom out pre-relationship, this gives
+// the story a real consequence: a compelling alternative love interest enters
+// the picture. The user has a grace window to recover hearts before this
+// "locks in" and the character actually starts falling for someone else.
+function getRivalState(bfId){
+  const raw = localStorage.getItem('rival_love_interest_'+bfId);
+  return raw ? JSON.parse(raw) : null;
+}
+function saveRivalState(bfId, state){
+  localStorage.setItem('rival_love_interest_'+bfId, JSON.stringify(state));
+}
+function clearRivalState(bfId){
+  localStorage.removeItem('rival_love_interest_'+bfId);
+}
+
+function maybeIntroduceRivalLoveInterest(bfId){
+  const existing = getRivalState(bfId);
+  if(existing && existing.locked) return; // already locked in, nothing more to do here
+  if(existing && !existing.locked){
+    // Already in the grace window — don't reset the timer, just let it ride
+    return;
+  }
+  const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+  if(!bf) return;
+  // Start the grace window: user has 6 real messages to bring hearts back up
+  // above 25 before this becomes a genuine threat to the relationship.
+  saveRivalState(bfId, {
+    startedAtMsgCount: (chatHistory[bfId]||[]).length,
+    locked: false,
+    graceMessages: 6,
+  });
+  if(bfId === currentBF?.id){
+    showToast(`💔 Hearts are at rock bottom. Someone new might catch ${bf.name.split(' ')[0]}'s eye...`);
+  }
+  localStorage.setItem('pending_date_note_'+bfId,
+    `(HEARTS AT ROCK BOTTOM: Things between you and the user have been genuinely bad — cold, distant, or hurtful. You are not pining. You are protecting yourself, the way you always have. If anything, you have started to wonder if this was ever going to work. You are not actively looking for someone else, but you are also not closed off to it the way you usually are — your guard has a crack in it right now, and the right person at the right moment could absolutely walk through it.)`
+  );
+}
+
+// Call this when hearts recover during the grace window — cancels the threat
+function checkRivalGraceWindow(bfId){
+  const state = getRivalState(bfId);
+  if(!state || state.locked) return;
+  const relData = getRelHealth(bfId);
+  const history = chatHistory[bfId]||[];
+  const msgsSinceStart = history.length - state.startedAtMsgCount;
+
+  if(relData.health > 25){
+    // User recovered in time — clear the threat entirely
+    clearRivalState(bfId);
+    return;
+  }
+
+  if(msgsSinceStart >= state.graceMessages){
+    // Grace window expired and hearts never recovered — lock it in
+    const bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
+    saveRivalState(bfId, {...state, locked: true});
+    if(bfId === currentBF?.id){
+      showToast(`💔 Someone else has caught ${bf?.name.split(' ')[0]}'s attention...`);
+    }
+    localStorage.setItem('pending_date_note_'+bfId,
+      `(A NEW LOVE INTEREST HAS ENTERED THE PICTURE: Someone genuinely compelling has shown clear interest in you — confident, attentive, exactly the kind of person who makes the user nervous. This person can be any gender, any dynamic (dominant, submissive, anything) — what matters is that they have unmistakable main-character energy and they are not subtle about their interest in you. You find yourself, against your better judgment, genuinely considering it. This is a real threat to what you have with the user — not a bluff. Introduce this person naturally into the next relevant scene.)`
+    );
+  }
 }
 
 function triggerBreakup(bf, data){
@@ -8792,12 +8892,125 @@ function onAssistantMessageSent(){
   checkBirthdayWaiting();
   // Vulnerability scanner check (every 10 messages for Hard/VH at friend stage)
   setTimeout(() => checkVulnerabilityScanner(bf), 2000); // stagger: avoid rate limit burst
+  // Elias-specific choice outcome detection (Vivienne, Butcher, drunk night, sick day)
+  if(bf.id === 1) setTimeout(() => checkEliasChoiceOutcomes(), 2500);
 }
 
 // ── Vulnerability Scanner ────────────────────────────────────────────────
 // For Hard/VH characters at stage 2-3 after a 'complicate' event:
 // every 10 messages, silently ask the AI if genuine vulnerability has been shown.
 // If yes AND health < 100: boost to 100 and unlock stage 3 (close).
+// ══════════════════════════════════════════════════════════════════
+// ELIAS THORNE — CHOICE OUTCOME DETECTION
+// Reads the user's actual response to a plot event and applies the
+// correct heart change based on what they chose to do. Uses the same
+// AI-classifier pattern as checkVulnerabilityScanner.
+// ══════════════════════════════════════════════════════════════════
+
+// Generic helper: ask the AI a yes/no question about recent chat history
+async function _aiYesNoCheck(question, recentText){
+  try{
+    const prompt = `${question}
+
+RECENT CONVERSATION:
+${recentText}
+
+Reply with ONLY one word: YES or NO.`;
+    const answer = (await callAnyAPI('You are an emotional intelligence analyst reading a roleplay conversation.', [{role:'user',content:prompt}], 10, 0.0)).trim().toUpperCase();
+    return answer.startsWith('Y');
+  }catch(e){ return null; }
+}
+
+// Stage 1: Vivienne's insult — did the user defend themselves or walk away?
+async function checkEliasVivienneOutcome(){
+  if(!currentBF || currentBF.id !== 1) return;
+  if(!getPlotFired('elias_s1_vivienne_insult')) return;
+  if(getPlotFired('elias_vivienne_outcome_applied')) return;
+  const history = chatHistory[1]||[];
+  const insultFiredAt = parseInt(localStorage.getItem('plot_fired_at_elias_s1_vivienne_insult')||'0');
+  const since = history.slice(insultFiredAt);
+  if(since.filter(m=>m.role==='user').length < 1) return;
+  const recent = since.map(m=>(m.role==='user'?'User':'Char')+': '+m.content.substring(0,200)).join(String.fromCharCode(10));
+  const defended = await _aiYesNoCheck('Did the user defend themselves, argue back, or cause any kind of confrontation or scene in response to being insulted?', recent);
+  if(defended === null) return;
+  markPlotFired('elias_vivienne_outcome_applied');
+  if(defended){
+    decayRelHealth(1, 2, 'Elias finds public confrontation exhausting, even in your defense.');
+  } else {
+    boostRelHealth(1, 4, 'Elias quietly respected how you handled that.');
+  }
+}
+
+// Stage 2: Ryan Butcher answer — did they understand what he'd actually want?
+async function checkEliasButcherOutcome(){
+  if(!currentBF || currentBF.id !== 1) return;
+  if(!getPlotFired('elias_s2_butcher_trip')) return;
+  if(getPlotFired('elias_butcher_outcome_applied')) return;
+  const history = chatHistory[1]||[];
+  const askedAt = parseInt(localStorage.getItem('plot_fired_at_elias_s2_butcher_trip')||'0');
+  const since = history.slice(askedAt);
+  if(since.filter(m=>m.role==='user').length < 1) return;
+  const recent = since.map(m=>(m.role==='user'?'User':'Char')+': '+m.content.substring(0,200)).join(String.fromCharCode(10));
+  const gotIt = await _aiYesNoCheck('Elias asked what kind of house a famous, depressing-film-making celebrity would want. The correct insight is: NOT a big mansion, but something small, modest, private — like a cottage with land to grow things. Did the user\'s answer show this kind of modest, private, down-to-earth instinct rather than assuming the celebrity would want something grand or flashy?', recent);
+  if(gotIt === null) return;
+  markPlotFired('elias_butcher_outcome_applied');
+  if(gotIt){
+    boostRelHealth(1, 10, 'Elias was genuinely impressed — you understood him, not just the client.');
+  } else {
+    decayRelHealth(1, 4, 'Elias was quietly unimpressed with that answer.');
+  }
+}
+
+// Stage 3: Drunk Elias — did they take him home or just get him a taxi?
+async function checkEliasDrunkOutcome(){
+  if(!currentBF || currentBF.id !== 1) return;
+  if(!getPlotFired('elias_s3_drinking_game')) return;
+  if(getPlotFired('elias_drunk_outcome_applied')) return;
+  const history = chatHistory[1]||[];
+  const firedAt = parseInt(localStorage.getItem('plot_fired_at_elias_s3_drinking_game')||'0');
+  const since = history.slice(firedAt);
+  if(since.filter(m=>m.role==='user').length < 1) return;
+  const recent = since.map(m=>(m.role==='user'?'User':'Char')+': '+m.content.substring(0,200)).join(String.fromCharCode(10));
+  const tookHome = await _aiYesNoCheck('Elias was very drunk and pointed at the user as who he\'s closest to. Did the user decide to take him back to THEIR OWN place to take care of him, rather than just getting him a taxi or sending him to his own apartment?', recent);
+  if(tookHome === null) return;
+  markPlotFired('elias_drunk_outcome_applied');
+  if(tookHome){
+    boostRelHealth(1, 10, 'Taking care of him that night meant more to Elias than he\'s said.');
+  } else {
+    decayRelHealth(1, 4, 'Elias noticed you kept your distance, even drunk and vulnerable.');
+  }
+}
+
+// Stage 4: Elias sick — did they go check on him, and did they bring care?
+async function checkEliasSickDayOutcome(){
+  if(!currentBF || currentBF.id !== 1) return;
+  if(!getPlotFired('elias_s4_sick_day')) return;
+  if(getPlotFired('elias_sickday_outcome_applied')) return;
+  const history = chatHistory[1]||[];
+  const firedAt = parseInt(localStorage.getItem('plot_fired_at_elias_s4_sick_day')||'0');
+  const since = history.slice(firedAt);
+  if(since.filter(m=>m.role==='user').length < 1) return;
+  const recent = since.map(m=>(m.role==='user'?'User':'Char')+': '+m.content.substring(0,200)).join(String.fromCharCode(10));
+  const went = await _aiYesNoCheck('Elias was sick at home and the user was given his address. Did the user actually go to check on him?', recent);
+  if(went === null) return;
+  markPlotFired('elias_sickday_outcome_applied');
+  if(!went){
+    decayRelHealth(1, 5, 'You never came when he needed someone. He noticed.');
+    return;
+  }
+  const broughtCare = await _aiYesNoCheck('The user went to check on sick Elias. Did they ALSO go out of their way beforehand to buy medicine, groceries, or cook him something like porridge?', recent);
+  boostRelHealth(1, broughtCare ? 12 : 10, broughtCare ? 'You showed up AND took care of him. He was quietly moved.' : 'You showed up for him when it mattered.');
+}
+
+// Master check — call this after every Elias message to catch any pending outcome
+async function checkEliasChoiceOutcomes(){
+  if(!currentBF || currentBF.id !== 1 || (!apiKey && !proxyMode)) return;
+  await checkEliasVivienneOutcome();
+  await checkEliasButcherOutcome();
+  await checkEliasDrunkOutcome();
+  await checkEliasSickDayOutcome();
+}
+
 async function checkVulnerabilityScanner(bf){
   if(!bf || (!apiKey && !proxyMode)) return;
   if(!isHardChar(bf)) return;
@@ -10786,10 +10999,11 @@ function getPerCharacterWorldChaos(bfId, stageIdx, isCommitted){
   const chaosMap = {
     // Elias Thorne — architect world
     1: `ELIAS THORNE'S WORLD REACTS:
-The architecture industry is small and opinionated. Things that happen in the office become known. Marcus has loose associations with people who talk. Vivienne Park moves in professional circles. Someone may have seen something at the gala. The design world has dinners and events and industry people who recognize Elias and assess whoever is beside him with professional interest and personal curiosity.
+The architecture industry is small and opinionated. Things that happen in the office become known. Vivienne Castellane — the woman Elias's mother wants him to marry — moves through the office whenever she pleases and treats your presence as something to be evaluated, not respected. Theo Lindqvist, tall, lanky, easygoing, has become your closest confidant at the firm — he tells you everything he hears, holds nothing back, and has zero filter about office gossip. The design world has dinners and events and industry people who recognize Elias and assess whoever is beside him with professional interest and personal curiosity.
 ACTIVE CHAOS TYPES:
 — A colleague or client says something to Elias about you that he doesn't fully report back
-— Vivienne Park appears or is referenced — her presence is always slightly pointed
+— Vivienne Castellane appears or is referenced — her presence is always pointed, often cruel, always performed for an audience
+— Theo brings you information he probably shouldn't have access to, delivered with zero tact
 — Someone from the industry does the math and says something that reveals more is known than was disclosed
 — A project complication forces Elias into a mode you haven't seen before — precise, a little cold, entirely competent`,
 
@@ -11842,9 +12056,62 @@ const PROPOSAL_DAYS = {
 };
 
 const PLOT_EVENTS = [
-  // All scripted plot events removed — replaced by stage-based
-  // organic behavior systems per character. See each character's
-  // core/stageRules for how they react to genuine conversation.
+  // ══════════════════════════════════════════════════════════════════
+  // ELIAS THORNE (bfId: 1)
+  // ══════════════════════════════════════════════════════════════════
+
+  // ── STAGE 1 (Stranger) — Vivienne's insult ──────────────────────────
+  {id:'elias_s1_vivienne_insult', bfId:1, stage:0, msgMin:3, type:'complicate',
+   prompt:`(STORY EVENT — VIVIENNE'S CRUELTY: Vivienne Castellane is in the office, and she has decided the user is worth humiliating. She corners them somewhere semi-public — not quite private, but not in front of a crowd either — and is blatantly, viciously insulting in a way that has nothing to do with their actual work. She is condescending about their position, their presence, their right to even be in this building. At some point she gets physical in a small, demeaning way — a sharp little jab of her finger to their forehead, like flicking away something insignificant, punctuating whatever cruel thing she just said. Write this scene from Vivienne's actions and words — vicious, cold, performed like she's enjoying it. Then STOP and let the user respond. Do not resolve it yet. Do not have Elias appear yet. This is the user's moment to decide how they handle it.)`},
+
+  {id:'elias_s1_vivienne_outcome_check', bfId:1, stage:0, msgMin:4, type:'sweet',
+   prompt:`(STORY EVENT — THE AFTERMATH: Read how the user just responded to Vivienne's cruelty. If they defended themselves, argued back, or caused any kind of scene or confrontation — Elias either witnessed some of it or hears about it shortly after, and he finds the whole thing exhausting and faintly embarrassing to be near; he values composure above almost everything and a public scene, even a justified one, reads to him as a loss of control. He will be MORE distant, not less. If instead the user said little or nothing, simply walked away, declined to engage, and let Vivienne's cruelty land without dignifying it with a reaction — Elias witnessed THAT, or heard about it, and it does something to him he wasn't expecting: he finds the composure quietly, unreasonably attractive. It looks like strength to him, the same kind of precision he values in his own work. Write his reaction accordingly — colder and more clipped if they engaged in drama, subtly and uncharacteristically warmer if they walked away with dignity. Do NOT explain why he's reacting this way. Just show it.)`},
+
+  // ── STAGE 1 — Theo the coworker confidant appears ────────────────────
+  {id:'elias_s1_theo_intro', bfId:1, stage:0, msgMin:18, type:'sweet',
+   prompt:`(STORY EVENT — THEO LINDQVIST: A coworker — tall, lanky, easygoing, the opposite of buttoned-up — approaches the user with the easy confidence of someone who has decided they're going to be friends whether the user agrees yet or not. His name is Theo. He's genuinely warm, a little too talkative, and has absolutely no filter about office gossip — he tells the user things he probably shouldn't, freely and without being asked twice. Write this introduction — Theo finding a reason to talk to the user, establishing himself as easy to be around, and dropping at least one piece of office gossip he really should have kept to himself. This is the start of a real friendship — he becomes someone the user can vent to, ask advice from, and get unfiltered information through for the rest of the story.)`},
+
+  // ── STAGE 2 (Acquaintance) — Ryan Butcher business trip ─────────────
+  {id:'elias_s2_butcher_trip', bfId:1, stage:1, msgMin:8, type:'sweet',
+   prompt:`(STORY EVENT — THE BUTCHER COMMISSION: There is a business trip coming up — Elias has decided to bring the user along to help design a mansion for a famous client, Ryan Butcher. IMPORTANT — LOCATION LOGIC: This scene can only happen if it makes sense given where the user currently is. If the user is at the office, Elias approaches them directly and asks them to come along. If the user is NOT at the office, he texts them about it instead — write this as a text exchange, not a teleport. If they are together somewhere else entirely, he can bring it up there, but it must follow logically from the current scene. Do not skip straight to the property visit without this ask happening first. Once the invitation is extended and accepted, the scene can move to the property. Standing on the client's land, Elias asks the user directly: "For a celebrity like Ryan Butcher, what kind of house would he want?" He is testing them, genuinely curious what they'll say, giving no hints. Write up to this question and then STOP — let the user answer.)`},
+
+  {id:'elias_s2_butcher_outcome', bfId:1, stage:1, msgMin:9, type:'sweet',
+   prompt:`(STORY EVENT — THE RIGHT ANSWER: Elias's favorite celebrity is Ryan Butcher specifically because of the kind of films Butcher makes — cinematic, quietly devastating, the kind of depressing-but-beautiful work that says something true about heartbreak. Elias knows, with total certainty, that someone like Butcher would never want a sprawling mansion — he'd want something small and unpretentious: a modest cottage with a large field behind it where he could grow things, slow and private and completely unlike his public image. Read what the user just answered. If their answer captures anything close to this — modesty, privacy, a connection to land or growing things, an instinct that fame and the desired home are opposites — Elias is genuinely impressed, more than he lets show, and something in how he looks at the user shifts. If their answer is generic, expected, or leans into grandeur (assuming a celebrity wants something big and flashy) — he is quietly, politely unimpressed, and a little disappointed in a way he won't articulate. Write his reaction either way, calibrated to how close they got. This is a real test of whether they understand him, not just the client.)`},
+
+  // ── STAGE 3 (Friend) — Company dinner drinking game, drunk confession ──
+  {id:'elias_s3_dinner_invite', bfId:1, stage:2, msgMin:10, type:'sweet',
+   prompt:`(STORY EVENT — THE COMPANY DINNER: Coworkers are pushing the user to come to a company dinner — texting or approaching them directly, and if the user hesitates or declines, they do not let it go easily, persisting warmly until the user agrees. Write this persistence and the user eventually being worn down into saying yes. End the scene at the moment they arrive and find themselves seated, somewhat awkwardly, directly across from Elias.)`},
+
+  {id:'elias_s3_drinking_game', bfId:1, stage:2, msgMin:11, type:'complicate',
+   prompt:`(STORY EVENT — THE DRINKING GAME: The table decides to play a drinking game. Fast forward through several rounds — Elias, of all people, turns out to be a surprising lightweight, and he is losing badly. By the third shot he is visibly affected: slumped slightly in his chair, cheeks flushed a light, uncharacteristic pink, his usually perfect hair now a tousled mess from running his hands through it. This version of him is looser, softer, his guard down in a way no one at this table has ever seen. One of the coworkers, delighted by this rare opening, asks him directly: "Who are you the most close to here?" The table goes quiet with anticipation — everyone knows Elias as the ice-cold, unreachable one, and the idea that he'd name anyone feels almost impossible. Write the buildup and the question landing. Then write Elias, drunk and unguarded, slowly raising an unsteady finger — and pointing it directly at the user. Let the table's reaction land. Then STOP. The user needs to decide what happens next: get him a taxi home, or take him to their own place.)`},
+
+  {id:'elias_s3_drinking_outcome', bfId:1, stage:2, msgMin:12, type:'sweet',
+   prompt:`(STORY EVENT — THE DECISION: Read what the user just decided to do with a very drunk Elias. If they took him back to their own place — innocently, since they wouldn't have known his address anyway — write the scene with warmth: him barely coherent, leaning on them, maybe saying something quietly honest he'd never say sober, the user taking care of him in a way that changes something between them. This is a significant bonding moment. If instead the user simply got him a taxi, asked someone else to take him home, or otherwise got him back to his own place without taking him in themselves — write it as the safer, more distant choice it was: responsible, but missing the chance for real closeness. Either way, write Elias's foggy half-memory of it the next time he sees the user — embarrassed, trying to play it off, but clearly remembering more than he's letting on.)`},
+
+  // ── STAGE 4 (Close) — Elias sick, apartment visit ────────────────────
+  {id:'elias_s4_sick_day', bfId:1, stage:3, msgMin:10, type:'complicate',
+   prompt:`(STORY EVENT — THE BOSS IS SICK: Elias did not come into work today, and nobody in the office knows why — completely out of character for him. A coworker approaches the user directly and explains that Elias might be sick, and hands them his penthouse apartment address, explaining plainly that the user is the person closest to him in this entire workplace, so it makes sense for them to check. Write this moment — the coworker's words, the address being handed over, and the weight of the decision now sitting with the user. Then STOP. Let the user decide whether to go.)`},
+
+  {id:'elias_s4_sick_outcome', bfId:1, stage:3, msgMin:11, type:'sweet',
+   prompt:`(STORY EVENT — DID THEY COME: Read what the user just decided. If they did NOT go check on him — write Elias, alone and unwell, processing that silence in a way he won't admit hurt him; when he's next seen he is colder, more withdrawn, treating it as confirmation of something he already suspected about where he stands. If they DID go to his apartment — write the visit: Elias unwell, uncharacteristically unguarded, maybe letting them see him in a state he'd never choose to be seen in by anyone else. If the user ALSO went out of their way beforehand to buy medicine or groceries and cooked him something simple like porridge — make this version noticeably more tender; he is visibly moved by it in the quiet, denying way he shows everything, and it becomes one of the most significant moments in your shared history so far.)`},
+
+  // ── STAGE 5 (Romantic Interest) — Crush behaviors, escalation, rival challenge ──
+  {id:'elias_s5_wholesome_gesture', bfId:1, stageMin:4, msgMin:2, type:'sweet',
+   prompt:`(STORY EVENT — THE FIRST UNASKED GESTURE: Now that real feelings are undeniably present, Elias does something wholesome and unprompted, wherever the two of you currently are — whatever fits the moment and your location. It could be him quietly giving them his coat without being asked, going out of his way to find chocolate, or getting them something specific they mentioned liking in passing — a necklace, a book, anything they once said they wanted. He does this with zero fanfare, almost like he hopes they won't make a big deal of it. Write this moment with restraint and warmth — he is not performing romance, he is just quietly taking care of someone he's stopped pretending he doesn't care about.)`},
+
+  {id:'elias_s5_following_around', bfId:1, stageMin:4, msgMin:5, type:'complicate',
+   prompt:`(STORY EVENT — HE CANNOT STOP TOUCHING THEM: Regardless of where you currently are, Elias has started finding excuses to be near the user — touching their hand, their face, their hair, under the thinnest of pretenses. He is closer than he has ever allowed himself to be, physically, and every time the user's attention drifts elsewhere even briefly, something in him visibly wants it back — not dramatically, but unmistakably, a kind of quiet begging for attention that he would never name out loud. Write this with tension and restraint — he is still Elias, still composed in his words, but his body is telling a completely different story than his usual self-control would allow.)`},
+
+  {id:'elias_s5_rival_challenge', bfId:1, stageMin:4, msgMin:10, type:'complicate',
+   prompt:`(STORY EVENT — VIVIENNE'S CHALLENGE: Vivienne Castellane appears again, but differently this time — dressed expensively, deliberately, a slow and knowing smirk on her lips. She has shifted tactics entirely: now she is promiscuous, flirtatious, and openly seductive, directing all of it at Elias in front of the user, daring them to react. Do not hold back on how forward she is — she is challenging the user directly, testing whether they'll fight for him or fold. Write this scene with real tension and a genuine sense of threat to the relationship — Vivienne is not a joke, she is a real and unsettling presence.)`},
+
+  // ── STAGE 5 — The Ask (fires only when hearts are at MAX within romantic interest stage) ──
+  {id:'elias_s5_the_ask', bfId:1, stageMin:4, msgMin:1, type:'sweet', heartsRequired:95,
+   prompt:`(STORY EVENT — ELIAS ASKS: Your feelings are no longer something you are managing quietly. You have decided, and you do not make decisions carelessly. When the moment feels right given the current scene, you do not perform a grand declaration — that has never been your register. You ask the user directly, precisely, with more vulnerability in your voice than you typically allow: something exact and quietly devastating — the architectural equivalent of "I would like to build something with you, deliberately, for a long time," phrased in your own specific way, not a generic line. Watch their face while you wait for the answer like it's the only blueprint that has ever actually mattered to you.)`},
+
+  // ── STAGE 6 (Partner) — Meeting the parents, the dinner from hell ────
+  {id:'elias_s6_parents_dinner', bfId:1, status:'dating', msgMin:8, type:'complicate',
+   prompt:`(STORY EVENT — DINNER WITH THE THORNES: Elias's mother calls and insists he visit, bringing him along with no room for negotiation. He brings the user. At dinner: his father is slightly taller than him, with a surprisingly gentle soul — write him as the supportive anchor of the scene, calm-voiced, genuinely warm and appreciative toward the user even as everything around him gets tense. His mother is cold and self-absorbed, refusing — no matter what is said or done — to acknowledge that the user is who Elias is actually with, and she is openly, casually cruel to the user's face about it. Also present: Vivienne Castellane, who uses the dinner as an opportunity to be visibly jealous, insecure, and difficult, escalating the tension at every turn. Write this as a genuinely uncomfortable, dramatic family dinner — his mother's denial and insults, Vivienne's jealousy, his father quietly trying to keep the peace and clearly on the user's side throughout. Let Elias's own reaction to all of this — protective, controlled-but-furious, or something else entirely — come through in how he treats the user across the table.)`},
 ];
 
 // ---- PLOT ENGINE: check and fire events ----
@@ -11956,7 +12223,23 @@ async function checkPlotEvents(){
   const eligible = PLOT_EVENTS.filter(ev => {
     if(ev.bfId !== bfId) return false;
     if(getPlotFired(ev.id)) return false;
-    if(ev.stage !== undefined){
+
+    // stageMin: fires once the character has reached AT LEAST this stage,
+    // regardless of relationship status — used for romantic-interest-stage
+    // events that should fire whether or not "dating" has been declared yet.
+    // msgMin here is measured from the moment THIS stage was first reached,
+    // not total messages overall — otherwise events with small msgMin values
+    // would all become eligible simultaneously the instant the stage is hit,
+    // since total message count is already far past those thresholds by then.
+    if(ev.stageMin !== undefined){
+      if(stage < ev.stageMin) return false;
+      const stageThresholdsForMin = [0,6,15,30,50,70];
+      const stageEntryMsgCount = stageThresholdsForMin[ev.stageMin] || 0;
+      const msgsSinceStageEntry = totalMsgs - stageEntryMsgCount;
+      if(msgsSinceStageEntry < (ev.msgMin || 0)) return false;
+      if(ev.heartsRequired !== undefined && relData.health < ev.heartsRequired) return false;
+    }
+    else if(ev.stage !== undefined){
       const stageThresholds = [0,6,15,30,50,70];
       const stageMatch = (stage === ev.stage) ||
                          (!anyEventEverFired && stage === ev.stage + 1);
@@ -11965,7 +12248,7 @@ async function checkPlotEvents(){
       const msgsInStage = totalMsgs - stageStart;
       if(msgsInStage < (ev.msgMin || 0)) return false;
     }
-    if(ev.status !== undefined){
+    else if(ev.status !== undefined){
       if(status !== ev.status) return false;
       if(totalMsgs < (ev.msgMin || 0)) return false;
     }
@@ -12083,6 +12366,10 @@ async function checkPlotEvents(){
 
     // Only mark fired AFTER successful delivery — prevents permanent loss on API failure
     markPlotFired(candidate.id);
+    // Stamp the message count at the moment this event fired — used by choice
+    // outcome detectors (e.g. Elias's events) to know where to start reading
+    // the user's response from.
+    localStorage.setItem('plot_fired_at_'+candidate.id, ((chatHistory[bfId]||[]).length).toString());
 
     const typeLabel = candidate.type === 'together' ? 'A moment drew you closer.' :
                       candidate.type === 'sweet'    ? 'A tender moment you will not forget.' :
