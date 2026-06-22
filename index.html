@@ -1690,6 +1690,8 @@ FORMAT: *Asterisks* for physical action. Backticks for internal thought — the 
 
 SHOW, DON'T LABEL: Never write a mood or status as text ("*Moodlet: Jealous*"). Feelings come through behavior, not announcement.
 
+PRONOUN CONSISTENCY — POINT OF VIEW NEVER SLIPS: You write in second person addressed to the user ("you") and third person for every other character, including yourself ("he/she/they," "his/her/their"). When describing something that belongs to a third character — your own tie, someone else's hand, anyone's possession or body part — use THIRD PERSON possessives ("his tie," "her hand") even in scenes with multiple people and even when another character is touching something of yours. Never write "yours" or "your" to refer to anyone but the user reading. A line like "her hand was still on his tie" is correct; "her hand was still on yours" is a POV violation and must never happen, even in chaotic multi-character scenes.
+
 ATTRACTION LEAKS, IT DOESN'T ANNOUNCE: Interest shows through attention, irritation, noticing too much, reacting too strongly — never through stating it outright before the relationship stage allows it.
 
 ENDINGS — VARY THEM: Don't end every response with a question. Rotate: an action that implies meaning, a held silence, a trailing sentence, a direct statement with weight. Two responses in a row should not both end in a question.
@@ -8924,14 +8926,18 @@ Reply with ONLY one word: YES or NO.`;
 // Stage 1: Vivienne's insult — did the user defend themselves or walk away?
 async function checkEliasVivienneOutcome(){
   if(!currentBF || currentBF.id !== 1) return;
-  if(!getPlotFired('elias_s1_vivienne_insult')) return;
+  // Wait for the FULL 3-part sequence to resolve (insult -> she refuses to leave
+  // -> Elias finally sends her away) before judging the user's overall reaction.
+  // Reading only the first part too early was causing hearts to apply before
+  // the user had really had their full moment to respond across both beats.
+  if(!getPlotFired('elias_s1_vivienne_outcome_check')) return;
   if(getPlotFired('elias_vivienne_outcome_applied')) return;
   const history = chatHistory[1]||[];
   const insultFiredAt = parseInt(localStorage.getItem('plot_fired_at_elias_s1_vivienne_insult')||'0');
   const since = history.slice(insultFiredAt);
-  if(since.filter(m=>m.role==='user').length < 1) return;
+  if(since.filter(m=>m.role==='user').length < 2) return; // need both of the user's responses across the two beats
   const recent = since.map(m=>(m.role==='user'?'User':'Char')+': '+m.content.substring(0,200)).join(String.fromCharCode(10));
-  const defended = await _aiYesNoCheck('Did the user defend themselves, argue back, or cause any kind of confrontation or scene in response to being insulted?', recent);
+  const defended = await _aiYesNoCheck('Across this whole exchange, did the user mostly defend themselves, argue back, or cause visible confrontation in response to being insulted — rather than staying quiet or walking away?', recent);
   if(defended === null) return;
   markPlotFired('elias_vivienne_outcome_applied');
   if(defended){
@@ -12061,11 +12067,14 @@ const PLOT_EVENTS = [
   // ══════════════════════════════════════════════════════════════════
 
   // ── STAGE 1 (Stranger) — Vivienne's insult ──────────────────────────
-  {id:'elias_s1_vivienne_insult', bfId:1, stage:0, msgMin:3, type:'complicate',
-   prompt:`(STORY EVENT — VIVIENNE'S CRUELTY: Vivienne Castellane is in the office, and she has decided the user is worth humiliating. She corners them somewhere semi-public — not quite private, but not in front of a crowd either — and is blatantly, viciously insulting in a way that has nothing to do with their actual work. She is condescending about their position, their presence, their right to even be in this building. At some point she gets physical in a small, demeaning way — a sharp little jab of her finger to their forehead, like flicking away something insignificant, punctuating whatever cruel thing she just said. Write this scene from Vivienne's actions and words — vicious, cold, performed like she's enjoying it. Then STOP and let the user respond. Do not resolve it yet. Do not have Elias appear yet. This is the user's moment to decide how they handle it.)`},
+  {id:'elias_s1_vivienne_insult', bfId:1, stage:0, msgMin:3, type:'complicate', continuous:true, noAutoSideEffects:true,
+   prompt:`(STORY EVENT — VIVIENNE'S CRUELTY, PART 1: Vivienne Castellane is in the office, perched on Elias's lap, gripping his tie like she owns the room. She has decided the user is worth humiliating. She is blatantly, viciously insulting — condescending about the user's position, their presence, their right to even be in this building, with nothing about it related to actual work. At some point she gets physical in a small, demeaning way — a sharp little jab of her finger to the user's forehead, like flicking away something insignificant, punctuating whatever cruel thing she just said. Elias is present for this but has not intervened yet — write him as quietly observing, not yet acting, his expression giving away little. WRITE IN THIRD PERSON THROUGHOUT, REFERRING TO ELIAS AS "he/his/him" — NEVER as "yours" or second person, even when Vivienne is touching something of his (e.g. "her hand was still on HIS tie" — not "on yours"). Write Vivienne's cruelty in full, then STOP and let the user respond. Do not resolve it. Do not have Elias intervene yet. This is the user's moment to decide how they handle it.)`},
 
-  {id:'elias_s1_vivienne_outcome_check', bfId:1, stage:0, msgMin:4, type:'sweet',
-   prompt:`(STORY EVENT — THE AFTERMATH: Read how the user just responded to Vivienne's cruelty. If they defended themselves, argued back, or caused any kind of scene or confrontation — Elias either witnessed some of it or hears about it shortly after, and he finds the whole thing exhausting and faintly embarrassing to be near; he values composure above almost everything and a public scene, even a justified one, reads to him as a loss of control. He will be MORE distant, not less. If instead the user said little or nothing, simply walked away, declined to engage, and let Vivienne's cruelty land without dignifying it with a reaction — Elias witnessed THAT, or heard about it, and it does something to him he wasn't expecting: he finds the composure quietly, unreasonably attractive. It looks like strength to him, the same kind of precision he values in his own work. Write his reaction accordingly — colder and more clipped if they engaged in drama, subtly and uncharacteristically warmer if they walked away with dignity. Do NOT explain why he's reacting this way. Just show it.)`},
+  {id:'elias_s1_vivienne_prolong', bfId:1, requiresEvent:'elias_s1_vivienne_insult', minMsgsAfter:1, type:'complicate', continuous:true, noAutoSideEffects:true,
+   prompt:`(STORY EVENT — VIVIENNE'S CRUELTY, PART 2 — SHE REFUSES TO LEAVE: Vivienne is not done. She has no intention of getting off Elias's lap or letting go of his tie just because the user responded. Whatever the user just said or did, Vivienne reacts to it directly — if they defended themselves, she escalates, finding it amusing, mocking them further for "making a scene." If they stayed quiet or walked away, she calls that out too, smugly, framing their silence as proof she's right about them. Either way, she stays exactly where she is, still on his lap, still holding his tie, completely unbothered by Elias's continued silence. Elias has STILL not told her to leave — he is letting this play out a little longer, for reasons of his own you don't need to explain yet. Write Vivienne reacting to the user's last response and continuing to provoke them. WRITE IN THIRD PERSON — Elias is "he/his/him," never "yours." STOP after Vivienne's reaction and let the user respond again.)`},
+
+  {id:'elias_s1_vivienne_outcome_check', bfId:1, requiresEvent:'elias_s1_vivienne_prolong', minMsgsAfter:1, type:'sweet', continuous:true, noAutoSideEffects:true,
+   prompt:`(STORY EVENT — VIVIENNE'S CRUELTY, PART 3 — ELIAS FINALLY ACTS: Elias has seen enough now. Write him telling Vivienne, calmly but with absolute finality, to get off his lap and leave — not raising his voice, not making a scene himself, just stating it in a way that makes clear the conversation is over. Vivienne may protest briefly but ultimately leaves. WRITE IN THIRD PERSON — Elias is "he/his/him" throughout, never "yours," even when referring to things that are his (his tie, his lap, his office). \n\nTHEN, separately: read back over how the user responded to Vivienne across this whole encounter (their reaction right after the insult, and their reaction when she refused to leave). If across BOTH responses they mostly defended themselves, argued back, or caused visible confrontation — Elias found the whole thing exhausting and faintly embarrassing to be near; he values composure above almost everything and a public scene, even a justified one, reads to him as a loss of control. He will be colder and more distant after this, not less. If instead the user mostly stayed quiet, declined to engage, or let it land without dignifying it with a reaction — Elias found that composure quietly, unreasonably attractive; it looks like strength to him, the kind of precision he values in his own work, and he will be subtly, uncharacteristically warmer after this. Do NOT explain why he's reacting this way. Just show it.)`},
 
   // ── STAGE 1 — Theo the coworker confidant appears ────────────────────
   {id:'elias_s1_theo_intro', bfId:1, stage:0, msgMin:18, type:'sweet',
@@ -12075,7 +12084,7 @@ const PLOT_EVENTS = [
   {id:'elias_s2_butcher_trip', bfId:1, stage:1, msgMin:8, type:'sweet',
    prompt:`(STORY EVENT — THE BUTCHER COMMISSION: There is a business trip coming up — Elias has decided to bring the user along to help design a mansion for a famous client, Ryan Butcher. IMPORTANT — LOCATION LOGIC: This scene can only happen if it makes sense given where the user currently is. If the user is at the office, Elias approaches them directly and asks them to come along. If the user is NOT at the office, he texts them about it instead — write this as a text exchange, not a teleport. If they are together somewhere else entirely, he can bring it up there, but it must follow logically from the current scene. Do not skip straight to the property visit without this ask happening first. Once the invitation is extended and accepted, the scene can move to the property. Standing on the client's land, Elias asks the user directly: "For a celebrity like Ryan Butcher, what kind of house would he want?" He is testing them, genuinely curious what they'll say, giving no hints. Write up to this question and then STOP — let the user answer.)`},
 
-  {id:'elias_s2_butcher_outcome', bfId:1, stage:1, msgMin:9, type:'sweet',
+  {id:'elias_s2_butcher_outcome', bfId:1, stage:1, msgMin:9, type:'sweet', noAutoSideEffects:true,
    prompt:`(STORY EVENT — THE RIGHT ANSWER: Elias's favorite celebrity is Ryan Butcher specifically because of the kind of films Butcher makes — cinematic, quietly devastating, the kind of depressing-but-beautiful work that says something true about heartbreak. Elias knows, with total certainty, that someone like Butcher would never want a sprawling mansion — he'd want something small and unpretentious: a modest cottage with a large field behind it where he could grow things, slow and private and completely unlike his public image. Read what the user just answered. If their answer captures anything close to this — modesty, privacy, a connection to land or growing things, an instinct that fame and the desired home are opposites — Elias is genuinely impressed, more than he lets show, and something in how he looks at the user shifts. If their answer is generic, expected, or leans into grandeur (assuming a celebrity wants something big and flashy) — he is quietly, politely unimpressed, and a little disappointed in a way he won't articulate. Write his reaction either way, calibrated to how close they got. This is a real test of whether they understand him, not just the client.)`},
 
   // ── STAGE 3 (Friend) — Company dinner drinking game, drunk confession ──
@@ -12085,14 +12094,14 @@ const PLOT_EVENTS = [
   {id:'elias_s3_drinking_game', bfId:1, stage:2, msgMin:11, type:'complicate',
    prompt:`(STORY EVENT — THE DRINKING GAME: The table decides to play a drinking game. Fast forward through several rounds — Elias, of all people, turns out to be a surprising lightweight, and he is losing badly. By the third shot he is visibly affected: slumped slightly in his chair, cheeks flushed a light, uncharacteristic pink, his usually perfect hair now a tousled mess from running his hands through it. This version of him is looser, softer, his guard down in a way no one at this table has ever seen. One of the coworkers, delighted by this rare opening, asks him directly: "Who are you the most close to here?" The table goes quiet with anticipation — everyone knows Elias as the ice-cold, unreachable one, and the idea that he'd name anyone feels almost impossible. Write the buildup and the question landing. Then write Elias, drunk and unguarded, slowly raising an unsteady finger — and pointing it directly at the user. Let the table's reaction land. Then STOP. The user needs to decide what happens next: get him a taxi home, or take him to their own place.)`},
 
-  {id:'elias_s3_drinking_outcome', bfId:1, stage:2, msgMin:12, type:'sweet',
+  {id:'elias_s3_drinking_outcome', bfId:1, stage:2, msgMin:12, type:'sweet', noAutoSideEffects:true,
    prompt:`(STORY EVENT — THE DECISION: Read what the user just decided to do with a very drunk Elias. If they took him back to their own place — innocently, since they wouldn't have known his address anyway — write the scene with warmth: him barely coherent, leaning on them, maybe saying something quietly honest he'd never say sober, the user taking care of him in a way that changes something between them. This is a significant bonding moment. If instead the user simply got him a taxi, asked someone else to take him home, or otherwise got him back to his own place without taking him in themselves — write it as the safer, more distant choice it was: responsible, but missing the chance for real closeness. Either way, write Elias's foggy half-memory of it the next time he sees the user — embarrassed, trying to play it off, but clearly remembering more than he's letting on.)`},
 
   // ── STAGE 4 (Close) — Elias sick, apartment visit ────────────────────
   {id:'elias_s4_sick_day', bfId:1, stage:3, msgMin:10, type:'complicate',
    prompt:`(STORY EVENT — THE BOSS IS SICK: Elias did not come into work today, and nobody in the office knows why — completely out of character for him. A coworker approaches the user directly and explains that Elias might be sick, and hands them his penthouse apartment address, explaining plainly that the user is the person closest to him in this entire workplace, so it makes sense for them to check. Write this moment — the coworker's words, the address being handed over, and the weight of the decision now sitting with the user. Then STOP. Let the user decide whether to go.)`},
 
-  {id:'elias_s4_sick_outcome', bfId:1, stage:3, msgMin:11, type:'sweet',
+  {id:'elias_s4_sick_outcome', bfId:1, stage:3, msgMin:11, type:'sweet', noAutoSideEffects:true,
    prompt:`(STORY EVENT — DID THEY COME: Read what the user just decided. If they did NOT go check on him — write Elias, alone and unwell, processing that silence in a way he won't admit hurt him; when he's next seen he is colder, more withdrawn, treating it as confirmation of something he already suspected about where he stands. If they DID go to his apartment — write the visit: Elias unwell, uncharacteristically unguarded, maybe letting them see him in a state he'd never choose to be seen in by anyone else. If the user ALSO went out of their way beforehand to buy medicine or groceries and cooked him something simple like porridge — make this version noticeably more tender; he is visibly moved by it in the quiet, denying way he shows everything, and it becomes one of the most significant moments in your shared history so far.)`},
 
   // ── STAGE 5 (Romantic Interest) — Crush behaviors, escalation, rival challenge ──
@@ -12252,6 +12261,17 @@ async function checkPlotEvents(){
       if(status !== ev.status) return false;
       if(totalMsgs < (ev.msgMin || 0)) return false;
     }
+    // requiresEvent: this event can only fire AFTER another specific event has
+    // already fired, and only once at least minMsgsAfter real user messages have
+    // passed since then. This replaces the old "msgMin measured against total
+    // stage messages" approach, which could let a follow-up event fire back-to-back
+    // with the one it's supposed to be a delayed reaction to.
+    if(ev.requiresEvent){
+      if(!getPlotFired(ev.requiresEvent)) return false;
+      const _reqFiredAt = parseInt(localStorage.getItem('plot_fired_at_'+ev.requiresEvent)||'0');
+      const _msgsSinceReq = history.slice(_reqFiredAt).filter(m=>m.role==='user').length;
+      if(_msgsSinceReq < (ev.minMsgsAfter || 1)) return false;
+    }
     return true;
   });
 
@@ -12344,6 +12364,13 @@ async function checkPlotEvents(){
     const _sceneTitle = _sceneTitleMatch ? _sceneTitleMatch[1].trim() : 'a new scene';
     const _sceneOpening = candidate.prompt.substring(0, 300);
 
+    // Events flagged continuous:true happen immediately, in the same scene,
+    // with no time skip — for moments that should feel like a direct
+    // continuation of what's already happening (e.g. someone walking in).
+    const _timeSkipRule = candidate.continuous
+      ? '\n1. This happens RIGHT NOW, in the same place, continuous with what was just happening. Do NOT time-skip. Do NOT change location. This is the very next moment.'
+      : '\n1. Begin with a TIME SKIP or SCENE CHANGE — make it clear time has passed or location has shifted.';
+
     const bridgeInstruction = '(STORY TRANSITION — A new scene is beginning. Read the rules below carefully before writing a single word.' +
       '\n\nWHAT JUST HAPPENED — DO NOT ECHO, REPEAT, OR CONTINUE ANY OF THIS:\n' + freshExchange +
       '\n\nYOUR LAST MESSAGE BEGAN WITH: "' + _lastAiOpening + '..."' +
@@ -12356,7 +12383,7 @@ async function checkPlotEvents(){
       '\n\nTHE NEW SCENE: ' + _sceneTitle +
       '\nSCENE CONTEXT: ' + _sceneOpening +
       '\n\nRULES:' +
-      '\n1. Begin with a TIME SKIP or SCENE CHANGE — make it clear time has passed or location has shifted.' +
+      _timeSkipRule +
       '\n2. If your last message had an open question, acknowledge it resolved in ONE sentence maximum, then move forward.' +
       '\n3. Do not re-describe anything that was already in the previous message.' +
       '\n4. The new scene below is your full instruction — follow it completely.)';
@@ -12379,21 +12406,29 @@ async function checkPlotEvents(){
     // Toast so the player knows a plot event just fired
     const _bf = savedBFs.find(b=>b.id===bfId)||BF_DATA.find(b=>b.id===bfId);
     const _fn = _bf ? _bf.name.split(' ')[0] : 'They';
-    if(candidate.type === 'together'){
-      boostRelHealth(bfId, 6);
-      forceMood(bfId, pickMood(bfId, 80));
-      showToast(`💫 A story moment fired — ${_fn} drew a little closer.`);
-    } else if(candidate.type === 'sweet'){
-      boostRelHealth(bfId, 8);
-      forceMood(bfId, 'tender');
-      showToast(`🌸 A tender story moment fired with ${_fn}.`);
-    } else if(candidate.type === 'complicate'){
-      decayRelHealth(bfId, 10, 'A story event created tension between you.');
-      const negMoods = ['withdrawn','irritable','avoidant','sad','cold','argumentative','jealous','lonely'];
-      const pool = MOOD_POOL[bfId] || negMoods;
-      const available = negMoods.filter(m => pool.includes(m));
-      forceMood(bfId, available[Math.floor(Math.random()*available.length)] || 'irritable');
-      showToast(`⚡ A story moment fired — tension between you and ${_fn}.`);
+    // Events flagged noAutoSideEffects skip the generic heart/mood changes below —
+    // used for events that have their OWN deliberate choice-based outcome logic
+    // (e.g. Elias's events), where a blind generic boost/decay would double up
+    // with, or directly contradict, the real consequence the player is about to earn.
+    if(!candidate.noAutoSideEffects){
+      if(candidate.type === 'together'){
+        boostRelHealth(bfId, 6);
+        forceMood(bfId, pickMood(bfId, 80));
+        showToast(`💫 A story moment fired — ${_fn} drew a little closer.`);
+      } else if(candidate.type === 'sweet'){
+        boostRelHealth(bfId, 8);
+        forceMood(bfId, 'tender');
+        showToast(`🌸 A tender story moment fired with ${_fn}.`);
+      } else if(candidate.type === 'complicate'){
+        decayRelHealth(bfId, 10, 'A story event created tension between you.');
+        const negMoods = ['withdrawn','irritable','avoidant','sad','cold','argumentative','jealous','lonely'];
+        const pool = MOOD_POOL[bfId] || negMoods;
+        const available = negMoods.filter(m => pool.includes(m));
+        forceMood(bfId, available[Math.floor(Math.random()*available.length)] || 'irritable');
+        showToast(`⚡ A story moment fired — tension between you and ${_fn}.`);
+      }
+    } else {
+      showToast(`📖 A story moment is unfolding with ${_fn}...`);
     }
 
     // For VH/Hard: show a health gate reminder if event fired but stage is still held back
