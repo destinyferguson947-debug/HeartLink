@@ -12071,9 +12071,11 @@ const PLOT_EVENTS = [
    prompt:`(STORY EVENT — VIVIENNE'S CRUELTY, PART 1: Vivienne Castellane is in the office, perched on Elias's lap, gripping his tie like she owns the room. She has decided the user is worth humiliating. She is blatantly, viciously insulting — condescending about the user's position, their presence, their right to even be in this building, with nothing about it related to actual work. At some point she gets physical in a small, demeaning way — a sharp little jab of her finger to the user's forehead, like flicking away something insignificant, punctuating whatever cruel thing she just said. Elias is present for this but has not intervened yet — write him as quietly observing, not yet acting, his expression giving away little. WRITE IN THIRD PERSON THROUGHOUT, REFERRING TO ELIAS AS "he/his/him" — NEVER as "yours" or second person, even when Vivienne is touching something of his (e.g. "her hand was still on HIS tie" — not "on yours"). Write Vivienne's cruelty in full, then STOP and let the user respond. Do not resolve it. Do not have Elias intervene yet. This is the user's moment to decide how they handle it.)`},
 
   {id:'elias_s1_vivienne_prolong', bfId:1, requiresEvent:'elias_s1_vivienne_insult', minMsgsAfter:1, type:'complicate', continuous:true, noAutoSideEffects:true,
+   resolutionKeywords:['told her to leave','told vivienne to leave','get out','get off','stood up','off his lap','left the office','left the room','dismiss','sent her away','sent vivienne away'],
    prompt:`(STORY EVENT — VIVIENNE'S CRUELTY, PART 2 — SHE REFUSES TO LEAVE: Vivienne is not done. She has no intention of getting off Elias's lap or letting go of his tie just because the user responded. Whatever the user just said or did, Vivienne reacts to it directly — if they defended themselves, she escalates, finding it amusing, mocking them further for "making a scene." If they stayed quiet or walked away, she calls that out too, smugly, framing their silence as proof she's right about them. Either way, she stays exactly where she is, still on his lap, still holding his tie, completely unbothered by Elias's continued silence. Elias has STILL not told her to leave — he is letting this play out a little longer, for reasons of his own you don't need to explain yet. Write Vivienne reacting to the user's last response and continuing to provoke them. WRITE IN THIRD PERSON — Elias is "he/his/him," never "yours." STOP after Vivienne's reaction and let the user respond again.)`},
 
   {id:'elias_s1_vivienne_outcome_check', bfId:1, requiresEvent:'elias_s1_vivienne_prolong', minMsgsAfter:1, type:'sweet', continuous:true, noAutoSideEffects:true,
+   resolutionKeywords:['told her to leave','told vivienne to leave','get out','get off','stood up','off his lap','left the office','left the room','dismiss','sent her away','sent vivienne away'],
    prompt:`(STORY EVENT — VIVIENNE'S CRUELTY, PART 3 — ELIAS FINALLY ACTS: Elias has seen enough now. Write him telling Vivienne, calmly but with absolute finality, to get off his lap and leave — not raising his voice, not making a scene himself, just stating it in a way that makes clear the conversation is over. Vivienne may protest briefly but ultimately leaves. WRITE IN THIRD PERSON — Elias is "he/his/him" throughout, never "yours," even when referring to things that are his (his tie, his lap, his office). \n\nTHEN, separately: read back over how the user responded to Vivienne across this whole encounter (their reaction right after the insult, and their reaction when she refused to leave). If across BOTH responses they mostly defended themselves, argued back, or caused visible confrontation — Elias found the whole thing exhausting and faintly embarrassing to be near; he values composure above almost everything and a public scene, even a justified one, reads to him as a loss of control. He will be colder and more distant after this, not less. If instead the user mostly stayed quiet, declined to engage, or let it land without dignifying it with a reaction — Elias found that composure quietly, unreasonably attractive; it looks like strength to him, the kind of precision he values in his own work, and he will be subtly, uncharacteristically warmer after this. Do NOT explain why he's reacting this way. Just show it.)`},
 
   // ── STAGE 1 — Theo the coworker confidant appears ────────────────────
@@ -12272,6 +12274,28 @@ async function checkPlotEvents(){
       const _msgsSinceReq = history.slice(_reqFiredAt).filter(m=>m.role==='user').length;
       if(_msgsSinceReq < (ev.minMsgsAfter || 1)) return false;
     }
+    // resolutionKeywords: if the character's OWN normal reply (the one the user
+    // just read, generated independently of the plot engine) already contains
+    // language suggesting this exact beat resolved itself naturally — e.g. the
+    // scene's antagonist already got told to leave — skip firing this event
+    // entirely instead of contradicting what the user just saw happen. This is
+    // what catches "he already stood up and told her to leave" before the
+    // engine tries to fire a follow-up where she's somehow still there.
+    if(ev.resolutionKeywords && ev.resolutionKeywords.length){
+      const _lastAiMsgCheck = history.filter(m=>m.role==='assistant').slice(-1)[0];
+      if(_lastAiMsgCheck){
+        const _lastLower = _lastAiMsgCheck.content.toLowerCase();
+        const _alreadyResolved = ev.resolutionKeywords.some(kw => _lastLower.includes(kw.toLowerCase()));
+        if(_alreadyResolved){
+          // Mark this event as fired anyway (without generating a message) so the
+          // chain doesn't get stuck waiting on something that already happened,
+          // and so the outcome-check function downstream still has a timestamp to read from.
+          markPlotFired(ev.id);
+          localStorage.setItem('plot_fired_at_'+ev.id, totalMsgs.toString());
+          return false;
+        }
+      }
+    }
     return true;
   });
 
@@ -12367,8 +12391,13 @@ async function checkPlotEvents(){
     // Events flagged continuous:true happen immediately, in the same scene,
     // with no time skip — for moments that should feel like a direct
     // continuation of what's already happening (e.g. someone walking in).
+    // CRITICAL ADDITION: continuous events must also respect whatever the
+    // PREVIOUS message already established as true — if it already resolved
+    // something (someone left, stood up, was dismissed), the new scene must
+    // build FORWARD from that reality, not contradict or rewind it.
     const _timeSkipRule = candidate.continuous
-      ? '\n1. This happens RIGHT NOW, in the same place, continuous with what was just happening. Do NOT time-skip. Do NOT change location. This is the very next moment.'
+      ? '\n1. This happens RIGHT NOW, in the same place, continuous with what was just happening. Do NOT time-skip. Do NOT change location. This is the very next moment.' +
+        '\n1a. CRITICAL: Your own previous message (shown above) already established certain facts as true — who is in the room, who left, who stood up, what was said. The new scene MUST be consistent with that. Do NOT contradict it. Do NOT undo something that was already resolved (e.g. if your last message already had someone leave or get dismissed, they are GONE — do not bring them back into the same position they were in before without a new, explicit reason for their return).'
       : '\n1. Begin with a TIME SKIP or SCENE CHANGE — make it clear time has passed or location has shifted.';
 
     const bridgeInstruction = '(STORY TRANSITION — A new scene is beginning. Read the rules below carefully before writing a single word.' +
