@@ -1096,18 +1096,21 @@
       <label>🔑 OpenRouter API Key</label>
       <input type="password" id="openrouter-key-input" placeholder="sk-or-... (free, get one at openrouter.ai)" />
       <button class="api-save-btn" onclick="saveOpenRouterSettings()">Save</button>
+      <button class="api-save-btn" id="check-openrouter-btn" onclick="checkOpenRouterKey()" style="background:var(--text-muted);margin-left:2px;">Check</button>
       <span class="api-status" id="openrouter-status">✓ Saved!</span>
+      <span id="openrouter-check-result" style="font-size:0.82rem;font-weight:500;display:none;margin-left:4px;"></span>
     </div>
     <div class="api-banner" style="margin-top:-0.5rem;">
       <label>🤖 Free Model</label>
       <select id="openrouter-model-select" onchange="saveOpenRouterSettings()" style="flex:1;min-width:200px;border:1.5px solid var(--border);border-radius:0.5rem;padding:0.5rem 0.8rem;font-family:'DM Sans',sans-serif;font-size:0.85rem;background:var(--card);color:var(--text);outline:none;cursor:pointer;">
-        <option value="nvidia/nemotron-3-ultra:free" selected>🚀 Nemotron 3 Ultra — free</option>
-        <option value="nvidia/nemotron-3-super:free">⭐ Nemotron 3 Super — free</option>
-        <option value="openrouter/owl-alpha:free">🦉 Owl Alpha — free</option>
+        <option value="nvidia/nemotron-3-ultra-550b-a55b:free" selected>🚀 Nemotron 3 Ultra — free</option>
+        <option value="nvidia/nemotron-3-super-120b-a12b:free">⭐ Nemotron 3 Super — free</option>
+        <option value="openrouter/owl-alpha">🦉 Owl Alpha — free</option>
         <option value="qwen/qwen3-coder:free">🧩 Qwen 3 Coder 480B — free</option>
-        <option value="nvidia/nemotron-3-nano-omni:free">🐣 Nemotron 3 Nano Omni — free</option>
+        <option value="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free">🐣 Nemotron 3 Nano Omni — free</option>
         <option value="poolside/laguna-xs.2:free">🌊 Poolside: Laguna XS.2 — free</option>
         <option value="poolside/laguna-m.1:free">🏝️ Poolside: Laguna M.1 — free</option>
+        <option value="google/gemma-4-31b-it:free">🪶 Gemma 4 31B — free</option>
       </select>
     </div>
     <p style="text-align:center;font-size:0.78rem;color:var(--text-muted);margin-top:-0.5rem;margin-bottom:2rem;">
@@ -4414,6 +4417,70 @@ function showPage(id){
 }
 
 // ---- API KEY ----
+// Mirrors checkApiKey but for OpenRouter — sends a tiny test request to
+// OpenRouter's chat completions endpoint using the currently selected free
+// model and reports back whether the key actually works.
+async function checkOpenRouterKey(){
+  const key = (document.getElementById('openrouter-key-input').value.trim()) || localStorage.getItem('openrouter_key') || '';
+  const resultEl = document.getElementById('openrouter-check-result');
+  const btn = document.getElementById('check-openrouter-btn');
+  if(!resultEl || !btn) return;
+  if(!key){
+    resultEl.style.display='inline';
+    resultEl.style.color='#c94f4f';
+    resultEl.textContent='⚠️ No API key entered.';
+    return;
+  }
+  btn.textContent='Checking…';
+  btn.disabled = true;
+  resultEl.style.display='none';
+  try{
+    const model = document.getElementById('openrouter-model-select')?.value || 'nvidia/nemotron-3-ultra-550b-a55b:free';
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + key,
+        'HTTP-Referer': 'https://localhost',
+        'X-Title': 'Boyfriend RP App',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{role:'user', content:'Hi'}],
+        max_tokens: 5,
+      })
+    });
+    const data = await res.json();
+    resultEl.style.display='inline';
+    if(res.ok && data.choices?.[0]){
+      resultEl.style.color='#2d9e6b';
+      resultEl.textContent='✅ API key valid & working!';
+    } else {
+      const msg = data?.error?.message || '';
+      const code = data?.error?.code || res.status;
+      if(code === 401 || msg.toLowerCase().includes('api key') || msg.toLowerCase().includes('auth')){
+        resultEl.style.color='#c94f4f';
+        resultEl.textContent='❌ Invalid API key. Double-check and re-paste it.';
+      } else if(code === 429 || msg.toLowerCase().includes('rate') || msg.toLowerCase().includes('limit')){
+        resultEl.style.color='#e8a838';
+        resultEl.textContent="⏳ Rate limited — you've hit the free tier's daily/per-minute limit. Try again later.";
+      } else if(code === 404 || msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('model')){
+        resultEl.style.color='#c94f4f';
+        resultEl.textContent='❌ Model not found — this model ID may be outdated. Try a different one from the list.';
+      } else {
+        resultEl.style.color='#c94f4f';
+        resultEl.textContent=`❌ Error: ${msg || 'Unknown error ('+code+')'}`;
+      }
+    }
+  } catch(e){
+    resultEl.style.display='inline';
+    resultEl.style.color='#c94f4f';
+    resultEl.textContent='❌ Network error: ' + (e.message || String(e));
+  }
+  btn.textContent='Check';
+  btn.disabled = false;
+}
+
 async function checkApiKey(){
   const key = (document.getElementById('api-key-input').value.trim()) || apiKey;
   const resultEl = document.getElementById('api-check-result');
@@ -6673,7 +6740,7 @@ function setApiMode(mode){
     proxyUrl = OPENROUTER_ENDPOINT;
     localStorage.setItem('proxy_url', OPENROUTER_ENDPOINT);
     const orKey = localStorage.getItem('openrouter_key') || '';
-    const orModel = localStorage.getItem('openrouter_model') || 'nvidia/nemotron-3-ultra:free';
+    const orModel = localStorage.getItem('openrouter_model') || 'nvidia/nemotron-3-ultra-550b-a55b:free';
     proxyKey = orKey;
     proxyModel = orModel;
     localStorage.setItem('proxy_key', orKey);
@@ -6705,7 +6772,7 @@ function saveProxySettings(){
 // proxy* variables in sync since OpenRouter mode routes through proxy infra.
 function saveOpenRouterSettings(){
   const key = document.getElementById('openrouter-key-input')?.value.trim() || '';
-  const model = document.getElementById('openrouter-model-select')?.value || 'nvidia/nemotron-3-ultra:free';
+  const model = document.getElementById('openrouter-model-select')?.value || 'nvidia/nemotron-3-ultra-550b-a55b:free';
   localStorage.setItem('openrouter_key', key);
   localStorage.setItem('openrouter_model', model);
   proxyUrl = OPENROUTER_ENDPOINT;
@@ -12125,14 +12192,17 @@ const PLOT_EVENTS = [
 
   // ── STAGE 1 (Stranger) — Vivienne's insult ──────────────────────────
   {id:'elias_s1_vivienne_insult', bfId:1, stage:0, msgMin:3, type:'complicate', continuous:true, noAutoSideEffects:true,
+   presenceCheck:'Is Vivienne (or any woman matching her description — perched on or near Elias, holding his tie) still currently present in the most recent message, in the same room as the user and Elias? Answer NO if she has already left, walked out, or is no longer described as being there.',
    prompt:`(STORY EVENT — VIVIENNE'S CRUELTY, PART 1: Vivienne Castellane is in the office, perched on Elias's lap, gripping his tie like she owns the room. She has decided the user is worth humiliating. She is blatantly, viciously insulting — condescending about the user's position, their presence, their right to even be in this building, with nothing about it related to actual work. At some point she gets physical in a small, demeaning way — a sharp little jab of her finger to the user's forehead, like flicking away something insignificant, punctuating whatever cruel thing she just said. Elias is present for this but has not intervened yet — write him as quietly observing, not yet acting, his expression giving away little. WRITE IN THIRD PERSON THROUGHOUT, REFERRING TO ELIAS AS "he/his/him" — NEVER as "yours" or second person, even when Vivienne is touching something of his (e.g. "her hand was still on HIS tie" — not "on yours"). Write Vivienne's cruelty in full, then STOP and let the user respond. Do not resolve it. Do not have Elias intervene yet. This is the user's moment to decide how they handle it.)`},
 
   {id:'elias_s1_vivienne_prolong', bfId:1, requiresEvent:'elias_s1_vivienne_insult', minMsgsAfter:1, type:'complicate', continuous:true, noAutoSideEffects:true,
    resolutionKeywords:['told her to leave','told vivienne to leave','get out','get off','stood up','off his lap','left the office','left the room','dismiss','sent her away','sent vivienne away'],
+   presenceCheck:'Is Vivienne still currently present in the room with Elias and the user in the most recent message? Answer NO if she has already left, walked out, been dismissed, or is no longer described as being there.',
    prompt:`(STORY EVENT — VIVIENNE'S CRUELTY, PART 2 — SHE REFUSES TO LEAVE: Vivienne is not done. She has no intention of getting off Elias's lap or letting go of his tie just because the user responded. Whatever the user just said or did, Vivienne reacts to it directly — if they defended themselves, she escalates, finding it amusing, mocking them further for "making a scene." If they stayed quiet or walked away, she calls that out too, smugly, framing their silence as proof she's right about them. Either way, she stays exactly where she is, still on his lap, still holding his tie, completely unbothered by Elias's continued silence. Elias has STILL not told her to leave — he is letting this play out a little longer, for reasons of his own you don't need to explain yet. Write Vivienne reacting to the user's last response and continuing to provoke them. WRITE IN THIRD PERSON — Elias is "he/his/him," never "yours." STOP after Vivienne's reaction and let the user respond again.)`},
 
   {id:'elias_s1_vivienne_outcome_check', bfId:1, requiresEvent:'elias_s1_vivienne_prolong', minMsgsAfter:1, type:'sweet', continuous:true, noAutoSideEffects:true,
    resolutionKeywords:['told her to leave','told vivienne to leave','get out','get off','stood up','off his lap','left the office','left the room','dismiss','sent her away','sent vivienne away'],
+   presenceCheck:'Is Vivienne still currently present in the room with Elias and the user in the most recent message (i.e. she has NOT already left, walked out, or been dismissed)? Answer NO if she has already left for any reason.',
    prompt:`(STORY EVENT — VIVIENNE'S CRUELTY, PART 3 — ELIAS FINALLY ACTS: Elias has seen enough now. Write him telling Vivienne, calmly but with absolute finality, to get off his lap and leave — not raising his voice, not making a scene himself, just stating it in a way that makes clear the conversation is over. Vivienne may protest briefly but ultimately leaves. WRITE IN THIRD PERSON — Elias is "he/his/him" throughout, never "yours," even when referring to things that are his (his tie, his lap, his office). \n\nTHEN, separately: read back over how the user responded to Vivienne across this whole encounter (their reaction right after the insult, and their reaction when she refused to leave). If across BOTH responses they mostly defended themselves, argued back, or caused visible confrontation — Elias found the whole thing exhausting and faintly embarrassing to be near; he values composure above almost everything and a public scene, even a justified one, reads to him as a loss of control. He will be colder and more distant after this, not less. If instead the user mostly stayed quiet, declined to engage, or let it land without dignifying it with a reaction — Elias found that composure quietly, unreasonably attractive; it looks like strength to him, the kind of precision he values in his own work, and he will be subtly, uncharacteristically warmer after this. Do NOT explain why he's reacting this way. Just show it.)`},
 
   // ── STAGE 1 — Theo the coworker confidant appears ────────────────────
@@ -12331,26 +12401,27 @@ async function checkPlotEvents(){
       const _msgsSinceReq = history.slice(_reqFiredAt).filter(m=>m.role==='user').length;
       if(_msgsSinceReq < (ev.minMsgsAfter || 1)) return false;
     }
-    // resolutionKeywords: if the character's OWN normal reply (the one the user
-    // just read, generated independently of the plot engine) already contains
-    // language suggesting this exact beat resolved itself naturally — e.g. the
-    // scene's antagonist already got told to leave — skip firing this event
-    // entirely instead of contradicting what the user just saw happen. This is
-    // what catches "he already stood up and told her to leave" before the
-    // engine tries to fire a follow-up where she's somehow still there.
-    if(ev.resolutionKeywords && ev.resolutionKeywords.length){
+    // presenceCheck / resolutionKeywords: before firing an event that assumes
+    // a specific scene state (e.g. "Vivienne is still here"), verify that
+    // state is actually still true. Keyword matching alone is too brittle —
+    // it only catches the exact phrases we thought to list, and misses any
+    // other way the model might describe the same resolution (e.g. someone
+    // leaving on their OWN initiative rather than being told to leave).
+    // presenceCheck queues an async AI verification; resolutionKeywords
+    // remains as a fast local pre-filter to avoid an API call on every check.
+    if((ev.resolutionKeywords && ev.resolutionKeywords.length) || ev.presenceCheck){
       const _lastAiMsgCheck = history.filter(m=>m.role==='assistant').slice(-1)[0];
       if(_lastAiMsgCheck){
         const _lastLower = _lastAiMsgCheck.content.toLowerCase();
-        const _alreadyResolved = ev.resolutionKeywords.some(kw => _lastLower.includes(kw.toLowerCase()));
-        if(_alreadyResolved){
-          // Mark this event as fired anyway (without generating a message) so the
-          // chain doesn't get stuck waiting on something that already happened,
-          // and so the outcome-check function downstream still has a timestamp to read from.
+        const _keywordHit = ev.resolutionKeywords && ev.resolutionKeywords.some(kw => _lastLower.includes(kw.toLowerCase()));
+        if(_keywordHit){
           markPlotFired(ev.id);
           localStorage.setItem('plot_fired_at_'+ev.id, totalMsgs.toString());
           return false;
         }
+        // If a presenceCheck question is defined, queue this candidate for async
+        // verification rather than deciding synchronously — the actual AI check
+        // happens just before firing, see _verifyPresenceCheck below.
       }
     }
     return true;
@@ -12433,6 +12504,28 @@ async function checkPlotEvents(){
   // Longer delay — give the user time to read the previous message before the event fires
   setTimeout(async () => {
     if(currentBF?.id !== bfId) return;
+
+    // ── presenceCheck: ask the AI directly whether the scene state this event
+    // assumes is still actually true, BEFORE generating anything. This catches
+    // any phrasing of "the thing already resolved" — not just a fixed keyword
+    // list — e.g. someone leaving on their own initiative, being dismissed,
+    // walking out mid-sentence, etc. Generalizes where keyword matching can't.
+    if(candidate.presenceCheck){
+      const _pcHistory = (chatHistory[bfId] || []).slice(-6);
+      const _pcRecent = _pcHistory.map(m => (m.role === 'user' ? 'User' : 'Char') + ': ' + m.content.substring(0, 250)).join('\n');
+      const _stillTrue = await _aiYesNoCheck(candidate.presenceCheck, _pcRecent);
+      if(_stillTrue === false){
+        // The assumed scene state no longer holds — skip this event entirely,
+        // mark it resolved-by-skip so the chain doesn't get stuck, and don't
+        // generate a contradicting message.
+        markPlotFired(candidate.id);
+        localStorage.setItem('plot_fired_at_'+candidate.id, ((chatHistory[bfId]||[]).length).toString());
+        return;
+      }
+      // _stillTrue === null means the check itself failed (e.g. no API key) —
+      // fail open and let the event fire rather than getting permanently stuck.
+    }
+
     showTyping();
 
     const freshHistory = (chatHistory[bfId] || []).slice(-6);
