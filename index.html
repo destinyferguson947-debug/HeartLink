@@ -1046,8 +1046,8 @@
         <option value="gemini-3-flash-preview">✨ Gemini 3 Flash Preview — Most powerful (free preview)</option>
         <option value="gemini-3.1-flash-lite-preview">💫 Gemini 3.1 Flash-Lite Preview — Newest &amp; free</option>
         <option value="gemini-3.5-flash-preview">🌟 Gemini 3.5 Flash Preview — Latest &amp; free</option>
-        <option value="gemma-3-27b-it">🪶 Gemma 3 27B — Open weights, free</option>
-        <option value="gemma-3n-e4b-it">🍃 Gemma 3n E4B — Lightweight, free</option>
+        <option value="gemma-4-31b-it">🪶 Gemma 4 31B — Open weights, free</option>
+        <option value="gemma-4-26b-a4b-it">🍃 Gemma 4 26B (MoE) — Fast &amp; free</option>
         <option value="gemini-2.5-pro">🧠 Gemini 2.5 Pro — Most capable (paid)</option>
         <option value="gemini-3-pro-preview">💎 Gemini 3 Pro Preview — Most powerful (paid)</option>
         <option value="gemini-3.1-pro-preview">✦ Gemini 3.1 Pro Preview — Latest pro (paid)</option>
@@ -1101,13 +1101,13 @@
     <div class="api-banner" style="margin-top:-0.5rem;">
       <label>🤖 Free Model</label>
       <select id="openrouter-model-select" onchange="saveOpenRouterSettings()" style="flex:1;min-width:200px;border:1.5px solid var(--border);border-radius:0.5rem;padding:0.5rem 0.8rem;font-family:'DM Sans',sans-serif;font-size:0.85rem;background:var(--card);color:var(--text);outline:none;cursor:pointer;">
-        <option value="nvidia/nemotron-ultra-3:free" selected>🚀 Nemotron Ultra 3 — free</option>
-        <option value="nvidia/nemotron-super-3:free">⭐ Nemotron Super 3 — free</option>
-        <option value="owl/owl-alpha:free">🦉 Owl Alpha — free</option>
-        <option value="qwen/qwen3-coder-480b:free">🧩 Qwen 3 Coder 480B — free</option>
+        <option value="nvidia/nemotron-3-ultra:free" selected>🚀 Nemotron 3 Ultra — free</option>
+        <option value="nvidia/nemotron-3-super:free">⭐ Nemotron 3 Super — free</option>
+        <option value="openrouter/owl-alpha:free">🦉 Owl Alpha — free</option>
+        <option value="qwen/qwen3-coder:free">🧩 Qwen 3 Coder 480B — free</option>
         <option value="nvidia/nemotron-3-nano-omni:free">🐣 Nemotron 3 Nano Omni — free</option>
-        <option value="poolside/laguna-xs-2:free">🌊 Poolside: Laguna XS.2 — free</option>
-        <option value="poolside/laguna-m-1:free">🏝️ Poolside: Laguna M.1 — free</option>
+        <option value="poolside/laguna-xs.2:free">🌊 Poolside: Laguna XS.2 — free</option>
+        <option value="poolside/laguna-m.1:free">🏝️ Poolside: Laguna M.1 — free</option>
       </select>
     </div>
     <p style="text-align:center;font-size:0.78rem;color:var(--text-muted);margin-top:-0.5rem;margin-bottom:2rem;">
@@ -1601,10 +1601,56 @@ const STAGES = ["stranger","acquaintance","friend","close","romantic interest","
 // Returns the relationship stage index (0-5) for a character, based on total
 // message count in their chat history. This was missing entirely, which broke
 // every function that depends on it — including opening a chat at all.
+// Per-character stage requirements that need BOTH a message count AND a
+// minimum relationship health to advance — used for characters whose
+// difficulty should genuinely mean something. Without this, a "Hard"
+// character would still progress through stages on message count alone,
+// regardless of how badly the relationship was actually going.
+// Format: [{minMsgs, minHealth}, ...] — index = stage number.
+// A stage's minHealth requirement only applies going INTO that stage —
+// once reached, health can fluctuate without demoting the character back down.
+const HEART_GATED_STAGE_REQUIREMENTS = {
+  1: [ // Elias Thorne
+    {minMsgs: 0,   minHealth: 0},   // stage 0 — stranger, always starts here
+    {minMsgs: 40,  minHealth: 95},  // stage 1 — acquaintance: hearts maxed AND 40 messages
+    {minMsgs: 90,  minHealth: 95},  // stage 2 — friend
+    {minMsgs: 120, minHealth: 95},  // stage 3 — close
+    {minMsgs: 190, minHealth: 95},  // stage 4 — romantic interest
+    {minMsgs: 250, minHealth: 95},  // stage 5 — partner
+  ],
+};
+
 function getStage(bf){
   if(!bf) return 0;
-  const stageThresholds = [0,6,15,30,50,70];
   const totalMsgs = (chatHistory[bf.id]||[]).length;
+  const _heartGated = HEART_GATED_STAGE_REQUIREMENTS[bf.id];
+
+  if(_heartGated){
+    // Walk requirements from highest stage down — a character only advances
+    // to a stage if BOTH the message count AND the health requirement for
+    // every stage up to and including that one have been satisfied at some
+    // point. We check current health against each gate going forward.
+    const _health = getRelHealth(bf.id).health ?? 50;
+    let idx = 0;
+    for(let i = _heartGated.length - 1; i >= 0; i--){
+      const req = _heartGated[i];
+      if(totalMsgs >= req.minMsgs && _health >= req.minHealth){
+        idx = i;
+        break;
+      }
+    }
+    // Once a stage has genuinely been reached, remember it — so a later dip
+    // in hearts doesn't demote the character back down a stage. The stage
+    // floor only ever moves forward, never backward, from natural heart loss.
+    const _stageFloorKey = 'stage_floor_reached_'+bf.id;
+    const _prevFloor = parseInt(localStorage.getItem(_stageFloorKey) || '0');
+    if(idx > _prevFloor) localStorage.setItem(_stageFloorKey, String(idx));
+    return Math.max(idx, _prevFloor, 0);
+  }
+
+  // Default behavior for every character without a heart-gated override —
+  // pure message-count thresholds, unchanged from before.
+  const stageThresholds = [0,6,15,30,50,70];
   let idx = 0;
   for(let i=stageThresholds.length-1; i>=0; i--){
     if(totalMsgs >= stageThresholds[i]){ idx = i; break; }
@@ -5633,7 +5679,7 @@ function renderSidebar(){
   list.innerHTML=savedBFs.map(bf=>{
     const stageIdx=getStage(bf);
     const _relD=getRelHealth(bf.id);
-    const _relTag=getRelLabel(_relD.status,stageIdx,_relD.health).replace(/^[\u{1F000}-\u{1FFFF}\u2600-\u27BF\s]+/u,'').trim();
+    const _relTag=getRelLabel(_relD.status,stageIdx,_relD.health,bf.id).replace(/^[\u{1F000}-\u{1FFFF}\u2600-\u27BF\s]+/u,'').trim();
     const avatarHtml = bf.image && !bf.image.startsWith('PLACEHOLDER')
       ? `<img src="${bf.image}" alt="${bf.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='🧑'">`
       : (bf.emoji||'🧑');
@@ -5701,7 +5747,7 @@ function openChat(id){
         <div class="chat-header-emoji ${avatarWrapClass}" style="overflow:hidden">${avatarHtml}</div>
         <div>
           <div class="chat-header-name">${bf.name}, ${getAdjustedCharacterAge(bf)} <span class="header-chevron">▾</span><span class="mood-badge" id="mood-badge"></span>${(['dating','fiance','married'].includes(relData.status) && localStorage.getItem('dating_since_time_'+bf.id)) ? `<span id="dating-duration-badge" style="font-size:0.78rem;font-weight:500;color:var(--rose);margin-left:10px;letter-spacing:0.01em;cursor:pointer;" onclick="showDatingTooltip(event,${bf.id})" title="Click for details">💗 ${getDatingDuration(bf.id)}</span>` : ''}</div>
-          <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx, relData.health)} · ${bf.difficulty||bf.tag}</div>
+          <div class="chat-header-scenario">${getRelLabel(relData.status, stageIdx, relData.health, bf.id)} · ${bf.difficulty||bf.tag}</div>
         </div>
         <div class="chat-header-dropdown" id="header-dropdown" onclick="event.stopPropagation()">
           <h4>${bf.name}</h4>
@@ -6553,6 +6599,13 @@ async function callAnyAPI(systemPrompt, messages, maxTokens=8192, temperature=1.
     }
     const headers = {'Content-Type':'application/json'};
     if(proxyKey) headers['Authorization'] = 'Bearer '+proxyKey;
+    // OpenRouter app-attribution headers — without these, OpenRouter can't
+    // identify the calling app, and on some free-tier models that has been
+    // reported to cause requests to be billed as paid instead of routed free.
+    if(typeof OPENROUTER_ENDPOINT !== 'undefined' && proxyUrl === OPENROUTER_ENDPOINT){
+      headers['HTTP-Referer'] = 'https://localhost';
+      headers['X-Title'] = 'Boyfriend RP App';
+    }
     const body = {messages: msgs, max_tokens: maxTokens, temperature};
     if(proxyModel) body.model = proxyModel;
     const res = await fetch(proxyUrl, {method:'POST', headers, body:JSON.stringify(body)});
@@ -6620,7 +6673,7 @@ function setApiMode(mode){
     proxyUrl = OPENROUTER_ENDPOINT;
     localStorage.setItem('proxy_url', OPENROUTER_ENDPOINT);
     const orKey = localStorage.getItem('openrouter_key') || '';
-    const orModel = localStorage.getItem('openrouter_model') || 'nvidia/nemotron-ultra-3:free';
+    const orModel = localStorage.getItem('openrouter_model') || 'nvidia/nemotron-3-ultra:free';
     proxyKey = orKey;
     proxyModel = orModel;
     localStorage.setItem('proxy_key', orKey);
@@ -6652,7 +6705,7 @@ function saveProxySettings(){
 // proxy* variables in sync since OpenRouter mode routes through proxy infra.
 function saveOpenRouterSettings(){
   const key = document.getElementById('openrouter-key-input')?.value.trim() || '';
-  const model = document.getElementById('openrouter-model-select')?.value || 'nvidia/nemotron-ultra-3:free';
+  const model = document.getElementById('openrouter-model-select')?.value || 'nvidia/nemotron-3-ultra:free';
   localStorage.setItem('openrouter_key', key);
   localStorage.setItem('openrouter_model', model);
   proxyUrl = OPENROUTER_ENDPOINT;
@@ -6676,6 +6729,10 @@ async function callStructuredJSON(systemPrompt, userPrompt, maxTokens=800){
     const msgs = [{role:'system',content:systemPrompt},{role:'user',content:userPrompt}];
     const headers = {'Content-Type':'application/json'};
     if(proxyKey) headers['Authorization'] = 'Bearer '+proxyKey;
+    if(typeof OPENROUTER_ENDPOINT !== 'undefined' && proxyUrl === OPENROUTER_ENDPOINT){
+      headers['HTTP-Referer'] = 'https://localhost';
+      headers['X-Title'] = 'Boyfriend RP App';
+    }
     const body = {messages:msgs, max_tokens:maxTokens, temperature:0.3};
     if(proxyModel) body.model = proxyModel;
     const res = await fetch(proxyUrl,{method:'POST',headers,body:JSON.stringify(body)});
@@ -13935,16 +13992,6 @@ function renderTextsPage(){
   }
 }
 
-function getRelLabel(status, stageIdx, health){
-  if(status==='dating') return 'Dating 💗';
-  if(status==='fiance') return 'Engaged 💍';
-  if(status==='married') return 'Married 💒';
-  if(status==='broken_up') return 'Broken up';
-  if(status==='divorced') return 'Divorced';
-  const labels=['Stranger','Acquaintance','Friends','Close','Romantic interest','Deeply bonded'];
-  return labels[stageIdx]||'';
-}
-
 function renderTextsContactList(bfs, query){
   const listEl=document.getElementById('texts-contact-list');
   if(!listEl) return;
@@ -15183,7 +15230,7 @@ function openGroupChatSetup(){
       <input type="checkbox" value="${bf.id}" style="width:16px;height:16px;accent-color:var(--rose)">
       ${img}
       <span style="font-size:0.88rem;font-weight:500;color:var(--text)">${bf.name}</span>
-      <span style="font-size:0.72rem;color:var(--text-muted);margin-left:auto">${getRelLabel(getRelHealth(bf.id).status,getStage(bf),getRelHealth(bf.id).health).replace(/[^\w\s·]/gu,'').trim()}</span>
+      <span style="font-size:0.72rem;color:var(--text-muted);margin-left:auto">${getRelLabel(getRelHealth(bf.id).status,getStage(bf),getRelHealth(bf.id).health,bf.id).replace(/[^\w\s·]/gu,'').trim()}</span>
     </label>`;
   }).join('');
   modal.style.display='flex';
